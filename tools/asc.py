@@ -460,6 +460,38 @@ def find_build(token: str, app_id: str, version: str) -> dict | None:
 PROFILE_NAME = "Neon Rift 2 CI"
 
 
+def export_legacy_p12(key_path: str, cert_path: str, p12_path: str, password_path: str) -> None:
+    """Write a PKCS#12 file macOS `security import` will accept."""
+    import subprocess
+
+    base = [
+        "openssl",
+        "pkcs12",
+        "-export",
+        "-inkey",
+        key_path,
+        "-in",
+        cert_path,
+        "-out",
+        p12_path,
+        "-passout",
+        f"file:{password_path}",
+    ]
+    attempts = [
+        base + ["-legacy", "-keypbe", "PBE-SHA1-3DES", "-certpbe", "PBE-SHA1-3DES", "-macalg", "sha1"],
+        base + ["-keypbe", "PBE-SHA1-3DES", "-certpbe", "PBE-SHA1-3DES", "-macalg", "sha1"],
+        base,
+    ]
+    last = ""
+    for command in attempts:
+        result = subprocess.run(command, capture_output=True, text=True)
+        if result.returncode == 0 and os.path.isfile(p12_path) and os.path.getsize(p12_path) > 0:
+            return
+        last = (result.stderr or result.stdout or "").strip().splitlines()[-1:] or [""]
+        last = last[0][:200]
+    sys.exit(f"openssl could not write a keychain-compatible p12 ({last})")
+
+
 def embedded_plist(blob: bytes) -> dict:
     import plistlib
 
@@ -567,16 +599,30 @@ def revoke_ci_distribution_certs(token: str) -> None:
 
 
 def delete_named_profiles(token: str, name: str) -> None:
+    """Drop the CI profile and the distribution certificate it was issued for."""
     rows = collection(token, "/v1/profiles?filter[profileType]=IOS_APP_STORE&limit=200")
     for row in rows:
         attrs = row.get("attributes") or {}
         if attrs.get("name") != name:
             continue
+        profile_id = row["id"]
+        try:
+            linked = api("GET", f"/v1/profiles/{profile_id}/certificates", token=token)
+        except ASCError as exc:
+            linked = {}
+            print(f"Could not list certificates for profile {profile_id}: {exc}")
         print(f"Removing previous profile {name}")
         try:
-            api("DELETE", f"/v1/profiles/{row['id']}", token=token)
+            api("DELETE", f"/v1/profiles/{profile_id}", token=token)
         except ASCError as exc:
-            print(f"Could not remove profile {row.get('id')}: {exc}")
+            print(f"Could not remove profile {profile_id}: {exc}")
+        for cert in linked.get("data") or []:
+            label = (cert.get("attributes") or {}).get("displayName") or cert.get("id")
+            print(f"Revoking distribution certificate used by {name}: {label}")
+            try:
+                api("DELETE", f"/v1/certificates/{cert['id']}", token=token)
+            except ASCError as exc:
+                print(f"Could not revoke {cert.get('id')}: {exc}")
 
 
 def provision() -> None:
@@ -590,7 +636,6 @@ def provision() -> None:
     from cryptography import x509
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import rsa
-    from cryptography.hazmat.primitives.serialization import BestAvailableEncryption, pkcs12
     from cryptography.x509.oid import NameOID
 
     team = require_env("APPLE_TEAM_ID").strip()
@@ -599,6 +644,7 @@ def provision() -> None:
     if not bundle:
         stop(bundle_id_instructions("the bundle id disappeared before signing"))
     revoke_ci_distribution_certs(token)
+    delete_named_profiles(token, PROFILE_NAME)
 
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     csr = (
@@ -636,7 +682,6 @@ def provision() -> None:
     identity = certificate.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
     print(f"Signing identity: {identity}")
 
-    delete_named_profiles(token, PROFILE_NAME)
     profile_body = {
         "data": {
             "type": "profiles",
@@ -664,22 +709,35 @@ def provision() -> None:
     p12_path = os.path.join(out_dir, "distribution.p12")
     profile_path = os.path.join(out_dir, f"{profile_uuid}.mobileprovision")
     plist_path = os.path.join(out_dir, "ExportOptions.plist")
-    p12 = pkcs12.serialize_key_and_certificates(
-        name=b"neonrift2",
-        key=private_key,
-        cert=certificate,
-        cas=None,
-        encryption_algorithm=BestAvailableEncryption(password.encode("utf-8")),
-    )
-    with open(p12_path, "wb") as handle:
-        handle.write(p12)
+    password_path = os.path.join(out_dir, "password.txt")
+    key_pem_path = os.path.join(out_dir, "key.pem")
+    cert_pem_path = os.path.join(out_dir, "cert.pem")
+    # The password stays in a 0600 file. Writing it to GITHUB_ENV prints it in the job log.
+    with open(password_path, "w", encoding="utf-8") as handle:
+        handle.write(password)
+    os.chmod(password_path, 0o600)
+    with open(key_pem_path, "wb") as handle:
+        handle.write(
+            private_key.private_bytes(
+                serialization.Encoding.PEM,
+                serialization.PrivateFormat.TraditionalOpenSSL,
+                serialization.NoEncryption(),
+            )
+        )
+    os.chmod(key_pem_path, 0o600)
+    with open(cert_pem_path, "wb") as handle:
+        handle.write(certificate.public_bytes(serialization.Encoding.PEM))
+    # cryptography's default PKCS#12 uses a MAC that macOS `security import` rejects.
+    export_legacy_p12(key_pem_path, cert_pem_path, p12_path, password_path)
+    os.remove(key_pem_path)
+    os.remove(cert_pem_path)
     os.chmod(p12_path, 0o600)
     with open(profile_path, "wb") as handle:
         handle.write(profile_blob)
     os.chmod(profile_path, 0o600)
     write_export_plist(plist_path, team, str(identity), PROFILE_NAME)
     emit("SIGNING_P12_PATH", p12_path)
-    emit("SIGNING_P12_PASSWORD", password)
+    emit("SIGNING_PASSWORD_PATH", password_path)
     emit("SIGNING_PROFILE_PATH", profile_path)
     emit("SIGNING_PROFILE_UUID", str(profile_uuid))
     emit("SIGNING_PROFILE_NAME", PROFILE_NAME)
