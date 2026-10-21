@@ -457,6 +457,237 @@ def find_build(token: str, app_id: str, version: str) -> dict | None:
     return rows[0] if rows else None
 
 
+PROFILE_NAME = "Neon Rift 2 CI"
+
+
+def embedded_plist(blob: bytes) -> dict:
+    import plistlib
+
+    start = blob.find(b"<?xml")
+    end = blob.find(b"</plist>")
+    if start < 0 or end < 0:
+        raise ValueError("provisioning profile does not contain a plist")
+    return plistlib.loads(blob[start : end + len(b"</plist>")])
+
+
+def xml_escape(value: str) -> str:
+    return (
+        value.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+def write_export_plist(path: str, team: str, identity: str, profile_name: str) -> None:
+    # Manual signing. Automatic export uses cloud signing, and this API key
+    # is not allowed to create the cloud-managed distribution certificate.
+    text = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>app-store-connect</string>
+  <key>destination</key>
+  <string>export</string>
+  <key>signingStyle</key>
+  <string>manual</string>
+  <key>signingCertificate</key>
+  <string>{xml_escape(identity)}</string>
+  <key>teamID</key>
+  <string>{xml_escape(team)}</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>{xml_escape(BUNDLE_ID)}</key>
+    <string>{xml_escape(profile_name)}</string>
+  </dict>
+  <key>uploadSymbols</key>
+  <true/>
+  <key>stripSwiftSymbols</key>
+  <true/>
+  <key>manageAppVersionAndBuildNumber</key>
+  <false/>
+</dict>
+</plist>
+"""
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(text)
+
+
+def signing_permission_instructions(reason: str) -> str:
+    return f"""Stop. The API key can see Neon Rift 2, but it cannot create the distribution signing assets the upload needs.
+Reason: {reason}
+
+The archive step already proved the key is valid. Export then failed with "Cloud signing permission error" / "No profiles for com.shaz010.neonrift2 were found". Cloud signing requires an Admin API key. Creating a distribution certificate through the API was refused as well, or the team is at Apple's certificate limit.
+
+Shahbaz, do this:
+
+1. Open https://appstoreconnect.apple.com/access/integrations/api
+2. Generate an API key named Neon Rift 2 CI with access Admin. Download the .p8. Apple shows that file only once.
+3. Open https://github.com/shaz010/neon-rift/settings/secrets/actions
+4. Replace ASC_KEY_ID with the new key id.
+5. Replace ASC_KEY_P8 with the full .p8 file contents, including the BEGIN and END lines.
+6. Leave ASC_ISSUER_ID and APPLE_TEAM_ID unchanged.
+7. Tell me to re-run the upload.
+
+If the error was instead that the team already has the maximum number of distribution certificates, open https://developer.apple.com/account/resources/certificates/list and revoke an Apple Distribution certificate that no other app is using, then tell me to re-run.
+"""
+
+
+def collection(token: str, path: str) -> list:
+    rows = []
+    url = path
+    for _ in range(10):
+        data = api("GET", url, token=token)
+        rows.extend(data.get("data") or [])
+        url = (data.get("links") or {}).get("next")
+        if not url:
+            break
+    return rows
+
+
+def revoke_ci_distribution_certs(token: str) -> None:
+    rows = collection(token, "/v1/certificates?filter[certificateType]=DISTRIBUTION&limit=50")
+    rows += collection(token, "/v1/certificates?filter[certificateType]=IOS_DISTRIBUTION&limit=50")
+    seen = set()
+    for row in rows:
+        cert_id = row.get("id")
+        if not cert_id or cert_id in seen:
+            continue
+        seen.add(cert_id)
+        attrs = row.get("attributes") or {}
+        label = f"{attrs.get('displayName') or ''} {attrs.get('name') or ''}"
+        if "Created via API" not in label:
+            continue
+        print(f"Revoking previous CI distribution certificate {attrs.get('displayName') or cert_id}")
+        try:
+            api("DELETE", f"/v1/certificates/{cert_id}", token=token)
+        except ASCError as exc:
+            print(f"Could not revoke {cert_id}: {exc}")
+
+
+def delete_named_profiles(token: str, name: str) -> None:
+    rows = collection(token, "/v1/profiles?filter[profileType]=IOS_APP_STORE&limit=200")
+    for row in rows:
+        attrs = row.get("attributes") or {}
+        if attrs.get("name") != name:
+            continue
+        print(f"Removing previous profile {name}")
+        try:
+            api("DELETE", f"/v1/profiles/{row['id']}", token=token)
+        except ASCError as exc:
+            print(f"Could not remove profile {row.get('id')}: {exc}")
+
+
+def provision() -> None:
+    """Create an Apple Distribution cert and App Store profile with the API key.
+
+    Cloud signing (-allowProvisioningUpdates at export) is denied for this key.
+    The private key exists only on the runner.
+    """
+    import secrets
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.primitives.serialization import BestAvailableEncryption, pkcs12
+    from cryptography.x509.oid import NameOID
+
+    team = require_env("APPLE_TEAM_ID").strip()
+    token = make_token()
+    bundle = find_bundle(token)
+    if not bundle:
+        stop(bundle_id_instructions("the bundle id disappeared before signing"))
+    revoke_ci_distribution_certs(token)
+
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    csr = (
+        x509.CertificateSigningRequestBuilder()
+        .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Neon Rift 2 CI")]))
+        .sign(private_key, hashes.SHA256())
+    )
+    csr_pem = csr.public_bytes(serialization.Encoding.PEM).decode("ascii")
+    created = None
+    last = None
+    for certificate_type in ("DISTRIBUTION", "IOS_DISTRIBUTION"):
+        body = {
+            "data": {
+                "type": "certificates",
+                "attributes": {"certificateType": certificate_type, "csrContent": csr_pem},
+            }
+        }
+        try:
+            created = api("POST", "/v1/certificates", body, token=token)
+            print(f"Created {certificate_type} certificate.")
+            break
+        except ASCError as exc:
+            last = exc
+            if create_is_forbidden(exc):
+                stop(signing_permission_instructions(error_text(exc.payload)))
+            if exc.status not in (400, 409, 422):
+                raise
+    if created is None:
+        stop(signing_permission_instructions(error_text(last.payload) if last else "no certificate was created"))
+
+    cert_row = created["data"]
+    encoded = (cert_row.get("attributes") or {}).get("certificateContent") or ""
+    der = base64.b64decode(encoded)
+    certificate = x509.load_der_x509_certificate(der)
+    identity = certificate.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
+    print(f"Signing identity: {identity}")
+
+    delete_named_profiles(token, PROFILE_NAME)
+    profile_body = {
+        "data": {
+            "type": "profiles",
+            "attributes": {"name": PROFILE_NAME, "profileType": "IOS_APP_STORE"},
+            "relationships": {
+                "bundleId": {"data": {"type": "bundleIds", "id": bundle["id"]}},
+                "certificates": {"data": [{"type": "certificates", "id": cert_row["id"]}]},
+            },
+        }
+    }
+    try:
+        profile = api("POST", "/v1/profiles", profile_body, token=token)
+    except ASCError as exc:
+        if create_is_forbidden(exc):
+            stop(signing_permission_instructions(error_text(exc.payload)))
+        raise
+    print(f"Created App Store profile {PROFILE_NAME}.")
+    profile_blob = base64.b64decode((profile["data"].get("attributes") or {}).get("profileContent") or "")
+    info = embedded_plist(profile_blob)
+    profile_uuid = info.get("UUID") or profile["data"]["id"]
+
+    out_dir = os.path.join(os.environ.get("RUNNER_TEMP", "/tmp"), "signing")
+    os.makedirs(out_dir, mode=0o700, exist_ok=True)
+    password = secrets.token_urlsafe(18)
+    p12_path = os.path.join(out_dir, "distribution.p12")
+    profile_path = os.path.join(out_dir, f"{profile_uuid}.mobileprovision")
+    plist_path = os.path.join(out_dir, "ExportOptions.plist")
+    p12 = pkcs12.serialize_key_and_certificates(
+        name=b"neonrift2",
+        key=private_key,
+        cert=certificate,
+        cas=None,
+        encryption_algorithm=BestAvailableEncryption(password.encode("utf-8")),
+    )
+    with open(p12_path, "wb") as handle:
+        handle.write(p12)
+    os.chmod(p12_path, 0o600)
+    with open(profile_path, "wb") as handle:
+        handle.write(profile_blob)
+    os.chmod(profile_path, 0o600)
+    write_export_plist(plist_path, team, str(identity), PROFILE_NAME)
+    emit("SIGNING_P12_PATH", p12_path)
+    emit("SIGNING_P12_PASSWORD", password)
+    emit("SIGNING_PROFILE_PATH", profile_path)
+    emit("SIGNING_PROFILE_UUID", str(profile_uuid))
+    emit("SIGNING_PROFILE_NAME", PROFILE_NAME)
+    emit("SIGNING_IDENTITY", str(identity))
+    emit("EXPORT_OPTIONS_PLIST", plist_path)
+    print("Distribution certificate and App Store profile are ready.")
+
+
 def note() -> None:
     """Best-effort TestFlight notes. Upload has already succeeded."""
     app_id = require_env("ASC_APP_ID").strip()
@@ -560,6 +791,19 @@ def self_test() -> None:
     body = cleaned.split("\n")[1:-2]
     if any(len(line) > 64 for line in body):
         raise AssertionError("canonical key lines are longer than 64 characters")
+    wrapped = b"junk<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\"><plist version=\"1.0\"><dict><key>UUID</key><string>ABC-123</string><key>Name</key><string>Neon Rift 2 CI</string></dict></plist>tail"
+    info = embedded_plist(wrapped)
+    if info.get("UUID") != "ABC-123" or info.get("Name") != "Neon Rift 2 CI":
+        raise AssertionError("profile plist was not extracted")
+    import tempfile
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "ExportOptions.plist")
+        write_export_plist(path, "TEAMID1234", 'Apple Distribution: Example (TEAMID1234)', PROFILE_NAME)
+        text = open(path, encoding="utf-8").read()
+    if "manual" not in text or BUNDLE_ID not in text or PROFILE_NAME not in text:
+        raise AssertionError("export plist is missing the manual profile")
+    if "Admin" not in signing_permission_instructions("example"):
+        raise AssertionError("signing instructions do not mention an Admin key")
     print("asc.py self-test passed")
 
 
@@ -571,10 +815,12 @@ def main(argv: list[str]) -> None:
         install_key()
     elif command == "prepare":
         prepare()
+    elif command == "provision":
+        provision()
     elif command == "note":
         note()
     else:
-        sys.exit("usage: asc.py self-test|install-key|prepare|note")
+        sys.exit("usage: asc.py self-test|install-key|prepare|provision|note")
 
 
 if __name__ == "__main__":
