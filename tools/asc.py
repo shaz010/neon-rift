@@ -190,14 +190,32 @@ def key_path() -> str:
     sys.exit("API key file was not installed. Run install-key first.")
 
 
+def canonical_p8(text: str) -> str:
+    """Rewrite the key as a 64-column PKCS#8 PEM.
+
+    PyJWT accepts SEC1 keys and loosely wrapped PEM. xcodebuild's CryptoKit
+    reader rejects those with invalidPEMDocument.
+    """
+    from cryptography.hazmat.primitives.serialization import (
+        Encoding,
+        NoEncryption,
+        PrivateFormat,
+        load_pem_private_key,
+    )
+
+    key = load_pem_private_key(text.encode("utf-8"), password=None)
+    pem = key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode("ascii")
+    if not pem.endswith("\n"):
+        pem += "\n"
+    return pem
+
+
 def install_key() -> None:
     text = normalize_p8(require_env("ASC_KEY_P8"))
     try:
-        from cryptography.hazmat.primitives.serialization import load_pem_private_key
-
-        load_pem_private_key(text.encode("utf-8"), password=None)
+        text = canonical_p8(text)
     except ImportError:
-        pass
+        sys.exit("cryptography is not installed, so the API key cannot be rewritten for Xcode.")
     except Exception:
         sys.exit("ASC_KEY_P8 could not be read as a private key. Check the secret contents.")
     key_id = require_env("ASC_KEY_ID").strip()
@@ -523,6 +541,25 @@ def self_test() -> None:
     bundle = bundle_id_instructions("example")
     if "https://developer.apple.com/account/resources/identifiers/list" not in bundle:
         raise AssertionError("bundle instructions missing the identifier page")
+    try:
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat
+    except ImportError:
+        print("asc.py self-test passed")
+        return
+    raw = ec.generate_private_key(ec.SECP256R1()).private_bytes(
+        Encoding.PEM, PrivateFormat.TraditionalOpenSSL, NoEncryption()
+    ).decode("ascii")
+    # One long line, the shape CryptoKit rejects and PyJWT still loads.
+    loose = raw.replace("\n", "")
+    loose = loose.replace("-----BEGIN EC PRIVATE KEY-----", "-----BEGIN EC PRIVATE KEY-----\n")
+    loose = loose.replace("-----END EC PRIVATE KEY-----", "\n-----END EC PRIVATE KEY-----\n")
+    cleaned = canonical_p8(loose)
+    if not cleaned.startswith("-----BEGIN PRIVATE KEY-----\n"):
+        raise AssertionError("canonical key is not PKCS#8")
+    body = cleaned.split("\n")[1:-2]
+    if any(len(line) > 64 for line in body):
+        raise AssertionError("canonical key lines are longer than 64 characters")
     print("asc.py self-test passed")
 
 
