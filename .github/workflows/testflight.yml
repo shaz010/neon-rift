@@ -1,0 +1,156 @@
+name: TestFlight
+
+# Push to neon-rift-2 builds Neon Rift 2 and uploads the next TestFlight
+# build. This token cannot dispatch the workflow, so the push is the trigger.
+# shaz010/SHAHZAD_2 was not readable here; signing follows
+# xcodebuild -allowProvisioningUpdates with the App Store Connect API key.
+on:
+  push:
+    branches:
+      - neon-rift-2
+  workflow_dispatch:
+
+concurrency:
+  group: testflight-neon-rift-2
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  testflight:
+    name: Archive and upload
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - name: Check out neon-rift-2
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: |
+          set -euo pipefail
+          latest=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
+          if [ -z "${latest}" ]; then
+            latest=$(ls -d /Applications/Xcode_*.app /Applications/Xcode.app 2>/dev/null | sort -V | tail -1)
+          fi
+          echo "Selecting ${latest}"
+          sudo xcode-select -s "${latest}"
+          xcodebuild -version
+
+      - name: Install the App Store Connect client
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check --user PyJWT cryptography
+          python3 tools/asc.py self-test
+
+      - name: Install the API key
+        run: python3 tools/asc.py install-key
+
+      - name: Register the bundle ID and choose the build number
+        id: prepare
+        run: python3 tools/asc.py prepare
+
+      - name: Archive
+        run: |
+          set -euo pipefail
+          test -f neon-rift-2/index.html
+          xcodebuild \
+            -project ios/NeonRift2.xcodeproj \
+            -scheme NeonRift2 \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "${RUNNER_TEMP}/NeonRift2.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${ASC_KEY_PATH}" \
+            -authenticationKeyID "${ASC_KEY_ID}" \
+            -authenticationKeyIssuerID "${ASC_ISSUER_ID}" \
+            archive \
+            DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
+            CODE_SIGN_STYLE=Automatic \
+            PRODUCT_BUNDLE_IDENTIFIER=com.shaz010.neonrift2 \
+            CURRENT_PROJECT_VERSION="${BUILD_NUMBER}" \
+            MARKETING_VERSION=1.0
+
+      - name: Export the IPA
+        run: |
+          set -euo pipefail
+          cat > "${RUNNER_TEMP}/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>destination</key>
+            <string>export</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>${APPLE_TEAM_ID}</string>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild \
+            -exportArchive \
+            -archivePath "${RUNNER_TEMP}/NeonRift2.xcarchive" \
+            -exportPath "${RUNNER_TEMP}/export" \
+            -exportOptionsPlist "${RUNNER_TEMP}/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${ASC_KEY_PATH}" \
+            -authenticationKeyID "${ASC_KEY_ID}" \
+            -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
+          find "${RUNNER_TEMP}/export" -name '*.ipa' -print
+
+      - name: Upload to TestFlight
+        run: |
+          set -euo pipefail
+          ipa=$(find "${RUNNER_TEMP}/export" -name '*.ipa' -print | head -1)
+          test -n "${ipa}"
+          test -f "${ipa}"
+          echo "Uploading $(basename "${ipa}") as build ${BUILD_NUMBER}"
+          set +e
+          xcrun iTMSTransporter -m upload -assetFile "${ipa}" -apiKey "${ASC_KEY_ID}" -apiIssuer "${ASC_ISSUER_ID}"
+          status=$?
+          if [ "${status}" -ne 0 ]; then
+            echo "iTMSTransporter exited ${status}. Trying altool."
+            xcrun altool --upload-app -f "${ipa}" -t ios --apiKey "${ASC_KEY_ID}" --apiIssuer "${ASC_ISSUER_ID}" --verbose
+            status=$?
+          fi
+          exit "${status}"
+
+      - name: Attach What to Test
+        if: success()
+        run: python3 tools/asc.py note
+
+      - name: Write the build summary
+        if: success()
+        run: |
+          {
+            echo "## Neon Rift 2 TestFlight"
+            echo "- App: Neon Rift 2"
+            echo "- Bundle ID: \`com.shaz010.neonrift2\`"
+            echo "- Marketing version: 1.0"
+            echo "- Build number: ${BUILD_NUMBER}"
+            echo "- Changelog: fullscreen portrait WKWebView of the Graze Glyphs prototype. Circle seals, triangle novas, line lances. Audio uses the Playback session so the silent switch does not mute it. Separate from the original Neon Rift."
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Remove the API key
+        if: always()
+        run: |
+          rm -f "${ASC_KEY_PATH:-}" \
+            "${HOME}/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            "${HOME}/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            "${HOME}/.private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            "${RUNNER_TEMP}/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            "${RUNNER_TEMP}/ExportOptions.plist"
