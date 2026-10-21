@@ -52,11 +52,13 @@ jobs:
           echo "ASC_PYTHON=${RUNNER_TEMP}/asc-venv/bin/python" >> "${GITHUB_ENV}"
 
       - name: Install the API key
-        run: "${ASC_PYTHON}" tools/asc.py install-key
+        run: |
+          "${ASC_PYTHON}" tools/asc.py install-key
 
       - name: Register the bundle ID and choose the build number
         id: prepare
-        run: "${ASC_PYTHON}" tools/asc.py prepare
+        run: |
+          "${ASC_PYTHON}" tools/asc.py prepare
 
       - name: Archive
         run: |
@@ -134,7 +136,8 @@ jobs:
 
       - name: Attach What to Test
         if: success()
-        run: "${ASC_PYTHON}" tools/asc.py note
+        run: |
+          "${ASC_PYTHON}" tools/asc.py note
 
       - name: Write the build summary
         if: success()
