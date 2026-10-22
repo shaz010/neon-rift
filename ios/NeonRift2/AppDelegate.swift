@@ -128,8 +128,9 @@ final class GameViewController: UIViewController, WKNavigationDelegate {
         view.addSubview(webView)
         self.webView = webView
 
-        if let url = Bundle.main.url(forResource: "index", withExtension: "html") {
-            webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+        if let url = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "site/neon-rift-2") {
+            let site = url.deletingLastPathComponent().deletingLastPathComponent()
+            webView.loadFileURL(url, allowingReadAccessTo: site)
         } else {
             let label = UILabel()
             label.text = "Neon Rift 2 is missing from the app bundle."

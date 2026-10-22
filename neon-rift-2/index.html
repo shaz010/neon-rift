@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Neon Rift 2">
 <meta name="theme-color" content="#16243a">
-<link rel="icon" id="ico" href="data:,"><link rel="apple-touch-icon" id="aticon" href="data:,">
+<link rel="icon" id="ico" href="../branding/neon-rift-2-logo.png"><link rel="apple-touch-icon" id="aticon" href="../branding/neon-rift-2-logo.png">
 <title>Neon Rift 2</title>
 <style>
 :root{--bg:#16243a;--teal:#5ef2d6;--mint:#9ff0c0;--sky:#8ec5ff;--lav:#c9a0ff;--coral:#ff9e8a;--amber:#ffd27a;--ink:#e6f4ff;--dim:#8fb3c9}
@@ -44,12 +44,14 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
 @keyframes pop{to{opacity:1;transform:none}}
 .rm .unl div{animation:pop .01s forwards}
 #pauseBtn{position:fixed;top:calc(env(safe-area-inset-top) + 64px);right:14px;width:40px;height:40px;border-radius:12px;border:1px solid rgba(142,197,255,.25);background:rgba(18,32,52,.5);color:var(--ink);font:900 14px inherit;display:none;cursor:pointer}
+.logo{width:min(148px,38vw);height:auto;display:block;margin:0 auto 10px;border-radius:22%}
 .hint{color:var(--dim);font-size:12px;margin-top:12px;line-height:1.6}
 .x{background:none;border:none;color:var(--dim);font-size:24px;cursor:pointer;padding:0 4px}
 </style></head><body><canvas id="c"></canvas>
 <button id="pauseBtn" aria-label="pause">II</button>
 
 <div class="ui on" id="menu"><div class="panel clear">
+  <img class="logo" src="../branding/neon-rift-2-logo.png" alt="Neon Rift 2">
   <div class="sub">Y E A R &nbsp;2 1 9 9 &nbsp;·&nbsp; G R A Z E &nbsp; G L Y P H S</div>
   <h1>NEON RIFT 2</h1>
   <div class="sub" style="margin-top:10px;letter-spacing:2px">Draw. Graze. Cast.</div>
@@ -909,11 +911,9 @@ if(matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches&&!localSto
 syncSet();
 // safe-area top for HUD
 (function(){const d=document.createElement('div');d.style.cssText='position:fixed;top:env(safe-area-inset-top);visibility:hidden';document.body.appendChild(d);const v=d.getBoundingClientRect().top;document.documentElement.style.setProperty('--sat',v);d.remove();})();
-// home-screen icon + manifest
-(function(){try{const c=document.createElement('canvas');c.width=c.height=180;const g=c.getContext('2d');const gr=g.createLinearGradient(0,0,0,180);gr.addColorStop(0,'#1e3352');gr.addColorStop(1,'#101a2e');g.fillStyle=gr;g.fillRect(0,0,180,180);
-  g.translate(90,96);g.scale(3.4,3.4);g.shadowColor='#5ef2d6';g.shadowBlur=6;g.strokeStyle='#5ef2d6';g.lineWidth=2.2;g.fillStyle='rgba(94,242,214,.2)';g.beginPath();g.moveTo(0,-18);g.lineTo(13,14);g.lineTo(0,7);g.lineTo(-13,14);g.closePath();g.fill();g.stroke();g.fillStyle='#fff';g.beginPath();g.arc(0,0,3,0,TAU);g.fill();
-  const url=c.toDataURL('image/png');$('aticon').href=url;$('ico').href=url;
-  const man={name:'Neon Rift 2',short_name:'Neon Rift 2',display:'fullscreen',orientation:'portrait',background_color:'#16243a',theme_color:'#16243a',start_url:location.href.split('#')[0],icons:[{src:url,sizes:'180x180',type:'image/png'}]};
+// home-screen icon + manifest — official sigil, not a generated stand-in
+(function(){try{const url=new URL('../branding/neon-rift-2-logo.png',location.href).href;$('aticon').href=url;$('ico').href=url;
+  const man={name:'Neon Rift 2',short_name:'Neon Rift 2',display:'fullscreen',orientation:'portrait',background_color:'#16243a',theme_color:'#16243a',start_url:location.href.split('#')[0],icons:[{src:url,sizes:'1024x1024',type:'image/png'}]};
   const l=document.createElement('link');l.rel='manifest';l.href='data:application/manifest+json,'+encodeURIComponent(JSON.stringify(man));document.head.appendChild(l);}catch(e){}})();
 
 /* ---------- LOOP ---------- */

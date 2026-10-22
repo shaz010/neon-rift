@@ -30,10 +30,11 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "Neon Rift 2, native portrait build. Drag to fly. Graze hazards while the "
-    "ink is wet, then close a circle to seal, a triangle to nova, or a line to "
-    "lance. Power follows the near-misses in that stroke. Audio plays with the "
-    "silent switch on. This app is separate from the original Neon Rift."
+    "Neon Rift 2 build: the official sigil is the app icon, the launch screen, "
+    "and the title menu. Drag to fly. Graze hazards while the ink is wet, then "
+    "close a circle to seal, a triangle to nova, or a line to lance. Power "
+    "follows the near-misses in that stroke. Audio plays with the silent switch "
+    "on. This app is separate from the original Neon Rift."
 )
 
 

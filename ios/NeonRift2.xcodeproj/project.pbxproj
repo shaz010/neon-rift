@@ -132,14 +132,16 @@
 			);
 			inputPaths = (
 				"$(SRCROOT)/../neon-rift-2/index.html",
+				"$(SRCROOT)/../branding/neon-rift-2-logo.png",
 			);
 			name = "Copy game";
 			outputPaths = (
-				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/index.html",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/site/neon-rift-2/index.html",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/site/branding/neon-rift-2-logo.png",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nmkdir -p \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\ntest -f \"${SRCROOT}/../neon-rift-2/index.html\"\ncp \"${SRCROOT}/../neon-rift-2/index.html\" \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/index.html\"\n";
+			shellScript = "set -e\nDEST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/site\"\nmkdir -p \"${DEST}/neon-rift-2\" \"${DEST}/branding\"\ntest -f \"${SRCROOT}/../neon-rift-2/index.html\"\ntest -f \"${SRCROOT}/../branding/neon-rift-2-logo.png\"\ncp \"${SRCROOT}/../neon-rift-2/index.html\" \"${DEST}/neon-rift-2/index.html\"\ncp \"${SRCROOT}/../branding/neon-rift-2-logo.png\" \"${DEST}/branding/neon-rift-2-logo.png\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
