@@ -83,9 +83,34 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 }
 
+/// Maps a duration from the page onto UIImpactFeedbackGenerator. Retained by the controller.
+final class HapticBridge: NSObject, WKScriptMessageHandler {
+    private let light = UIImpactFeedbackGenerator(style: .light)
+    private let medium = UIImpactFeedbackGenerator(style: .medium)
+    private let heavy = UIImpactFeedbackGenerator(style: .heavy)
+
+    override init() {
+        super.init()
+        light.prepare()
+        medium.prepare()
+        heavy.prepare()
+    }
+
+    func userContentController(
+        _ userContentController: WKUserContentController,
+        didReceive message: WKScriptMessage
+    ) {
+        let n = (message.body as? NSNumber)?.intValue ?? 8
+        let gen: UIImpactFeedbackGenerator = n >= 40 ? heavy : (n >= 16 ? medium : light)
+        gen.impactOccurred()
+        gen.prepare()
+    }
+}
+
 final class GameViewController: UIViewController, WKNavigationDelegate {
     static let background = UIColor(red: 22.0 / 255.0, green: 36.0 / 255.0, blue: 58.0 / 255.0, alpha: 1)
 
+    private let haptics = HapticBridge()
     private var webView: WKWebView?
 
     override var prefersStatusBarHidden: Bool { true }
@@ -101,6 +126,7 @@ final class GameViewController: UIViewController, WKNavigationDelegate {
         AudioSession.engage()
 
         let config = WKWebViewConfiguration()
+        config.userContentController.add(haptics, name: "haptic")
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         let prefs = WKWebpagePreferences()

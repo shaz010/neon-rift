@@ -30,11 +30,11 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "Neon Rift 2: the official sigil is the icon, the launch screen, and the "
-    "title. The first flight is a short animated lesson — a ghost ship shows "
-    "drag, graze, seal, nova, lance, and power, then you repeat each one. "
-    "Skip is always there, and How to Play replays it. Audio plays with the "
-    "silent switch on. This app is separate from the original Neon Rift."
+    "Neon Rift 2: cinematic nebula skies, bloom, spell flashes, a cold-open "
+    "logo fly-in, and a slow-motion results screen. Graze Glyphs, the sigil, "
+    "and the animated lesson are unchanged. Haptics tap on graze and cast. "
+    "Audio plays with the silent switch on. This app is separate from the "
+    "original Neon Rift."
 )
 
 
