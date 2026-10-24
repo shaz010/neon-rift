@@ -1,6 +1,7 @@
 import Foundation
 import ModelIO
 import SceneKit
+import SceneKit.ModelIO
 
 /// Fitted parts persist across flights. Names match the upgrade-* nodes on the
 /// procedural fighter and on a future purchased model.
