@@ -82,8 +82,34 @@ struct HudModel {
     var firing = false
     var showResults = false
     var resultsBody = ""
+    var credits = ""
+    var creditScroll: Float = 0
     var kills = 0
     var score = 0
+    var objective = "DRAG ANYWHERE ON THE LEFT TO FLY"
+    var callout = ""
+    var calloutAlpha: Float = 0
+    var contacts: [HudContact] = []
+    var blips: [HudBlip] = []
+    var bounty = 0
+    var rank = "ROOKIE"
+    var boost: Float = 0
+    var towing = false
+    var beamReady = false
+    var cockpit = false
+}
+
+struct HudContact {
+    var world: simd_float3
+    var kind: Int
+    var distance: Float
+    var bearing: Float
+}
+
+struct HudBlip {
+    var x: Float
+    var y: Float
+    var kind: Int
 }
 
 /// One short Newtonian test flight. Translation is integrated explicitly
@@ -102,6 +128,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     private(set) var hud = HudModel()
     var inputStick = CGPoint.zero
     var inputFire = false
+    var inputBoost = false
     /// Viewport width divided by height. Landscape tightens the vertical field of view.
     var viewportAspect: Float = 9.0 / 19.5
     var onFrame: ((HudSnapshot) -> Void)?
@@ -124,6 +151,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     private var roll: Float = 0
 
     private var shield: Float = 100
+    private var shieldCap: Float = 100
     private var hull: Float = 100
     private var weapon: Float = 100
     private var score = 0
@@ -164,6 +192,26 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     private var markedCombat = false
     private var markedWarden = false
     private var firstKill: Float = -1
+    private var boostLeft: Float = 0
+    private var spreadLevel = 0
+    private var missileLevel = 0
+    private var missileClock: Float = 0
+    private var multiplier = 1
+    private var bounty = 0
+    private var deliveries = 0
+    private var streak = 0
+    private var streakLeft: Float = 0
+    private var rank = "ROOKIE"
+    private var callout = ""
+    private var calloutLeft: Float = 0
+    private var creditScroll: Float = 0
+    private var towed: Enemy?
+    private var cycled: Enemy?
+    private var cockpitOn = false
+    private var pendingBooms: [(simd_float3, Float, Float)] = []
+    private let dropoff = simd_float3(62, 11, -230)
+    private let beamNode = SCNNode()
+    private let captureGoal: Int
     private var degraded = false
     private var fpsWindow: Float = 0
     private var fpsFrames = 0
@@ -180,13 +228,15 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         self.showcase = showcase
         self.profile = profile
         if showcase {
-            waveTimes = [0.6, 0.6, 3.2, 3.2]
-            waveCount = 4
+            waveTimes = [0.4, 1.1, 2.4]
+            waveCount = 3
+            captureGoal = 1
             hull = 240
             shield = 200
         } else {
-            waveTimes = [4, 4, 18, 18, 34, 34, 52, 52, 74, 74]
-            waveCount = 10
+            waveTimes = [2, 5, 9, 14, 22, 30, 42, 54]
+            waveCount = 8
+            captureGoal = 3
         }
         super.init()
     }
@@ -284,9 +334,9 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             if died {
                 deathClock += raw
                 if deathClock > 1.7 { enter(.results) }
-            } else if spawned >= waveCount && enemies.allSatisfy({ !$0.alive }) && phaseTime > 6 {
+            } else if deliveries >= captureGoal && phaseTime > 3 {
                 enter(.warden)
-            } else if phaseTime > (showcase ? 36 : 150) {
+            } else if phaseTime > (showcase ? 28 : 170) {
                 enter(.warden)
             }
         case .warden:
@@ -294,7 +344,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             stepWarden(raw)
             if phaseTime > 12.5 { enter(.results) }
         case .results:
-            break
+            creditScroll += raw
         }
         stepBolts(sim)
         stepEffects(sim)
@@ -337,61 +387,140 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         }
     }
 
+    func requestBoost() {
+        inputBoost = true
+    }
+
+    func toggleTractor() {
+        if towed != nil {
+            towed = nil
+            say("BEAM OFF")
+            return
+        }
+        guard let ship = nearestDisabled(maxDistance: 36) else {
+            say("NO SHIP IN RANGE")
+            return
+        }
+        towed = ship
+        say("TRACTOR LOCK")
+        haptics.hit()
+    }
+
+    func toggleView() {
+        guard phase == .combat || phase == .warden else { return }
+        cockpitOn.toggle()
+        cockpit.isHidden = !cockpitOn && phase != .warden
+        player.isHidden = cockpitOn && phase == .combat
+    }
+
+    func cycleTarget() {
+        let list = enemies.filter { $0.alive }
+        guard !list.isEmpty else { return }
+        if let current = cycled, let index = list.firstIndex(where: { $0 === current }) {
+            cycled = list[(index + 1) % list.count]
+        } else {
+            cycled = list[0]
+        }
+        let name = cycled?.role == .bandit ? "BANDIT" : "BOGEY"
+        say("TARGET \(name)")
+    }
+
     private func stepFlight(_ dt: Float) {
         let auto = showcase && phase == .combat && !died
         var stick = inputStick
         var fire = inputFire
-        if auto, let target = nearestEnemy() {
-            let cross = yawError(toward: target.position)
-            stick.x = CGFloat(max(-1, min(1, cross * 2.4)))
-            stick.y = 0.8
-            let to = safeNorm(target.position - position)
-            fire = simd_dot(forward(), to) > 0.9
-        } else if auto {
-            stick = CGPoint(x: 0, y: 0.45)
-            fire = false
+        if auto {
+            if let towed {
+                let cross = yawError(toward: dropoff)
+                stick.x = CGFloat(max(-1, min(1, cross * 2.6)))
+                stick.y = 0.95
+                fire = false
+                _ = towed
+            } else if let drifting = nearestDisabled(maxDistance: 400) {
+                let cross = yawError(toward: drifting.position)
+                stick.x = CGFloat(max(-1, min(1, cross * 2.6)))
+                stick.y = simd_distance(drifting.position, position) < 30 ? 0.25 : 0.8
+                fire = false
+                if simd_distance(drifting.position, position) < 26 { towed = drifting }
+            } else if let target = nearestHostile() {
+                let cross = yawError(toward: target.position)
+                stick.x = CGFloat(max(-1, min(1, cross * 2.6)))
+                stick.y = 0.82
+                let to = safeNorm(target.position - position)
+                fire = simd_dot(forward(), to) > 0.88
+            } else {
+                stick = CGPoint(x: 0, y: 0.5)
+                fire = false
+            }
         }
         if phase != .combat || died {
             fire = false
             if phase == .warden { stick = .zero }
+        }
+        if inputBoost && phase == .combat && !died {
+            inputBoost = false
+            boostLeft = max(boostLeft, 1.55)
+            audio.setLaunch(0.75)
+            haptics.launch()
+            say("BOOST")
         }
         hud.stick = stick
         hud.firing = fire
 
         let mag = hypot(Float(stick.x), Float(stick.y))
         let assisting = mag < 0.08
-        yaw += Float(stick.x) * 0.92 * dt
-        let targetPitch = Float(stick.y) * 0.10
-        pitch += (targetPitch - pitch) * min(1, 3.2 * dt)
-        pitch = max(-0.26, min(0.30, pitch))
-        let targetRoll = -Float(stick.x) * 0.58
-        roll += (targetRoll - roll) * min(1, 4.5 * dt)
-        roll = max(-0.7, min(0.7, roll))
+        let x = Float(stick.x)
+        let y = Float(stick.y)
+        let shaped = x * (0.42 + 0.58 * abs(x))
+        yaw += shaped * 2.7 * dt
+        if let aim = aimEnemy(), abs(x) < 0.5 {
+            let err = yawError(toward: aim.position)
+            if abs(err) < 0.4 {
+                yaw += err * min(1, 3.4 * dt) * 0.9
+            }
+        }
+        let targetPitch = y * 0.24
+        pitch += (targetPitch - pitch) * min(1, 7.5 * dt)
+        pitch = max(-0.42, min(0.42, pitch))
+        let targetRoll = -shaped * 1.08
+        roll += (targetRoll - roll) * min(1, 8 * dt)
+        roll = max(-1.05, min(1.05, roll))
 
+        if boostLeft > 0 { boostLeft -= dt }
+        let boosting = boostLeft > 0
         let fwd = forward()
-        let thrustScale: Float = Float(stick.y) >= 0 ? Float(stick.y) : Float(stick.y) * 0.62
-        var force = fwd * (thrustScale * maxThrust)
+        let thrustScale: Float = y >= 0 ? y : y * 0.55
+        let thrustMul: Float = boosting ? 1.9 : 1
+        var force = fwd * (thrustScale * maxThrust * thrustMul)
+        if towed != nil { force *= 0.72 }
         let forwardSpeed = simd_dot(velocity, fwd)
         let lateral = velocity - fwd * forwardSpeed
-        let latK: Float = assisting ? 1.2 : 0.32
+        let latK: Float = assisting ? 3.2 : 1.05
         force += -lateral * latK * mass
         if assisting {
-            force += -fwd * forwardSpeed * 0.48 * mass
+            force += -fwd * forwardSpeed * 0.2 * mass
         }
-        if position.y < 2 { force.y += (2 - position.y) * mass * 3 }
-        if position.y > 22 { force.y -= (position.y - 22) * mass * 3 }
-        if abs(position.x) > 230 {
-            force.x -= (position.x - copysign(230, position.x)) * mass * 1.4
+        if position.y < 2 { force.y += (2 - position.y) * mass * 4 }
+        if position.y > 28 { force.y -= (position.y - 28) * mass * 3 }
+        if abs(position.x) > 280 {
+            force.x -= (position.x - copysign(280, position.x)) * mass * 1.4
         }
-        if position.z > 40 { force.z -= (position.z - 40) * mass }
-        if position.z < -560 { force.z -= (position.z + 560) * mass }
+        if position.z > 50 { force.z -= (position.z - 50) * mass }
+        if position.z < -640 { force.z -= (position.z + 640) * mass }
 
         velocity += force / mass * dt
+        let cap: Float = boosting ? 158 : (towed != nil ? 78 : 118)
         let speed = simd_length(velocity)
-        if speed > 96 { velocity *= 96 / speed }
+        if speed > cap { velocity *= cap / speed }
         if !speed.isFinite { velocity = .zero }
         position += velocity * dt
         placePlayer()
+        if let towed {
+            let hold = position - fwd * 16 + simd_float3(0, -1.2, 0)
+            towed.position = hold
+            towed.velocity = velocity * 0.9
+            towed.node.simdPosition = hold
+        }
 
         let glow = 0.35 + abs(Float(stick.y)) * 0.65
         art.cyanGlow.emission.intensity = CGFloat(0.7 + glow * 0.8 + sin(missionTime * 28) * 0.08)
@@ -415,38 +544,56 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     }
 
     private func stepCombat(_ dt: Float) {
-        if showcase && phaseTime > 18 && kills == 0, let enemy = nearestEnemy() {
-            enemy.hull = 0
-            destroy(enemy)
+        if showcase && phaseTime > 9 && deliveries == 0 && nearestDisabled(maxDistance: 800) == nil {
+            if let bandit = enemies.first(where: { $0.role == .bandit && $0.alive && !$0.disabled }) {
+                disable(bandit)
+            }
+        }
+        if showcase && phaseTime > 18 && deliveries == 0 {
+            if towed == nil, let drifting = nearestDisabled(maxDistance: 800) {
+                towed = drifting
+            }
+            if towed != nil {
+                position = dropoff + simd_float3(0, 2, 28)
+                velocity = simd_float3(0, 0, -20)
+                tryDeliver()
+            }
         }
         while spawned < waveCount && phaseTime >= waveTimes[spawned] {
             let side: Float = spawned % 2 == 0 ? -1 : 1
-            let spread = side * (36 + Float(spawned % 3) * 14)
-            let ahead: Float = showcase ? 78 : 168
-            spawnEnemy(at: simd_float3(position.x + spread, 7 + Float(spawned % 4), position.z - ahead))
+            let spread = side * (40 + Float(spawned % 3) * 16)
+            let ahead: Float = showcase ? 72 : 150
+            let role: ShipRole = spawned % 3 == 2 ? .bogey : .bandit
+            spawnEnemy(at: simd_float3(position.x + spread, 8 + Float(spawned % 4), position.z - ahead), role: role)
             spawned += 1
         }
         for enemy in enemies where enemy.alive {
             steer(enemy, dt)
         }
+        tryDeliver()
         if hurt > 0 { hurt -= dt }
         if regenWait > 0 {
             regenWait -= dt
-        } else if shield < 100 && !died {
-            shield = min(100, shield + 18 * dt)
+        } else if shield < shieldCap && !died {
+            shield = min(shieldCap, shield + 18 * dt)
         }
+        if streakLeft > 0 {
+            streakLeft -= dt
+            if streakLeft <= 0 { streak = 0 }
+        }
+        if calloutLeft > 0 { calloutLeft -= dt }
         for pickup in pickups where pickup.alive {
             pickup.node.eulerAngles.y += dt * 1.4
-            if simd_distance(pickup.node.simdPosition, position) < 11 {
-                pickup.alive = false
-                pickup.node.removeFromParentNode()
-                shield = 100
-                score += 150
-                popups.append(Popup(position: pickup.node.simdPosition, text: "+150", age: 0))
-                haptics.pickup()
-                audio.shot()
+            if simd_distance(pickup.node.simdPosition, position) < 12 {
+                collect(pickup)
             }
         }
+        let heat = enemies.contains { enemy in
+            enemy.alive && !enemy.disabled && enemy.role == .bogey && simd_distance(enemy.position, position) < 190
+        }
+        audio.setMusic(phase == .combat && heat ? 1 : (phase == .combat ? 0.28 : 0.08))
+        audio.setBeam(towed == nil ? 0 : 0.85)
+        updateBeam()
         if !markedCombat && (firstKill > 0 && phaseTime > firstKill + 0.45 || phaseTime > 8) {
             markedCombat = true
             logMark("NR2 mark combat")
@@ -455,6 +602,16 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
     private func steer(_ enemy: Enemy, _ dt: Float) {
         enemy.age += dt
+        if enemy.disabled || towed === enemy {
+            if towed !== enemy {
+                enemy.velocity *= 0.99
+                enemy.position += enemy.velocity * dt
+                enemy.node.simdPosition = enemy.position
+                enemy.node.eulerAngles.x += dt * 0.4
+                enemy.node.eulerAngles.z += dt * enemy.strafe * 0.6
+            }
+            return
+        }
         let to = position - enemy.position
         let dist = simd_length(to)
         let dir = dist > 0.001 ? to / dist : simd_float3(0, 0, -1)
@@ -512,11 +669,14 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             }
             let next = bolt.position + bolt.direction * bolt.speed * dt
             if bolt.fromPlayer {
-                for enemy in enemies where enemy.alive {
-                    if segmentHits(bolt.position, next, enemy.position, radius: 3.4) {
+                for enemy in enemies where enemy.alive && !enemy.disabled {
+                    if segmentHits(bolt.position, next, enemy.position, radius: 3.6) {
                         bolt.alive = false
-                        enemy.hull -= showcase ? 28 : 20
-                        if enemy.hull <= 0 { destroy(enemy) }
+                        let bite: Float = bolt.missile ? (showcase ? 48 : 40) : (showcase ? 30 : 18)
+                        enemy.hull -= bite
+                        if enemy.hull <= 0 {
+                            if enemy.role == .bandit { disable(enemy) } else { destroy(enemy) }
+                        }
                         break
                     }
                 }
@@ -539,6 +699,18 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     }
 
     private func stepEffects(_ dt: Float) {
+        var ripe: [(simd_float3, Float)] = []
+        pendingBooms = pendingBooms.compactMap { boom in
+            let delay = boom.1 - dt
+            if delay <= 0 {
+                ripe.append((boom.0, boom.2))
+                return nil
+            }
+            return (boom.0, delay, boom.2)
+        }
+        for boom in ripe {
+            explode(at: boom.0, power: boom.1, chain: false)
+        }
         for effect in effects {
             effect.age += dt
             let u = min(1, effect.age / effect.life)
@@ -568,7 +740,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     private func stepDebris() {
         let now = missionTime
         debris.removeAll { item in
-            if now - item.born > 4.8 {
+            if now - item.born > 7.5 {
                 item.node.removeFromParentNode()
                 return true
             }
@@ -593,7 +765,12 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         var look = chaseLook
         var rollCam = roll * 0.38
 
-        if phase == .cinema {
+        if cockpitOn && phase == .combat {
+            let eye = position + simd_float3(0, 0.55, 0) + fwd * 0.8
+            desired = eye
+            look = eye + fwd * 40
+            rollCam = roll * 0.85
+        } else if phase == .cinema {
             let launch = smoothstep(2.6, 7.6, phaseTime)
             let scripted = simd_float3(sin(phaseTime * 0.2) * 1.4, mix(6.4, 8.0, launch), mix(116, position.z + 14, launch))
             let scriptLook = position + simd_float3(0, 1.1, -36)
@@ -665,15 +842,32 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     }
 
     private func shootPlayer() {
-        let hard = lockTarget(cone: 0.82)
-        for local in [ShipPoints.gunL, ShipPoints.gunR] {
-            let origin = worldPoint(local) + forward() * 1.2
-            var dir = forward()
-            if let hard {
-                let to = safeNorm(hard.position - origin)
-                dir = safeNorm(dir * 0.72 + to * 0.28)
+        let hard = aimEnemy()
+        var dirs = [forward()]
+        if spreadLevel > 0 {
+            let yawL = yaw - 0.08
+            let yawR = yaw + 0.08
+            dirs.append(simd_normalize(simd_float3(sin(yawL) * cos(pitch), sin(pitch), -cos(yawL) * cos(pitch))))
+            dirs.append(simd_normalize(simd_float3(sin(yawR) * cos(pitch), sin(pitch), -cos(yawR) * cos(pitch))))
+        }
+        for dir0 in dirs {
+            for local in [ShipPoints.gunL, ShipPoints.gunR] {
+                let origin = worldPoint(local) + forward() * 1.2
+                var dir = dir0
+                if let hard {
+                    let to = safeNorm(hard.position - origin)
+                    let blend: Float = 0.42
+                    dir = safeNorm(dir * (1 - blend) + to * blend)
+                }
+                spawnBolt(origin: origin, direction: dir, speed: 250, life: 1.15, player: true, home: hard, mat: art.boltPlayer, missile: false)
             }
-            spawnBolt(origin: origin, direction: dir, speed: 230, life: 1.25, player: true, home: hard, mat: art.boltPlayer)
+        }
+        if missileLevel > 0 && missileClock <= 0, let hard {
+            missileClock = 1.35
+            let origin = worldPoint(simd_float3(0, -0.2, -1)) + forward() * 2
+            spawnBolt(origin: origin, direction: safeNorm(hard.position - origin), speed: 90, life: 3.2, player: true, home: hard, mat: art.orangeGlow, missile: true)
+        } else {
+            missileClock = max(0, missileClock - 0.13)
         }
         audio.shot()
         haptics.shot()
@@ -681,41 +875,77 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
     private func shootEnemy(_ enemy: Enemy, toward: simd_float3) {
         let origin = enemy.position + toward * 3
-        spawnBolt(origin: origin, direction: toward, speed: 125, life: 2.4, player: false, home: nil, mat: art.boltEnemy)
+        spawnBolt(origin: origin, direction: toward, speed: 125, life: 2.4, player: false, home: nil, mat: art.boltEnemy, missile: false)
     }
 
-    private func spawnBolt(origin: simd_float3, direction: simd_float3, speed: Float, life: Float, player: Bool, home: Enemy?, mat: SCNMaterial) {
-        let box = SCNBox(width: 0.14, height: 0.14, length: player ? 4.6 : 3.2, chamferRadius: 0)
+    private func spawnBolt(origin: simd_float3, direction: simd_float3, speed: Float, life: Float, player: Bool, home: Enemy?, mat: SCNMaterial, missile: Bool) {
+        let length: CGFloat = missile ? 6.4 : (player ? 4.8 : 3.2)
+        let box = SCNBox(width: missile ? 0.28 : 0.14, height: missile ? 0.28 : 0.14, length: length, chamferRadius: 0)
         box.materials = [mat]
         let node = SCNNode(geometry: box)
         node.simdPosition = origin
         node.simdOrientation = lookOrientation(forward: direction, up: simd_float3(0, 1, 0), roll: 0)
         scene.rootNode.addChildNode(node)
-        bolts.append(Bolt(node: node, position: origin, direction: direction, speed: speed, life: life, fromPlayer: player, home: home))
+        let bolt = Bolt(node: node, position: origin, direction: direction, speed: speed, life: life, fromPlayer: player, home: home)
+        bolt.missile = missile
+        bolts.append(bolt)
     }
 
-    private func spawnEnemy(at point: simd_float3) {
+    private func spawnEnemy(at point: simd_float3, role: ShipRole) {
         let node = Meshes.interceptor(art: art)
         node.simdPosition = point
+        let cage = SCNBox(width: 5.4, height: 1.8, length: 5.6, chamferRadius: 0.05)
+        let wire = SCNMaterial()
+        wire.fillMode = .lines
+        wire.lightingModel = .constant
+        wire.isDoubleSided = true
+        wire.diffuse.contents = role == .bandit
+            ? UIColor(red: 1, green: 0.62, blue: 0.18, alpha: 1)
+            : UIColor(red: 1, green: 0.16, blue: 0.08, alpha: 1)
+        cage.materials = [wire]
+        let outline = SCNNode(geometry: cage)
+        node.addChildNode(outline)
         scene.rootNode.addChildNode(node)
-        let hull: Float = showcase ? 64 : 100
-        enemies.append(Enemy(node: node, position: point, hull: hull, cooldown: showcase ? 2.8 : 1.4 + Float(spawned % 3) * 0.3))
+        let hull: Float = showcase ? (role == .bandit ? 42 : 50) : (role == .bandit ? 78 : 96)
+        let enemy = Enemy(node: node, position: point, hull: hull, cooldown: showcase ? 2.6 : 1.3 + Float(spawned % 3) * 0.25, role: role)
+        enemies.append(enemy)
+    }
+
+    private func disable(_ enemy: Enemy) {
+        guard enemy.alive, !enemy.disabled else { return }
+        enemy.disabled = true
+        enemy.hull = 0
+        if firstKill < 0 { firstKill = phaseTime }
+        say("BANDIT DISABLED")
+        popups.append(Popup(position: enemy.position, text: "DISABLED", age: 0))
+        haptics.hit()
+        audio.chime()
+        streak += 1
+        streakLeft = 4.5
+        if streak >= 2 { say("\(streak)x STREAK") }
+        explode(at: enemy.position + simd_float3(0, 0.4, 0), power: 0.45, chain: false)
+        dropPrize(at: enemy.position + simd_float3(6, 1, -4))
     }
 
     private func destroy(_ enemy: Enemy) {
         guard enemy.alive else { return }
         enemy.alive = false
+        if towed === enemy { towed = nil }
+        if cycled === enemy { cycled = nil }
         enemy.node.removeFromParentNode()
         kills += 1
-        score += 250
         if firstKill < 0 { firstKill = phaseTime }
-        popups.append(Popup(position: enemy.position, text: "+250", age: 0))
-        explode(at: enemy.position, power: 1)
+        addBounty(280, text: "BOGEY DOWN", at: enemy.position)
+        streak += 1
+        streakLeft = 4.5
+        if streak >= 2 { say("\(streak)x STREAK") }
+        explode(at: enemy.position, power: 1.15, chain: true)
         let dist = simd_distance(enemy.position, position)
-        if dist < 90 {
-            slowmo = 0.1
-            shake = min(1.2, shake + 0.55)
+        if dist < 120 {
+            slowmo = max(slowmo, 0.42)
+            shake = min(1.6, shake + 1.05)
         }
+        dropPrize(at: enemy.position + simd_float3(-5, 2, 3))
     }
 
     private func hurtPlayer(_ amount: Float) {
@@ -735,32 +965,37 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         if hull <= 0 {
             hull = 0
             died = true
-            explode(at: position, power: 1.3)
+            explode(at: position, power: 1.45, chain: true)
             player.isHidden = true
             haptics.boom()
         }
     }
 
-    private func explode(at point: simd_float3, power: Float) {
+    private func explode(at point: simd_float3, power: Float, chain: Bool) {
         audio.explosion()
         haptics.boom()
-        flash = min(1, flash + 0.7 * power)
+        flash = min(1, flash + 0.85 * power)
         flashLight.simdPosition = point
-        let fire = SCNPlane(width: 6, height: 6)
-        fire.materials = [art.fire]
-        let fireNode = SCNNode(geometry: fire)
-        fireNode.simdPosition = point
-        fireNode.constraints = [SCNBillboardConstraint()]
-        scene.rootNode.addChildNode(fireNode)
-        effects.append(Effect(node: fireNode, life: 0.55, start: 0.4, end: 3.2 * power, spark: false, velocity: .zero))
-
-        let smoke = SCNPlane(width: 7, height: 7)
-        smoke.materials = [art.smoke]
-        let smokeNode = SCNNode(geometry: smoke)
-        smokeNode.simdPosition = point
-        smokeNode.constraints = [SCNBillboardConstraint()]
-        scene.rootNode.addChildNode(smokeNode)
-        effects.append(Effect(node: smokeNode, life: 1.15, start: 0.8, end: 4.5 * power, spark: false, velocity: .zero))
+        flashLight.light?.attenuationEndDistance = CGFloat(70 + 80 * power)
+        shake = min(1.6, shake + 0.75 * power)
+        if power > 0.9 { slowmo = max(slowmo, 0.28) }
+        billboard(art.fire, at: point, life: 0.22, start: 0.3, end: 2.2 * power)
+        billboard(art.fire, at: point, life: 0.7, start: 0.8, end: 5.5 * power)
+        billboard(art.smoke, at: point + simd_float3(0, 0.6, 0), life: 1.6, start: 1.1, end: 7 * power)
+        let ring = SCNTorus(ringRadius: 1.2, pipeRadius: 0.08)
+        ring.ringSegmentCount = 28
+        ring.pipeSegmentCount = 8
+        ring.materials = [art.orangeGlow]
+        let ringNode = SCNNode(geometry: ring)
+        ringNode.simdPosition = point
+        ringNode.eulerAngles.x = Float.pi / 2
+        scene.rootNode.addChildNode(ringNode)
+        effects.append(Effect(node: ringNode, life: 0.55, start: 1, end: 9 * power, spark: false, velocity: .zero))
+        if chain && power > 0.75 {
+            let kick = simd_float3(Float.random(in: -4...4), Float.random(in: 0...3), Float.random(in: -4...4))
+            pendingBooms.append((point + kick, 0.18, power * 0.62))
+            pendingBooms.append((point - kick, 0.34, power * 0.4))
+        }
 
         for _ in 0..<profile.sparks {
             let spark = SCNSphere(radius: 0.12)
@@ -840,17 +1075,185 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         return (fx / fl) * (tz / tl) - (fz / fl) * (tx / tl)
     }
 
+    private func billboard(_ material: SCNMaterial, at point: simd_float3, life: Float, start: Float, end: Float) {
+        let plane = SCNPlane(width: 6, height: 6)
+        plane.materials = [material]
+        let node = SCNNode(geometry: plane)
+        node.simdPosition = point
+        node.constraints = [SCNBillboardConstraint()]
+        scene.rootNode.addChildNode(node)
+        effects.append(Effect(node: node, life: life, start: start, end: end, spark: false, velocity: .zero))
+    }
+
+    private func say(_ text: String) {
+        callout = text
+        calloutLeft = 1.6
+    }
+
+    private func addBounty(_ amount: Int, text: String, at point: simd_float3) {
+        let gain = amount * max(1, multiplier)
+        bounty += gain
+        score += gain
+        popups.append(Popup(position: point, text: "+\(gain)", age: 0))
+        let next = bounty >= 2400 ? "ACE" : (bounty >= 800 ? "HUNTER" : "ROOKIE")
+        if next != rank {
+            rank = next
+            say("RANK UP  \(rank)")
+            audio.titleHit()
+        } else {
+            say(text)
+        }
+        haptics.pickup()
+        audio.chime()
+    }
+
+    private func tryDeliver() {
+        guard let ship = towed, simd_distance(position, dropoff) < 46 else { return }
+        towed = nil
+        ship.alive = false
+        ship.node.removeFromParentNode()
+        deliveries += 1
+        addBounty(900, text: "BOUNTY SECURED", at: dropoff)
+        say("DELIVERED  \(deliveries)/\(captureGoal)")
+    }
+
+    private func dropPrize(at point: simd_float3) {
+        guard pickups.filter(\.alive).count < 8 else { return }
+        let kind = PrizeKind(rawValue: Int.random(in: 0..<6)) ?? .credits
+        let node = Meshes.pickup(art: art)
+        node.simdPosition = point
+        scene.rootNode.addChildNode(node)
+        pickups.append(Pickup(node: node, kind: kind))
+    }
+
+    private func collect(_ pickup: Pickup) {
+        pickup.alive = false
+        let point = pickup.node.simdPosition
+        pickup.node.removeFromParentNode()
+        switch pickup.kind {
+        case .shield:
+            shield = shieldCap
+            ShipUpgrades.unlock("shields")
+            say("SHIELD UP")
+        case .repair:
+            hull = min(100, hull + 40)
+            ShipUpgrades.unlock("reactor")
+            say("HULL REPAIR")
+        case .spread:
+            spreadLevel = min(2, spreadLevel + 1)
+            ShipUpgrades.unlock("spread")
+            say("SPREAD GUNS")
+        case .missile:
+            missileLevel = min(2, missileLevel + 1)
+            ShipUpgrades.unlock("missiles")
+            say("MISSILES")
+        case .credits:
+            addBounty(220, text: "CREDITS", at: point)
+        case .multi:
+            multiplier = min(4, multiplier + 1)
+            say("\(multiplier)x PAY")
+        }
+        if pickup.kind != .credits {
+            popups.append(Popup(position: point, text: callout, age: 0))
+            score += 120
+        }
+        haptics.pickup()
+        audio.chime()
+    }
+
+    private func nearestHostile() -> Enemy? {
+        if let cycled, cycled.alive, !cycled.disabled { return cycled }
+        return enemies.filter { $0.alive && !$0.disabled }.min { simd_distance($0.position, position) < simd_distance($1.position, position) }
+    }
+
+    private func nearestDisabled(maxDistance: Float) -> Enemy? {
+        enemies.filter { $0.alive && $0.disabled && simd_distance($0.position, position) < maxDistance }
+            .min { simd_distance($0.position, position) < simd_distance($1.position, position) }
+    }
+
+    private func aimEnemy() -> Enemy? {
+        if let cycled, cycled.alive { return cycled }
+        return lockTarget(cone: 0.72)
+    }
+
+    private func updateBeam() {
+        guard let ship = towed else {
+            beamNode.isHidden = true
+            return
+        }
+        beamNode.isHidden = false
+        let mid = (position + ship.position) * 0.5
+        beamNode.simdPosition = mid
+        let span = max(1, simd_distance(position, ship.position))
+        beamNode.simdScale = simd_float3(1, span, 1)
+        let along = safeNorm(ship.position - position)
+        beamNode.simdOrientation = simd_quatf(from: simd_float3(0, 1, 0), to: along)
+    }
+
+    private func objectiveLine() -> String {
+        if phase != .combat { return "DRAG ANYWHERE ON THE LEFT TO FLY" }
+        if towed != nil { return "DELIVER THE BANDIT TO THE FREIGHTER" }
+        if nearestDisabled(maxDistance: 600) != nil { return "TRACTOR THE DISABLED BANDIT" }
+        if enemies.contains(where: { $0.alive && $0.role == .bandit && !$0.disabled }) {
+            return "DISABLE BANDITS   \(deliveries)/\(captureGoal) DELIVERED"
+        }
+        return "BOGEYS ARE HUNTING YOU"
+    }
+
+    private func contact(_ point: simd_float3, kind: Int) -> HudContact {
+        let rel = point - position
+        let fwd = forward()
+        let right = simd_normalize(simd_cross(fwd, simd_float3(0, 1, 0)))
+        let ahead = simd_dot(rel, fwd)
+        let side = simd_dot(rel, right)
+        return HudContact(world: point, kind: kind, distance: simd_length(rel), bearing: atan2(side, ahead))
+    }
+
+    private func blip(_ point: simd_float3, kind: Int) -> HudBlip {
+        let rel = point - position
+        let fwd = forward()
+        let right = simd_normalize(simd_cross(fwd, simd_float3(0, 1, 0)))
+        let ahead = simd_dot(rel, fwd) / 220
+        let side = simd_dot(rel, right) / 220
+        return HudBlip(x: max(-1, min(1, side)), y: max(-1, min(1, ahead)), kind: kind)
+    }
+
+    private func creditsText() -> String {
+        """
+        NEON RIFT
+        by Shahbaz Mirshahi
+
+        NEON RIFT 2
+        a test flight
+
+        Bounty \(bounty)
+        Rank \(rank)
+        \(deliveries) bandits delivered
+        \(kills) bogeys down
+
+        Flight, picture, and sound
+        Shahbaz Mirshahi
+
+        Ships, sky, and weapons
+        built in the engine
+
+        Thank you for flying the lane
+
+        TAP TO FLY AGAIN
+        """
+    }
+
     private func nearestEnemy() -> Enemy? {
-        enemies.filter(\.alive).min { simd_distance($0.position, position) < simd_distance($1.position, position) }
+        nearestHostile()
     }
 
     private func lockTarget(cone: Float) -> Enemy? {
         let fwd = forward()
         return enemies.filter { enemy in
-            guard enemy.alive else { return false }
+            guard enemy.alive, !enemy.disabled else { return false }
             let to = enemy.position - position
             let dist = simd_length(to)
-            return dist < 230 && simd_dot(fwd, to / dist) > cone
+            return dist < 260 && simd_dot(fwd, to / dist) > cone
         }.min { simd_distance($0.position, position) < simd_distance($1.position, position) }
     }
 
@@ -868,8 +1271,33 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         heading.formTruncatingRemainder(dividingBy: 360)
         if heading < 0 { heading += 360 }
         hud.heading = heading
-        hud.lockWorld = (phase == .combat && !died) ? lockTarget(cone: 0.35)?.position : nil
+        let locked = (phase == .combat && !died) ? (cycled ?? lockTarget(cone: 0.2)) : nil
+        hud.lockWorld = locked.map { $0.alive ? $0.position : nil } ?? nil
         hud.pickups = phase == .combat ? pickups.filter(\.alive).map(\.node.simdPosition) : []
+        hud.objective = objectiveLine()
+        hud.callout = callout
+        hud.calloutAlpha = max(0, calloutLeft / 1.6)
+        hud.bounty = bounty
+        hud.rank = rank
+        hud.boost = max(0, boostLeft / 1.55)
+        hud.towing = towed != nil
+        hud.beamReady = nearestDisabled(maxDistance: 40) != nil || towed != nil
+        hud.cockpit = cockpitOn
+        hud.creditScroll = creditScroll
+        hud.contacts = []
+        hud.blips = []
+        if phase == .combat {
+            let focus = towed != nil ? dropoff : (nearestHostile()?.position ?? nearestDisabled(maxDistance: 500)?.position)
+            if let focus {
+                hud.contacts.append(contact(focus, kind: 3))
+            }
+            for enemy in enemies where enemy.alive {
+                let kind = enemy.disabled ? 2 : (enemy.role == .bandit ? 1 : 0)
+                hud.contacts.append(contact(enemy.position, kind: kind))
+                hud.blips.append(blip(enemy.position, kind: kind))
+            }
+            hud.blips.append(blip(dropoff, kind: 3))
+        }
         hud.popups = popups.map { ($0.position, $0.text, $0.age) }
         hud.sunWorld = SpaceLook.sunDirection * 2200
         hud.flash = flash
@@ -880,10 +1308,11 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             let seconds = Int(missionTime)
             let time = String(format: "%d:%02d", seconds / 60, seconds % 60)
             if died {
-                hud.resultsBody = "SHIP LOST\n\n\(kills) INTERCEPTORS\n\(time) IN THE LANE\nSCORE \(score)\n\nTAP TO FLY AGAIN"
+                hud.resultsBody = "SHIP LOST\n\(time) IN THE LANE\nBOUNTY \(bounty)"
             } else {
-                hud.resultsBody = "\(kills) INTERCEPTORS\n\(time) IN THE LANE\nSCORE \(score)\n\nTHE RIFT WARDEN SEES YOU\n\nTAP TO FLY AGAIN"
+                hud.resultsBody = "BOUNTY \(bounty)\n\(deliveries) BANDITS DELIVERED\n\(kills) BOGEYS DOWN\n\(time) IN THE LANE\nRANK \(rank)"
             }
+            hud.credits = creditsText()
         }
         let beat = Int(missionTime)
         if beat != lastBeat && beat > 0 && beat % 2 == 0 {
@@ -915,16 +1344,21 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             break
         case .combat:
             hangar.removeFromParentNode()
+            cockpitOn = false
             cockpit.isHidden = true
-            if showcase {
-                // Already in open space after the launch. Keep momentum.
-            }
+            player.isHidden = false
         case .warden:
+            cockpitOn = false
             cockpit.isHidden = false
+            player.isHidden = false
             spawnWarden()
         case .results:
+            cockpitOn = false
             cockpit.isHidden = true
+            player.isHidden = false
             audio.setThrust(0.05)
+            audio.setMusic(0.15)
+            audio.setBeam(0)
         }
     }
 
@@ -979,7 +1413,14 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         sun.light?.type = .directional
         sun.light?.intensity = 1400
         sun.light?.temperature = 5600
-        sun.light?.castsShadow = false
+        sun.light?.castsShadow = profile.high
+        if profile.high {
+            sun.light?.shadowMode = .deferred
+            sun.light?.shadowMapSize = CGSize(width: 1024, height: 1024)
+            sun.light?.shadowSampleCount = 8
+            sun.light?.maximumShadowDistance = 380
+            sun.light?.shadowColor = UIColor(white: 0, alpha: 0.62)
+        }
         sun.simdPosition = SpaceLook.sunDirection * 200
         sun.look(at: SCNVector3(0, 0, 0))
         scene.rootNode.addChildNode(sun)
@@ -1028,7 +1469,18 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         scene.rootNode.addChildNode(rift)
 
         scene.rootNode.addChildNode(Meshes.planet(art: art))
+        scene.rootNode.addChildNode(Meshes.body(art: art, radius: 70, tint: UIColor(red: 0.75, green: 0.82, blue: 0.9, alpha: 1), at: simd_float3(180, 40, -520)))
+        scene.rootNode.addChildNode(Meshes.body(art: art, radius: 140, tint: UIColor(red: 0.85, green: 0.45, blue: 0.28, alpha: 1), at: simd_float3(-420, 80, -980)))
+        scene.rootNode.addChildNode(Meshes.body(art: art, radius: 48, tint: UIColor(red: 0.55, green: 0.7, blue: 0.95, alpha: 1), at: simd_float3(-260, 30, -640)))
         scene.rootNode.addChildNode(Meshes.sun(art: art))
+        let freighter = Meshes.freighter(art: art)
+        freighter.simdPosition = dropoff
+        scene.rootNode.addChildNode(freighter)
+        let beam = SCNCylinder(radius: 0.12, height: 1)
+        beam.materials = [art.cyanGlow]
+        beamNode.geometry = beam
+        beamNode.isHidden = true
+        scene.rootNode.addChildNode(beamNode)
 
         cockpit = Meshes.cockpit(art: art)
         cockpit.isHidden = true
@@ -1045,24 +1497,40 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 let node = Meshes.pickup(art: art)
                 node.simdPosition = spot
                 scene.rootNode.addChildNode(node)
-                pickups.append(Pickup(node: node))
+                let kinds: [PrizeKind] = [.shield, .repair, .spread, .missile]
+                pickups.append(Pickup(node: node, kind: kinds[pickups.count % kinds.count]))
             }
         }
 
-        for rock in 0..<5 {
-            let s = CGFloat(4 + rock * 2)
-            let box = SCNBox(width: s, height: s * 0.7, length: s * 1.2, chamferRadius: 0.4)
+        let rocks = profile.high ? 18 : 8
+        for rock in 0..<rocks {
+            let s = CGFloat(2.2 + Float(rock % 5) * 1.3)
+            let box = SCNBox(width: s, height: s * 0.72, length: s * 1.25, chamferRadius: 0.25)
             box.materials = [art.debris]
             let node = SCNNode(geometry: box)
-            node.simdPosition = simd_float3(Float(80 + rock * 30), Float(20 - rock * 6), Float(-200 - rock * 80))
-            node.eulerAngles = SCNVector3(Float(rock), Float(rock) * 0.4, Float(0.2))
+            let lane = Float(rock)
+            node.simdPosition = simd_float3(
+                sin(lane * 1.7) * (28 + lane * 3.2),
+                4 + cos(lane * 0.9) * 8,
+                -40 - lane * 22
+            )
+            node.eulerAngles = SCNVector3(lane * 0.4, lane * 0.2, lane * 0.15)
             scene.rootNode.addChildNode(node)
         }
     }
 }
 
+private enum ShipRole {
+    case bandit, bogey
+}
+
+private enum PrizeKind: Int {
+    case shield, repair, spread, missile, credits, multi
+}
+
 private final class Enemy {
     let node: SCNNode
+    let role: ShipRole
     var position: simd_float3
     var velocity = simd_float3.zero
     var hull: Float
@@ -1071,11 +1539,13 @@ private final class Enemy {
     var strafe: Float = 1
     var seed: Float = Float.random(in: 0...6)
     var alive = true
-    init(node: SCNNode, position: simd_float3, hull: Float, cooldown: Float) {
+    var disabled = false
+    init(node: SCNNode, position: simd_float3, hull: Float, cooldown: Float, role: ShipRole) {
         self.node = node
         self.position = position
         self.hull = hull
         self.cooldown = cooldown
+        self.role = role
         self.strafe = Bool.random() ? 1 : -1
     }
 }
@@ -1090,6 +1560,7 @@ private final class Bolt {
     var fromPlayer: Bool
     var home: Enemy?
     var alive = true
+    var missile = false
     init(node: SCNNode, position: simd_float3, direction: simd_float3, speed: Float, life: Float, fromPlayer: Bool, home: Enemy?) {
         self.node = node
         self.position = position
@@ -1103,8 +1574,12 @@ private final class Bolt {
 
 private final class Pickup {
     let node: SCNNode
+    let kind: PrizeKind
     var alive = true
-    init(node: SCNNode) { self.node = node }
+    init(node: SCNNode, kind: PrizeKind) {
+        self.node = node
+        self.kind = kind
+    }
 }
 
 private struct Debris {

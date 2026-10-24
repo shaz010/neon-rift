@@ -30,6 +30,7 @@ enum Meshes {
         canopy.segmentCount = 16
         canopy.materials = [art.glass]
         let canopyNode = SCNNode(geometry: canopy)
+        canopyNode.name = "canopy"
         canopyNode.simdScale = simd_float3(0.85, 0.48, 1.35)
         canopyNode.simdPosition = simd_float3(0, 0.62, -2.15)
         root.addChildNode(canopyNode)
@@ -89,7 +90,104 @@ enum Meshes {
         let iffNode = SCNNode(geometry: iff)
         iffNode.simdPosition = simd_float3(0, 0.62, 1.2)
         root.addChildNode(iffNode)
+        inspectionFit(root, art: art)
         return root
+    }
+
+    /// Cannons stay on the hull. Missile racks, extra barrels, shield dishes,
+    /// and the reactor core are named upgrade-* and start hidden. A dropped-in
+    /// USDZ can use the same names; ShipUpgrades unhides whichever are fitted.
+    private static func inspectionFit(_ root: SCNNode, art: ArtSet) {
+        for mount in [ShipPoints.gunL, ShipPoints.gunR] {
+            let barrel = SCNCylinder(radius: 0.075, height: 1.7)
+            barrel.radialSegmentCount = 12
+            barrel.materials = [art.hullDark]
+            let node = SCNNode(geometry: barrel)
+            node.eulerAngles.x = .pi / 2
+            node.simdPosition = mount + simd_float3(0, 0, -0.15)
+            root.addChildNode(node)
+            let lip = SCNTorus(ringRadius: 0.09, pipeRadius: 0.018)
+            lip.ringSegmentCount = 12
+            lip.pipeSegmentCount = 8
+            lip.materials = [art.orangeGlow]
+            let muzzle = SCNNode(geometry: lip)
+            muzzle.simdPosition = mount + simd_float3(0, 0, -1.0)
+            root.addChildNode(muzzle)
+        }
+
+        let spread = SCNNode()
+        spread.name = "upgrade-spread"
+        spread.isHidden = true
+        for mount in [ShipPoints.gunL, ShipPoints.gunR] {
+            let barrel = SCNCylinder(radius: 0.05, height: 1.2)
+            barrel.radialSegmentCount = 10
+            barrel.materials = [art.hullWorn]
+            let node = SCNNode(geometry: barrel)
+            node.eulerAngles.x = .pi / 2
+            let out: Float = mount.x > 0 ? 0.28 : -0.28
+            node.simdPosition = mount + simd_float3(out, 0.12, -0.05)
+            spread.addChildNode(node)
+        }
+        root.addChildNode(spread)
+
+        let rack = SCNNode()
+        rack.name = "upgrade-missiles"
+        rack.isHidden = true
+        for side: Float in [-1, 1] {
+            for index in 0..<3 {
+                let tube = SCNCylinder(radius: 0.055, height: 1.15)
+                tube.radialSegmentCount = 8
+                tube.materials = [art.hullDark]
+                let node = SCNNode(geometry: tube)
+                node.eulerAngles.x = .pi / 2
+                let x = side * (2.65 + Float(index) * 0.2)
+                node.simdPosition = simd_float3(x, -0.32, -0.35)
+                rack.addChildNode(node)
+                let cap = SCNSphere(radius: 0.065)
+                cap.segmentCount = 8
+                cap.materials = [art.orangeGlow]
+                let tip = SCNNode(geometry: cap)
+                tip.simdPosition = simd_float3(x, -0.32, -0.95)
+                rack.addChildNode(tip)
+            }
+        }
+        root.addChildNode(rack)
+
+        for side: Float in [-1, 1] {
+            let dish = SCNCylinder(radius: 0.22, height: 0.05)
+            dish.radialSegmentCount = 12
+            dish.materials = [art.hullDark]
+            let housing = SCNNode(geometry: dish)
+            housing.eulerAngles.z = .pi / 2
+            housing.simdPosition = simd_float3(side * 1.75, 0.3, -0.15)
+            root.addChildNode(housing)
+            let glow = SCNCylinder(radius: 0.14, height: 0.03)
+            glow.radialSegmentCount = 12
+            glow.materials = [art.cyanGlow]
+            let emitter = SCNNode(geometry: glow)
+            emitter.name = "upgrade-shields"
+            emitter.isHidden = true
+            emitter.eulerAngles.z = .pi / 2
+            emitter.simdPosition = simd_float3(side * 1.75, 0.36, -0.15)
+            root.addChildNode(emitter)
+        }
+
+        let cage = SCNTorus(ringRadius: 0.28, pipeRadius: 0.03)
+        cage.ringSegmentCount = 16
+        cage.pipeSegmentCount = 8
+        cage.materials = [art.hullWorn]
+        let cageNode = SCNNode(geometry: cage)
+        cageNode.eulerAngles.x = .pi / 2
+        cageNode.simdPosition = simd_float3(0, 0.68, 0.25)
+        root.addChildNode(cageNode)
+        let core = SCNSphere(radius: 0.14)
+        core.segmentCount = 12
+        core.materials = [art.orangeGlow]
+        let coreNode = SCNNode(geometry: core)
+        coreNode.name = "upgrade-reactor"
+        coreNode.isHidden = true
+        coreNode.simdPosition = simd_float3(0, 0.68, 0.25)
+        root.addChildNode(coreNode)
     }
 
     static func interceptor(art: ArtSet) -> SCNNode {
@@ -103,6 +201,7 @@ enum Meshes {
             glow.segmentCount = 8
             glow.materials = [art.redGlow]
             let g = SCNNode(geometry: glow)
+            g.name = "running-light"
             g.simdPosition = simd_float3(side * 2.15, 0.08, 0.2)
             root.addChildNode(g)
             let engine = SCNSphere(radius: 0.28)
@@ -269,6 +368,79 @@ enum Meshes {
         box(root, simd_float3(0.025, 0.7, 0.025), simd_float3(-0.42, 0.05, -0.9), art.strut, euler: simd_float3(0.4, 0, 0.5))
         box(root, simd_float3(0.025, 0.7, 0.025), simd_float3(0.42, 0.05, -0.9), art.strut, euler: simd_float3(0.4, 0, -0.5))
         box(root, simd_float3(0.9, 0.02, 0.02), simd_float3(0, 0.38, -0.95), art.strut)
+        box(root, simd_float3(0.72, 0.08, 0.28), simd_float3(0, -0.42, -0.72), art.hullDark, chamfer: 0.02)
+        let screen = SCNPlane(width: 0.16, height: 0.07)
+        screen.materials = [art.cyanGlow]
+        let leftScreen = SCNNode(geometry: screen)
+        leftScreen.simdPosition = simd_float3(-0.16, -0.36, -0.58)
+        leftScreen.eulerAngles.x = -0.6
+        root.addChildNode(leftScreen)
+        let right = SCNPlane(width: 0.12, height: 0.06)
+        right.materials = [art.orangeGlow]
+        let rightScreen = SCNNode(geometry: right)
+        rightScreen.simdPosition = simd_float3(0.14, -0.36, -0.58)
+        rightScreen.eulerAngles.x = -0.6
+        root.addChildNode(rightScreen)
+        for side: Float in [-1, 1] {
+            let hand = SCNSphere(radius: 0.045)
+            hand.segmentCount = 8
+            hand.materials = [art.hullWorn]
+            let node = SCNNode(geometry: hand)
+            node.simdPosition = simd_float3(side * 0.08, -0.46, -0.5)
+            root.addChildNode(node)
+        }
+        let stick = SCNCylinder(radius: 0.012, height: 0.16)
+        stick.materials = [art.strut]
+        let grip = SCNNode(geometry: stick)
+        grip.simdPosition = simd_float3(0, -0.4, -0.48)
+        grip.eulerAngles.x = 0.4
+        root.addChildNode(grip)
+        return root
+    }
+
+    static func freighter(art: ArtSet) -> SCNNode {
+        let root = SCNNode()
+        root.name = "freighter"
+        box(root, simd_float3(10, 6, 36), simd_float3(0, 0, 0), art.hull, chamfer: 0.3)
+        box(root, simd_float3(16, 3.2, 14), simd_float3(0, -1.2, 6), art.hullDark, chamfer: 0.2)
+        box(root, simd_float3(4, 3, 8), simd_float3(0, 3.2, -6), art.hullWorn, chamfer: 0.15)
+        for z: Float in [-8, 0, 8] {
+            let lamp = SCNSphere(radius: 0.35)
+            lamp.segmentCount = 8
+            lamp.materials = [art.gold]
+            let node = SCNNode(geometry: lamp)
+            node.simdPosition = simd_float3(0, 2.2, z)
+            root.addChildNode(node)
+        }
+        let bay = SCNBox(width: 6, height: 0.2, length: 8, chamferRadius: 0)
+        bay.materials = [art.cyanGlow]
+        let pad = SCNNode(geometry: bay)
+        pad.simdPosition = simd_float3(0, -2.8, 12)
+        root.addChildNode(pad)
+        return root
+    }
+
+    static func body(art: ArtSet, radius: CGFloat, tint: UIColor, at point: simd_float3) -> SCNNode {
+        let root = SCNNode()
+        let sphere = SCNSphere(radius: radius)
+        sphere.segmentCount = 28
+        let mat = (art.planet.copy() as? SCNMaterial) ?? SCNMaterial()
+        mat.multiply.contents = tint
+        sphere.materials = [mat]
+        root.addChildNode(SCNNode(geometry: sphere))
+        let shell = SCNSphere(radius: radius * 1.06)
+        shell.segmentCount = 20
+        let air = SCNMaterial()
+        air.lightingModel = .constant
+        air.diffuse.contents = tint.withAlphaComponent(0.22)
+        air.transparency = 0.35
+        air.isDoubleSided = true
+        air.writesToDepthBuffer = false
+        shell.materials = [air]
+        let glow = SCNNode(geometry: shell)
+        glow.renderingOrder = 8
+        root.addChildNode(glow)
+        root.simdPosition = point
         return root
     }
 

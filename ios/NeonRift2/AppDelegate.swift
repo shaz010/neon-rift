@@ -63,9 +63,23 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
         let window = UIWindow(windowScene: windowScene)
         window.backgroundColor = .black
-        window.rootViewController = FlightViewController()
+        window.rootViewController = rootController()
         window.makeKeyAndVisible()
         self.window = window
+    }
+
+    /// The reel passes -showcase and must open straight into the flight.
+    /// A normal launch stops in the hangar. -showroom opens the inspection pad.
+    private func rootController() -> UIViewController {
+        let args = ProcessInfo.processInfo.arguments
+        let env = ProcessInfo.processInfo.environment
+        if args.contains("-showcase") || env["NR2_SHOWCASE"] == "1" {
+            return FlightViewController()
+        }
+        if args.contains("-showroom") || env["NR2_SHOWROOM"] == "1" {
+            return ShipShowroomViewController(mode: .inspect, announce: true)
+        }
+        return ShipShowroomViewController(mode: .menu)
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {

@@ -173,6 +173,18 @@ rm -f "$OUT/raw.mp4"
 "$OUT/bright-frame" "$OUT/combat.jpg"
 echo "Reel ready in $OUT"
 
+xcrun simctl terminate "$UDID" com.shaz010.neonrift2 >/dev/null 2>&1 || true
+: > "$OUT/showroom.log"
+xcrun simctl launch --console "$UDID" com.shaz010.neonrift2 -showroom > "$OUT/showroom.log" 2>&1 &
+APP_WRAP=$!
+wait_mark "NR2 mark showroom" 40 "$OUT/showroom.log"
+sleep 0.5
+shot showroom
+"$OUT/bright-frame" "$OUT/showroom.jpg"
+kill "$APP_WRAP" 2>/dev/null || true
+xcrun simctl terminate "$UDID" com.shaz010.neonrift2 >/dev/null 2>&1 || true
+wait "$APP_WRAP" 2>/dev/null || true
+
 python3 - <<'PY' > "$OUT/ipad-device.txt"
 import json, subprocess, sys
 raw = subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"])

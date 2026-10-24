@@ -13,6 +13,9 @@
 		F3D2A1000000000000000013 /* ProceduralArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000003 /* ProceduralArt.swift */; };
 		F3D2A1000000000000000014 /* FlightAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000004 /* FlightAudio.swift */; };
 		F3D2A1000000000000000015 /* Meshes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000005 /* Meshes.swift */; };
+		F3D2A1000000000000000016 /* ShipCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000006 /* ShipCatalog.swift */; };
+		F3D2A1000000000000000017 /* ShipShowroomViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000007 /* ShipShowroomViewController.swift */; };
+		F3D2A1000000000000000019 /* fighter-hotspots.json in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000009 /* fighter-hotspots.json */; };
 		111111111111111111111202 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111106 /* Assets.xcassets */; };
 		111111111111111111111204 /* silence.wav in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111108 /* silence.wav */; };
 /* End PBXBuildFile section */
@@ -25,6 +28,9 @@
 		F3D2A1000000000000000003 /* ProceduralArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProceduralArt.swift; sourceTree = "<group>"; };
 		F3D2A1000000000000000004 /* FlightAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightAudio.swift; sourceTree = "<group>"; };
 		F3D2A1000000000000000005 /* Meshes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Meshes.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000006 /* ShipCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShipCatalog.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000007 /* ShipShowroomViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShipShowroomViewController.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000009 /* fighter-hotspots.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Ship/fighter-hotspots.json; sourceTree = "<group>"; };
 		111111111111111111111105 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		111111111111111111111106 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		111111111111111111111108 /* silence.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = silence.wav; sourceTree = "<group>"; };
@@ -66,6 +72,9 @@
 				F3D2A1000000000000000003 /* ProceduralArt.swift */,
 				F3D2A1000000000000000004 /* FlightAudio.swift */,
 				F3D2A1000000000000000005 /* Meshes.swift */,
+				F3D2A1000000000000000006 /* ShipCatalog.swift */,
+				F3D2A1000000000000000007 /* ShipShowroomViewController.swift */,
+				F3D2A1000000000000000009 /* fighter-hotspots.json */,
 				111111111111111111111105 /* Info.plist */,
 				111111111111111111111106 /* Assets.xcassets */,
 				111111111111111111111108 /* silence.wav */,
@@ -134,6 +143,7 @@
 			files = (
 				111111111111111111111202 /* Assets.xcassets in Resources */,
 				111111111111111111111204 /* silence.wav in Resources */,
+				F3D2A1000000000000000019 /* fighter-hotspots.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -171,6 +181,8 @@
 				F3D2A1000000000000000013 /* ProceduralArt.swift in Sources */,
 				F3D2A1000000000000000014 /* FlightAudio.swift in Sources */,
 				F3D2A1000000000000000015 /* Meshes.swift in Sources */,
+				F3D2A1000000000000000016 /* ShipCatalog.swift in Sources */,
+				F3D2A1000000000000000017 /* ShipShowroomViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -33,6 +33,10 @@ final class FlightAudio {
             var endBoom = local.boom
             var endSting = local.sting
             var endLaunch = local.launch
+            var endChime = local.chime
+            var endMusicPhase = local.musicPhase
+            let music = local.music
+            let beam = local.beam
             for buffer in buffers {
                 guard let data = buffer.mData else { continue }
                 let ptr = data.assumingMemoryBound(to: Float.self)
@@ -43,24 +47,33 @@ final class FlightAudio {
                 var boom = local.boom
                 var sting = local.sting
                 var launch = local.launch
+                var chime = local.chime
+                var musicPhase = local.musicPhase
                 for i in 0..<frames {
-                    phase += dt * (48 + thrust * 36)
+                    phase += dt * (52 + thrust * 70)
                     if phase > 8 { phase -= 8 }
+                    musicPhase += dt * (1.15 + music * 1.7)
                     var seed = nstate &* 747796405 &+ 2891336453
                     nstate = seed
                     seed = (seed >> ((seed >> 28) &+ 4)) ^ seed &* 277803737
                     let noise = Float(Int32(bitPattern: seed)) / Float(Int32.max)
-                    let hum = sin(phase * 2 * .pi) * (0.045 + thrust * 0.11)
-                        + sin(phase * 4 * .pi) * thrust * 0.03
-                    shot *= 0.992
-                    boom *= 0.997
+                    let hum = sin(phase * 2 * .pi) * (0.04 + thrust * 0.16)
+                        + sin(phase * 3 * .pi) * thrust * 0.05
+                    shot *= 0.986
+                    boom *= 0.9965
                     sting *= 0.996
                     launch *= 0.9992
-                    let crack = noise * shot * 0.22
-                    let rumble = noise * boom * (0.18 + 0.1 * sin(phase * 0.35))
+                    chime *= 0.994
+                    let crack = noise * shot * 0.34 + sin(phase * 18 * .pi) * shot * 0.12
+                    let rumble = noise * boom * (0.28 + 0.16 * sin(phase * 0.22))
                     let hit = sin(phase * 1.4 * .pi) * sting * 0.16
-                    let rise = sin(phase * (1.2 + launch) * .pi) * launch * 0.07
-                    let sample = (hum + crack + rumble + hit + rise) * 0.85
+                    let rise = sin(phase * (1.2 + launch) * .pi) * launch * 0.08
+                    let bell = sin(musicPhase * 880 * .pi) * chime * 0.12
+                        + sin(musicPhase * 1320 * .pi) * chime * 0.05
+                    let tow = sin(phase * 6 * .pi) * beam * (0.04 + 0.03 * sin(phase * 0.5))
+                    let pulse = max(0, sin(musicPhase * 2 * .pi))
+                    let bed = sin(musicPhase * 2 * .pi * (92 + music * 70)) * pulse * (0.012 + music * 0.05)
+                    let sample = (hum + crack + rumble + hit + rise + bell + tow + bed) * 0.9
                     if channels <= 1 {
                         ptr[i] = sample
                     } else {
@@ -75,6 +88,8 @@ final class FlightAudio {
                 endBoom = boom
                 endSting = sting
                 endLaunch = launch
+                endChime = chime
+                endMusicPhase = musicPhase
             }
             state.pointee.phase = endPhase
             state.pointee.nstate = endN
@@ -82,6 +97,8 @@ final class FlightAudio {
             state.pointee.boom = endBoom
             state.pointee.sting = endSting
             state.pointee.launch = endLaunch
+            state.pointee.chime = endChime
+            state.pointee.musicPhase = endMusicPhase
             return noErr
         }
         engine.attach(source)
@@ -98,9 +115,12 @@ final class FlightAudio {
 
     func setThrust(_ value: Float) { box.pointee.thrust = min(1, max(0, value)) }
     func setLaunch(_ value: Float) { box.pointee.launch = min(1, max(box.pointee.launch, value)) }
+    func setMusic(_ value: Float) { box.pointee.music = min(1, max(0, value)) }
+    func setBeam(_ value: Float) { box.pointee.beam = min(1, max(0, value)) }
     func shot() { box.pointee.shot = 1 }
     func explosion() { box.pointee.boom = 1 }
     func titleHit() { box.pointee.sting = 1 }
+    func chime() { box.pointee.chime = 1 }
 
     deinit {
         engine.stop()
@@ -115,6 +135,10 @@ private struct AudioBox {
     var boom: Float = 0
     var sting: Float = 0
     var launch: Float = 0
+    var chime: Float = 0
+    var beam: Float = 0
+    var music: Float = 0
+    var musicPhase: Float = 0
     var phase: Float = 0
     var nstate: UInt32 = 0x1234_5678
     var rate: Float = 44_100
