@@ -176,7 +176,7 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.neonrift2\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Changelog: hangar showroom before the mission, then a capture-and-deliver flight. Drag anywhere on the left to fly, double-tap to boost, right side fires. Inspect the ship with a spin, pinch zoom, and an orbit camera. Disable bandits and tow them to the freighter. Full screen on iPhone and iPad. Same Neon Rift 2 app."
+            echo "- Changelog: same in-engine fighter. Hangar tumble on every axis, six saved paint schemes, and a medal board. Loops and barrel rolls, a wider chase view, bigger bogey brackets, a lock with a health bar, and pickups that pull in. Full screen on iPhone and iPad. Same Neon Rift 2 app."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Remove the API key

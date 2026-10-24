@@ -32,18 +32,21 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
     private let specBadge = UILabel()
     private let specSummary = UILabel()
     private let specStats = UILabel()
+    private let statsLabel = UILabel()
+    private var liveryButtons: [UIButton] = []
 
     private var displayLink: CADisplayLink?
     private var lastStamp: CFTimeInterval = 0
-    private var shipYaw: Float = 0.35
+    private var shipOrientation = simd_quatf(angle: 0.35, axis: simd_float3(0, 1, 0))
     private var cameraYaw: Float = 0.85
-    private var cameraPitch: Float = 0.2
+    private var cameraPitch: Float = 0.35
     private var distance: Float
     private var orbiting = true
     private var idle: Float = 0
     private var orbitShown = false
     private var glowPhase: Float = 0
     private var panOrigin = CGPoint.zero
+    private var orbitPanOrigin = CGPoint.zero
     private var pinchStart: Float = 15
     private var announced = false
     private var selectedID: String?
@@ -98,6 +101,11 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
         pan.maximumNumberOfTouches = 1
         pan.delegate = self
         scnView.addGestureRecognizer(pan)
+        let orbitPan = UIPanGestureRecognizer(target: self, action: #selector(orbitPanned(_:)))
+        orbitPan.minimumNumberOfTouches = 2
+        orbitPan.maximumNumberOfTouches = 2
+        orbitPan.delegate = self
+        scnView.addGestureRecognizer(orbitPan)
         let pinch = UIPinchGestureRecognizer(target: self, action: #selector(pinched(_:)))
         pinch.delegate = self
         scnView.addGestureRecognizer(pinch)
@@ -114,6 +122,26 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
         hintLabel.numberOfLines = 2
         hintLabel.isUserInteractionEnabled = false
         view.addSubview(hintLabel)
+
+        statsLabel.font = UIFont.monospacedSystemFont(ofSize: 12, weight: .light)
+        statsLabel.textColor = UIColor(red: 0.75, green: 0.95, blue: 1, alpha: 1)
+        statsLabel.textAlignment = .center
+        statsLabel.numberOfLines = 0
+        statsLabel.isUserInteractionEnabled = false
+        statsLabel.text = PilotLog.hangarText()
+        view.addSubview(statsLabel)
+
+        for (index, scheme) in ShipLivery.allCases.enumerated() {
+            let button = UIButton(type: .custom)
+            button.tag = index
+            button.backgroundColor = scheme.swatch
+            button.accessibilityLabel = scheme.title
+            button.layer.borderWidth = 2
+            button.addTarget(self, action: #selector(pickLivery(_:)), for: .touchUpInside)
+            view.addSubview(button)
+            liveryButtons.append(button)
+        }
+        markSelectedLivery()
 
         style(flyButton, title: "FLY THE LANE", action: #selector(fly))
         style(inspectButton, title: "INSPECT SHIP", action: #selector(openInspect))
@@ -181,6 +209,17 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
         }
         titleLabel.frame = CGRect(x: 16 * scale, y: safe.top + 18 * scale, width: b.width - 32 * scale, height: 36 * scale)
         hintLabel.frame = CGRect(x: 24 * scale, y: titleLabel.frame.maxY + 4 * scale, width: b.width - 48 * scale, height: 40 * scale)
+        let swatch = 34 * scale
+        let gap = 8 * scale
+        let rowWidth = CGFloat(liveryButtons.count) * swatch + CGFloat(max(0, liveryButtons.count - 1)) * gap
+        var swatchX = (b.width - rowWidth) / 2
+        let swatchY = hintLabel.frame.maxY + 8 * scale
+        for button in liveryButtons {
+            button.frame = CGRect(x: swatchX, y: swatchY, width: swatch, height: swatch)
+            button.layer.cornerRadius = swatch / 2
+            swatchX += swatch + gap
+        }
+        statsLabel.frame = CGRect(x: 20 * scale, y: swatchY + swatch + 10 * scale, width: b.width - 40 * scale, height: 68 * scale)
         let buttonW = min(b.width - 48 * scale, 420 * scale)
         let buttonH = 50 * scale
         let flyY = b.height - safe.bottom - 148 * scale
@@ -247,9 +286,10 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
 
         let scale = max(0.05, catalog.scale)
         shipNode.simdScale = simd_float3(repeating: scale)
-        shipNode.simdPosition = simd_float3(0, 1.45, 0)
+        shipNode.simdPosition = simd_float3(0, 2.6, 0)
         shipNode.categoryBitMask = 1
         ShipUpgrades.apply(to: shipNode)
+        ShipLivery.current.apply(to: shipNode, art: art)
         scene.rootNode.addChildNode(shipNode)
 
         hotspotRoot.name = "hotspots"
@@ -372,7 +412,7 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
     }
 
     private func placeCamera() {
-        shipNode.simdEulerAngles = simd_float3(0, shipYaw, 0)
+        shipNode.simdOrientation = shipOrientation
         let focus = shipNode.simdConvertPosition(catalog.focusPoint, to: nil)
         let flat = distance * cos(cameraPitch)
         let eye = focus + simd_float3(flat * sin(cameraYaw), distance * sin(cameraPitch), flat * cos(cameraYaw))
@@ -421,8 +461,33 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
         let dx = Float(point.x - panOrigin.x)
         let dy = Float(point.y - panOrigin.y)
         panOrigin = point
-        shipYaw -= dx * 0.012
-        cameraPitch = min(0.7, max(-0.2, cameraPitch - dy * 0.0045))
+        tumbleShip(dx: dx, dy: dy)
+        if gesture.state == .ended || gesture.state == .cancelled {
+            idle = 0
+        }
+    }
+
+    /// One finger tumbles the hull on every axis, so the roof, belly, nose, and tail all come around.
+    private func tumbleShip(dx: Float, dy: Float) {
+        let yawSpin = simd_quatf(angle: -dx * 0.012, axis: simd_float3(0, 1, 0))
+        let right = simd_normalize(cameraNode.simdOrientation.act(simd_float3(1, 0, 0)))
+        let pitchSpin = simd_quatf(angle: dy * 0.012, axis: right)
+        shipOrientation = simd_normalize(pitchSpin * yawSpin * shipOrientation)
+    }
+
+    @objc private func orbitPanned(_ gesture: UIPanGestureRecognizer) {
+        let point = gesture.translation(in: scnView)
+        if gesture.state == .began {
+            orbitPanOrigin = point
+            orbiting = false
+            idle = 0
+            return
+        }
+        let dx = Float(point.x - orbitPanOrigin.x)
+        let dy = Float(point.y - orbitPanOrigin.y)
+        orbitPanOrigin = point
+        cameraYaw -= dx * 0.008
+        cameraPitch = min(1.5, max(-0.15, cameraPitch - dy * 0.006))
         if gesture.state == .ended || gesture.state == .cancelled {
             idle = 0
         }
@@ -494,9 +559,29 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
             selectedID = nil
         }
         titleLabel.isHidden = !menu
+        statsLabel.isHidden = !menu
+        statsLabel.text = PilotLog.hangarText()
         hintLabel.text = menu
             ? "THE LANE FIGHTER, ON THE PAD"
-            : "DRAG TO TURN  ·  PINCH TO ZOOM"
+            : "DRAG TO TUMBLE  ·  TWO FINGERS LOOK AROUND\nPINCH TO ZOOM"
+    }
+
+    @objc private func pickLivery(_ sender: UIButton) {
+        let schemes = ShipLivery.allCases
+        guard sender.tag >= 0, sender.tag < schemes.count else { return }
+        let scheme = schemes[sender.tag]
+        ShipLivery.current = scheme
+        scheme.apply(to: shipNode, art: art)
+        markSelectedLivery()
+    }
+
+    private func markSelectedLivery() {
+        let selected = ShipLivery.allCases.firstIndex(of: ShipLivery.current) ?? 0
+        for (index, button) in liveryButtons.enumerated() {
+            button.layer.borderColor = (index == selected
+                ? UIColor(red: 0.6, green: 0.95, blue: 1, alpha: 1)
+                : UIColor(white: 0, alpha: 0.35)).cgColor
+        }
     }
 
     private func style(_ button: UIButton, title: String, action: Selector) {

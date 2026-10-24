@@ -2,6 +2,7 @@ import Foundation
 import ModelIO
 import SceneKit
 import SceneKit.ModelIO
+import UIKit
 
 /// Fitted parts persist across flights. Names match the upgrade-* nodes on the
 /// procedural fighter and on a future purchased model.
@@ -176,6 +177,166 @@ enum ShipAssets {
     static func url(name: String, ext: String) -> URL? {
         Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "Ship")
             ?? Bundle.main.url(forResource: name, withExtension: ext)
+    }
+}
+
+/// Paint only. The mesh stays the in-engine fighter.
+enum ShipLivery: String, CaseIterable {
+    case factory, ion, ember, bone, venom, royal
+
+    static let storeKey = "nr2.ship.livery"
+
+    static var current: ShipLivery {
+        get { ShipLivery(rawValue: UserDefaults.standard.string(forKey: storeKey) ?? "") ?? .factory }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: storeKey) }
+    }
+
+    var title: String {
+        switch self {
+        case .factory: return "FACTORY"
+        case .ion: return "ION"
+        case .ember: return "EMBER"
+        case .bone: return "BONE"
+        case .venom: return "VENOM"
+        case .royal: return "ROYAL"
+        }
+    }
+
+    var swatch: UIColor {
+        switch self {
+        case .factory: return UIColor(white: 0.62, alpha: 1)
+        case .ion: return UIColor(red: 0.25, green: 0.75, blue: 0.95, alpha: 1)
+        case .ember: return UIColor(red: 0.95, green: 0.42, blue: 0.16, alpha: 1)
+        case .bone: return UIColor(red: 0.9, green: 0.88, blue: 0.8, alpha: 1)
+        case .venom: return UIColor(red: 0.35, green: 0.85, blue: 0.38, alpha: 1)
+        case .royal: return UIColor(red: 0.58, green: 0.32, blue: 0.9, alpha: 1)
+        }
+    }
+
+    func apply(to root: SCNNode, art: ArtSet) {
+        let paint = pattern
+        root.enumerateChildNodes { node, _ in
+            guard let geom = node.geometry, let mat = geom.materials.first else { return }
+            if node.name == nil {
+                if mat === art.hull { node.name = "livery-hull" }
+                else if mat === art.hullDark { node.name = "livery-dark" }
+                else if mat === art.hullWorn { node.name = "livery-worn" }
+            }
+            guard let name = node.name else { return }
+            let base: SCNMaterial
+            switch name {
+            case "livery-hull": base = art.hull
+            case "livery-dark": base = art.hullDark
+            case "livery-worn": base = art.hullWorn
+            default: return
+            }
+            let copy = (base.copy() as? SCNMaterial) ?? SCNMaterial()
+            if let paint {
+                copy.multiply.contents = paint
+                copy.multiply.wrapS = .repeat
+                copy.multiply.wrapT = .repeat
+            }
+            geom.materials = [copy]
+        }
+    }
+
+    private var pattern: UIImage? {
+        switch self {
+        case .factory:
+            return nil
+        case .ion:
+            return ShipLivery.stripes(
+                UIColor(red: 0.55, green: 0.82, blue: 1, alpha: 1),
+                UIColor(red: 0.15, green: 0.45, blue: 0.7, alpha: 1),
+                bands: 5
+            )
+        case .ember:
+            return ShipLivery.stripes(
+                UIColor(red: 1, green: 0.55, blue: 0.28, alpha: 1),
+                UIColor(red: 0.45, green: 0.16, blue: 0.08, alpha: 1),
+                bands: 9
+            )
+        case .bone:
+            return ShipLivery.stripes(
+                UIColor(red: 0.92, green: 0.9, blue: 0.82, alpha: 1),
+                UIColor(red: 0.55, green: 0.52, blue: 0.46, alpha: 1),
+                bands: 3
+            )
+        case .venom:
+            return ShipLivery.stripes(
+                UIColor(red: 0.35, green: 0.95, blue: 0.4, alpha: 1),
+                UIColor(red: 0.05, green: 0.16, blue: 0.08, alpha: 1),
+                bands: 7
+            )
+        case .royal:
+            return ShipLivery.stripes(
+                UIColor(red: 0.62, green: 0.4, blue: 1, alpha: 1),
+                UIColor(red: 0.95, green: 0.78, blue: 0.35, alpha: 1),
+                bands: 4
+            )
+        }
+    }
+
+    private static func stripes(_ a: UIColor, _ b: UIColor, bands: Int) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        return UIGraphicsImageRenderer(size: CGSize(width: 128, height: 128), format: format).image { ctx in
+            let step = 128 / CGFloat(max(bands, 1))
+            for index in 0..<bands {
+                (index % 2 == 0 ? a : b).setFill()
+                ctx.fill(CGRect(x: 0, y: CGFloat(index) * step, width: 128, height: step + 1))
+            }
+        }
+    }
+}
+
+/// Sorties, medals, and the best line, kept for the hangar board.
+enum PilotLog {
+    private static let flightsKey = "nr2.flights"
+    private static let bogeysKey = "nr2.bogeys"
+    private static let deliveredKey = "nr2.delivered"
+    private static let streakKey = "nr2.bestStreak"
+    private static let bountyKey = "nr2.bestBounty"
+    private static let medalsKey = "nr2.medals"
+
+    static func commit(kills: Int, deliveries: Int, bounty: Int, streak: Int) -> [String] {
+        let store = UserDefaults.standard
+        store.set(store.integer(forKey: flightsKey) + 1, forKey: flightsKey)
+        store.set(store.integer(forKey: bogeysKey) + kills, forKey: bogeysKey)
+        store.set(store.integer(forKey: deliveredKey) + deliveries, forKey: deliveredKey)
+        store.set(max(store.integer(forKey: streakKey), streak), forKey: streakKey)
+        store.set(max(store.integer(forKey: bountyKey), bounty), forKey: bountyKey)
+        let owned = Set(store.stringArray(forKey: medalsKey) ?? [])
+        var next = owned
+        if kills >= 1 { next.insert("FIRST BLOOD") }
+        if streak >= 3 { next.insert("ON A TEAR") }
+        if deliveries >= 1 { next.insert("HAULER") }
+        if deliveries >= 3 { next.insert("FULL HOLD") }
+        if bounty >= 800 { next.insert("HUNTER") }
+        if bounty >= 2400 { next.insert("ACE") }
+        store.set(Array(next).sorted(), forKey: medalsKey)
+        return Array(next.subtracting(owned)).sorted()
+    }
+
+    static func hangarText() -> String {
+        let store = UserDefaults.standard
+        let flights = store.integer(forKey: flightsKey)
+        guard flights > 0 else { return "NO SORTIES YET" }
+        let medals = store.stringArray(forKey: medalsKey) ?? []
+        let medalLine = medals.isEmpty ? "NO MEDALS YET" : medals.joined(separator: "  ·  ")
+        let bounty = store.integer(forKey: bountyKey)
+        let rank = bounty >= 2400 ? "ACE" : (bounty >= 800 ? "HUNTER" : "ROOKIE")
+        return """
+        FLIGHTS \(flights)    BEST \(bounty)    RANK \(rank)
+        BOGEYS \(store.integer(forKey: bogeysKey))    DELIVERED \(store.integer(forKey: deliveredKey))    STREAK \(store.integer(forKey: streakKey))
+        \(medalLine)
+        """
+    }
+
+    static func medalLine() -> String {
+        let medals = UserDefaults.standard.stringArray(forKey: medalsKey) ?? []
+        return medals.isEmpty ? "" : medals.joined(separator: "  ·  ")
     }
 }
 

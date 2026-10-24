@@ -35,8 +35,10 @@ final class FlightAudio {
             var endLaunch = local.launch
             var endChime = local.chime
             var endMusicPhase = local.musicPhase
+            var endLockPhase = local.lockPhase
             let music = local.music
             let beam = local.beam
+            let lock = local.lock
             for buffer in buffers {
                 guard let data = buffer.mData else { continue }
                 let ptr = data.assumingMemoryBound(to: Float.self)
@@ -49,6 +51,7 @@ final class FlightAudio {
                 var launch = local.launch
                 var chime = local.chime
                 var musicPhase = local.musicPhase
+                var lockPhase = local.lockPhase
                 for i in 0..<frames {
                     phase += dt * (52 + thrust * 70)
                     if phase > 8 { phase -= 8 }
@@ -73,7 +76,11 @@ final class FlightAudio {
                     let tow = sin(phase * 6 * .pi) * beam * (0.04 + 0.03 * sin(phase * 0.5))
                     let pulse = max(0, sin(musicPhase * 2 * .pi))
                     let bed = sin(musicPhase * 2 * .pi * (92 + music * 70)) * pulse * (0.012 + music * 0.05)
-                    let sample = (hum + crack + rumble + hit + rise + bell + tow + bed) * 0.9
+                    lockPhase += dt * (7 + lock * 8)
+                    var gate: Float = 0
+                    if sin(lockPhase * 2 * .pi) > 0.45 { gate = 1 }
+                    let seeker = gate * sin(lockPhase * 16 * .pi) * lock * 0.055
+                    let sample = (hum + crack + rumble + hit + rise + bell + tow + bed + seeker) * 0.9
                     if channels <= 1 {
                         ptr[i] = sample
                     } else {
@@ -90,6 +97,7 @@ final class FlightAudio {
                 endLaunch = launch
                 endChime = chime
                 endMusicPhase = musicPhase
+                endLockPhase = lockPhase
             }
             state.pointee.phase = endPhase
             state.pointee.nstate = endN
@@ -99,6 +107,7 @@ final class FlightAudio {
             state.pointee.launch = endLaunch
             state.pointee.chime = endChime
             state.pointee.musicPhase = endMusicPhase
+            state.pointee.lockPhase = endLockPhase
             return noErr
         }
         engine.attach(source)
@@ -117,6 +126,7 @@ final class FlightAudio {
     func setLaunch(_ value: Float) { box.pointee.launch = min(1, max(box.pointee.launch, value)) }
     func setMusic(_ value: Float) { box.pointee.music = min(1, max(0, value)) }
     func setBeam(_ value: Float) { box.pointee.beam = min(1, max(0, value)) }
+    func setLock(_ value: Float) { box.pointee.lock = min(1, max(0, value)) }
     func shot() { box.pointee.shot = 1 }
     func explosion() { box.pointee.boom = 1 }
     func titleHit() { box.pointee.sting = 1 }
@@ -139,6 +149,8 @@ private struct AudioBox {
     var beam: Float = 0
     var music: Float = 0
     var musicPhase: Float = 0
+    var lock: Float = 0
+    var lockPhase: Float = 0
     var phase: Float = 0
     var nstate: UInt32 = 0x1234_5678
     var rate: Float = 44_100
