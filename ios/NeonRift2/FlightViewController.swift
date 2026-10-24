@@ -196,15 +196,15 @@ final class FlightViewController: UIViewController {
         scnView.scene = next.scene
         scnView.pointOfView = next.cameraNode
         scnView.delegate = next
-        next.onFrame = { [weak self] world in
-            self?.apply(world)
+        next.onFrame = { [weak self] snapshot in
+            self?.apply(snapshot)
         }
         next.boot()
         publishViewport()
     }
 
-    private func apply(_ world: FlightWorld) {
-        let m = world.hud
+    private func apply(_ snapshot: HudSnapshot) {
+        let m = snapshot.model
         clockLabel.text = m.clock
         navLabel.text = m.nav
         speedLabel.text = m.speed
@@ -245,7 +245,7 @@ final class FlightViewController: UIViewController {
         }
         overlay.setNeedsDisplay()
 
-        if world.wantsGrain {
+        if snapshot.grain {
             grainView.isHidden = false
             let slot = Int(m.phase == .results ? 0 : CACurrentMediaTime() * 10) % 3
             if slot != grainIndex {
@@ -255,7 +255,7 @@ final class FlightViewController: UIViewController {
         } else {
             grainView.isHidden = true
         }
-        if world.profileIsReduced {
+        if snapshot.reduced {
             scnView.antialiasingMode = .none
         }
     }

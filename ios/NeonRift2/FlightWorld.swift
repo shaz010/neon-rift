@@ -55,6 +55,12 @@ struct RenderProfile {
     }
 }
 
+struct HudSnapshot {
+    var model: HudModel
+    var grain: Bool
+    var reduced: Bool
+}
+
 struct HudModel {
     var phase: FlightPhase = .cinema
     var clock = "14:32:07"
@@ -98,7 +104,10 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     var inputFire = false
     /// Viewport width divided by height. Landscape tightens the vertical field of view.
     var viewportAspect: Float = 9.0 / 19.5
-    var onFrame: ((FlightWorld) -> Void)?
+    var onFrame: ((HudSnapshot) -> Void)?
+    private let frameLock = NSLock()
+    private var pendingSnapshot: HudSnapshot?
+    private var frameQueued = false
 
     private var phase: FlightPhase = .cinema
     private var phaseTime: Float = 0
@@ -187,7 +196,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         audio.startIfNeeded()
         buildScene()
         enter(.cinema)
-        onFrame?(self)
+        deliverFrame()
     }
 
     func skipCinema() {
@@ -216,7 +225,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         if lastTime == 0 {
             lastTime = time
-            onFrame?(self)
+            deliverFrame()
             return
         }
         var raw = Float(time - lastTime)
@@ -235,7 +244,34 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         watchFPS(raw)
         step(raw: raw, sim: sim)
         publishHud()
-        onFrame?(self)
+        deliverFrame()
+    }
+
+    /// SceneKit's display link calls the renderer off the main thread on iPad.
+    /// UIKit (alpha, focus, layout) has to run on main, so the HUD is a snapshot.
+    private func deliverFrame() {
+        let snapshot = HudSnapshot(model: hud, grain: wantsGrain, reduced: profileIsReduced)
+        if Thread.isMainThread {
+            onFrame?(snapshot)
+            return
+        }
+        frameLock.lock()
+        pendingSnapshot = snapshot
+        let schedule = !frameQueued
+        if schedule { frameQueued = true }
+        frameLock.unlock()
+        guard schedule else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.frameLock.lock()
+            let latest = self.pendingSnapshot
+            self.pendingSnapshot = nil
+            self.frameQueued = false
+            self.frameLock.unlock()
+            if let latest {
+                self.onFrame?(latest)
+            }
+        }
     }
 
     private func step(raw: Float, sim: Float) {
