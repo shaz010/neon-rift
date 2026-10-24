@@ -1,0 +1,8 @@
+build/
+DerivedData/
+*.xcarchive
+*.ipa
+*.dSYM
+xcuserdata/
+*.p8
+private_keys/
