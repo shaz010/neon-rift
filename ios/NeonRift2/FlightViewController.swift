@@ -78,6 +78,7 @@ final class FlightViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        logLine("NR2 flight view")
         view.backgroundColor = .black
         scnView.frame = view.bounds
         scnView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -209,6 +210,7 @@ final class FlightViewController: UIViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(resumeScene), name: UIApplication.didBecomeActiveNotification, object: nil)
 
         startWorld()
+        logLine("NR2 flight ready")
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -245,6 +247,7 @@ final class FlightViewController: UIViewController {
         layoutChrome(letterbox: letterboxAmount)
         publishViewport()
         logOrientation(b)
+        requestShowcaseOrientation()
     }
 
     private func startWorld() {
@@ -449,22 +452,30 @@ final class FlightViewController: UIViewController {
         world?.viewportAspect = Float(b.width / b.height)
     }
 
+    private func logLine(_ line: String) {
+        NSLog("%@", line)
+        print(line)
+        fflush(stdout)
+    }
+
     private func logOrientation(_ bounds: CGRect) {
         guard bounds.width > 1, bounds.height > 1 else { return }
         let orient = bounds.width > bounds.height ? "landscape" : "portrait"
         let line = "NR2 orientation \(orient) \(Int(bounds.width.rounded()))x\(Int(bounds.height.rounded()))"
         guard line != lastOrientationLog else { return }
         lastOrientationLog = line
-        NSLog("%@", line)
-        print(line)
-        fflush(stdout)
+        logLine(line)
     }
 
     /// Simulator smoke launches pass -portrait or -landscape. iPhone stays portrait.
+    /// A missing window must retry on the next layout, so the flag is set only
+    /// after the scene is in hand.
     private func requestShowcaseOrientation() {
         guard !requestedOrientation else { return }
-        requestedOrientation = true
-        guard isPad, let scene = view.window?.windowScene else { return }
+        guard isPad else {
+            requestedOrientation = true
+            return
+        }
         let args = ProcessInfo.processInfo.arguments
         let mask: UIInterfaceOrientationMask
         if args.contains("-landscape") {
@@ -472,9 +483,15 @@ final class FlightViewController: UIViewController {
         } else if args.contains("-portrait") {
             mask = .portrait
         } else {
+            requestedOrientation = true
             return
         }
-        guard #available(iOS 16.0, *) else { return }
+        guard let scene = view.window?.windowScene else { return }
+        guard #available(iOS 16.0, *) else {
+            requestedOrientation = true
+            return
+        }
+        requestedOrientation = true
         setNeedsUpdateOfSupportedInterfaceOrientations()
         DispatchQueue.main.async { [weak scene] in
             scene?.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { error in

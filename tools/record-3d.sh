@@ -240,9 +240,15 @@ ipad_pass() {
   local log="$OUT/${name}.log"
   : > "$log"
   xcrun simctl terminate "$IPAD" com.shaz010.neonrift2 >/dev/null 2>&1 || true
+  local ui_orient="$orient"
+  if [ "$orient" = "landscape" ]; then
+    ui_orient="landscapeRight"
+  fi
+  xcrun simctl ui "$IPAD" orientation "$ui_orient" || true
+  sleep 1
   xcrun simctl launch --console "$IPAD" com.shaz010.neonrift2 -showcase "-$orient" > "$log" 2>&1 &
   APP_WRAP=$!
-  wait_mark "NR2 orientation $orient" 45 "$log"
+  wait_mark "NR2 orientation $orient" 90 "$log"
   wait_mark "NR2 mark combat" 90 "$log"
   sleep 0.6
   xcrun simctl io "$IPAD" screenshot "$OUT/${name}.png"

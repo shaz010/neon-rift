@@ -178,6 +178,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     private var hangar = SCNNode()
     private var rift = SCNNode()
     private var cockpit = SCNNode()
+    private var cockpitBuilt = false
     private var speedText: SCNText?
     private var targetText: SCNText?
     private var shieldFill: SCNNode?
@@ -468,8 +469,28 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
     func toggleView() {
         guard phase == .combat || phase == .warden else { return }
+        ensureCockpit()
         cockpitOn.toggle()
         refreshCockpitVisibility()
+    }
+
+    /// SCNText tessellation is slow. The showcase never opens the cockpit, so
+    /// the panel is built on the first real toggle instead of at launch.
+    private func ensureCockpit() {
+        guard !cockpitBuilt else { return }
+        cockpitBuilt = true
+        let built = Meshes.cockpit(art: art)
+        speedText = built.childNode(withName: "speedText", recursively: true)?.geometry as? SCNText
+        targetText = built.childNode(withName: "targetText", recursively: true)?.geometry as? SCNText
+        shieldFill = built.childNode(withName: "shieldFill", recursively: true)
+        hullFill = built.childNode(withName: "hullFill", recursively: true)
+        weaponFill = built.childNode(withName: "weaponFill", recursively: true)
+        targetFill = built.childNode(withName: "targetFill", recursively: true)
+        radarDisc = built.childNode(withName: "radar", recursively: true)
+        radarBlips = (0..<6).compactMap { built.childNode(withName: "blip\($0)", recursively: true) }
+        built.isHidden = true
+        cameraNode.addChildNode(built)
+        cockpit = built
     }
 
     private func refreshCockpitVisibility() {
@@ -1792,18 +1813,6 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         beamNode.addChildNode(SCNNode(geometry: glow))
         beamNode.isHidden = true
         scene.rootNode.addChildNode(beamNode)
-
-        cockpit = Meshes.cockpit(art: art)
-        speedText = cockpit.childNode(withName: "speedText", recursively: true)?.geometry as? SCNText
-        targetText = cockpit.childNode(withName: "targetText", recursively: true)?.geometry as? SCNText
-        shieldFill = cockpit.childNode(withName: "shieldFill", recursively: true)
-        hullFill = cockpit.childNode(withName: "hullFill", recursively: true)
-        weaponFill = cockpit.childNode(withName: "weaponFill", recursively: true)
-        targetFill = cockpit.childNode(withName: "targetFill", recursively: true)
-        radarDisc = cockpit.childNode(withName: "radar", recursively: true)
-        radarBlips = (0..<6).compactMap { cockpit.childNode(withName: "blip\($0)", recursively: true) }
-        cockpit.isHidden = true
-        cameraNode.addChildNode(cockpit)
 
         if !showcase {
             let spots: [simd_float3] = [

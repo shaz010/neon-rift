@@ -22,6 +22,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         setbuf(stdout, nil)
+        NSLog("NR2 boot")
+        print("NR2 boot")
+        fflush(stdout)
         AudioSession.engage()
         return true
     }
