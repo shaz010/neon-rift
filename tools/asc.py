@@ -30,11 +30,12 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "Neon Rift 2: cinematic nebula skies, bloom, spell flashes, a cold-open "
-    "logo fly-in, and a slow-motion results screen. Graze Glyphs, the sigil, "
-    "and the animated lesson are unchanged. Haptics tap on graze and cast. "
-    "Audio plays with the silent switch on. This app is separate from the "
-    "original Neon Rift."
+    "One finger. The ship sits above your thumb, with a white dot where you "
+    "touch. Graze the red rocks to fill the charge, then tap to unleash. "
+    "The screen says GRAZE TO CHARGE and TAP TO UNLEASH. You start with a "
+    "shield and 3 lives, and the first minute is slow. Brighter full-screen "
+    "color, a 7 second intro you can skip, and tap to restart. Audio plays "
+    "with the silent switch on. This app is separate from the original Neon Rift."
 )
 
 
