@@ -1,3 +1,4 @@
+import Darwin
 import SceneKit
 import UIKit
 
@@ -27,6 +28,9 @@ final class FlightViewController: UIViewController {
     private let replayButton = UIButton(type: .custom)
     private var grainIndex = 0
     private var letterboxAmount: CGFloat = 1
+    private var appliedScale: CGFloat = 0
+    private var lastOrientationLog = ""
+    private var requestedOrientation = false
 
     init() {
         let args = ProcessInfo.processInfo.arguments
@@ -41,8 +45,22 @@ final class FlightViewController: UIViewController {
     override var prefersStatusBarHidden: Bool { true }
     override var prefersHomeIndicatorAutoHidden: Bool { true }
     override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .portrait }
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        isPad ? .all : .portrait
+    }
     override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation { .portrait }
+
+    private var isPad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+
+    /// Short side drives the scale, so rotating an iPad does not resize the HUD.
+    private var hudScale: CGFloat {
+        let shortSide = min(view.bounds.width, view.bounds.height)
+        guard shortSide > 1 else { return isPad ? 1.4 : 1 }
+        if isPad {
+            return min(1.65, max(1.25, shortSide / 520))
+        }
+        return min(1.15, max(0.9, shortSide / 390))
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -136,6 +154,11 @@ final class FlightViewController: UIViewController {
         startWorld()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        requestShowcaseOrientation()
+    }
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         let b = view.bounds
@@ -146,15 +169,25 @@ final class FlightViewController: UIViewController {
         touch.frame = b
         replayButton.frame = b
         let safe = view.safeAreaInsets
-        let centers = controlCenters()
+        let scale = hudScale
+        applyScaleIfNeeded(scale)
+        let centers = controlCenters(scale: scale)
         touch.leftCenter = centers.0
         touch.rightCenter = centers.1
         touch.radius = centers.2
         overlay.leftCenter = centers.0
         overlay.rightCenter = centers.1
         overlay.radius = centers.2
-        skipButton.frame = CGRect(x: b.width - safe.right - 84, y: safe.top + 8, width: 72, height: 34)
+        overlay.scale = scale
+        skipButton.frame = CGRect(
+            x: b.width - safe.right - 92 * scale,
+            y: safe.top + 8 * scale,
+            width: 76 * scale,
+            height: 36 * scale
+        )
         layoutChrome(letterbox: letterboxAmount)
+        publishViewport()
+        logOrientation(b)
     }
 
     private func startWorld() {
@@ -167,6 +200,7 @@ final class FlightViewController: UIViewController {
             self?.apply(world)
         }
         next.boot()
+        publishViewport()
     }
 
     private func apply(_ world: FlightWorld) {
@@ -229,26 +263,92 @@ final class FlightViewController: UIViewController {
     private func layoutChrome(letterbox: CGFloat) {
         let b = view.bounds
         let safe = view.safeAreaInsets
+        let scale = hudScale
         let bar = b.height * 0.105 * max(0, min(1, letterbox))
         topBar.frame = CGRect(x: 0, y: 0, width: b.width, height: bar)
         bottomBar.frame = CGRect(x: 0, y: b.height - bar, width: b.width, height: bar)
-        titleLabel.frame = CGRect(x: 16, y: b.height - bar, width: b.width - 32, height: max(bar, 36))
-        clockLabel.frame = CGRect(x: 18, y: safe.top + 16, width: 140, height: 18)
-        navLabel.frame = CGRect(x: 18, y: safe.top + 34, width: 140, height: 18)
-        speedLabel.frame = CGRect(x: b.width - 158, y: safe.top + 16, width: 140, height: 18)
-        weaponLabel.frame = CGRect(x: b.width - 158, y: safe.top + 34, width: 140, height: 18)
-        compassLabel.frame = CGRect(x: b.midX - 70, y: safe.top + 18, width: 140, height: 22)
-        let stickY = controlCenters().0.y
-        shieldLabel.frame = CGRect(x: 20, y: stickY - 78, width: b.width - 40, height: 18)
-        promptLabel.frame = CGRect(x: 24, y: b.midY - 30, width: b.width - 48, height: 48)
-        resultsLabel.frame = b.insetBy(dx: 28, dy: b.height * 0.28)
+        titleLabel.frame = CGRect(x: 16 * scale, y: b.height - bar, width: b.width - 32 * scale, height: max(bar, 36 * scale))
+        let rowH = 18 * scale
+        let colW = 160 * scale
+        clockLabel.frame = CGRect(x: safe.left + 18 * scale, y: safe.top + 16 * scale, width: colW, height: rowH)
+        navLabel.frame = CGRect(x: safe.left + 18 * scale, y: safe.top + 36 * scale, width: colW, height: rowH)
+        speedLabel.frame = CGRect(x: b.width - safe.right - colW - 18 * scale, y: safe.top + 16 * scale, width: colW, height: rowH)
+        weaponLabel.frame = CGRect(x: b.width - safe.right - colW - 18 * scale, y: safe.top + 36 * scale, width: colW, height: rowH)
+        compassLabel.frame = CGRect(x: b.midX - colW / 2, y: safe.top + 18 * scale, width: colW, height: 22 * scale)
+        let stickY = controlCenters(scale: scale).0.y
+        shieldLabel.frame = CGRect(x: 20 * scale, y: stickY - 78 * scale, width: b.width - 40 * scale, height: rowH)
+        promptLabel.frame = CGRect(x: 24 * scale, y: b.midY - 36 * scale, width: b.width - 48 * scale, height: 64 * scale)
+        let resultsDy = b.width > b.height ? b.height * 0.16 : b.height * 0.28
+        resultsLabel.frame = b.insetBy(dx: 36 * scale, dy: resultsDy)
     }
 
-    private func controlCenters() -> (CGPoint, CGPoint, CGFloat) {
+    /// Thumb pads stay in the lower corners. Radius and insets grow with the iPad.
+    private func controlCenters(scale: CGFloat) -> (CGPoint, CGPoint, CGFloat) {
         let b = view.bounds
         let safe = view.safeAreaInsets
-        let y = b.height - safe.bottom - 112
-        return (CGPoint(x: safe.left + 92, y: y), CGPoint(x: b.width - safe.right - 92, y: y), 74)
+        let radius = 74 * scale
+        let insetX = 92 * scale
+        let insetY = 112 * scale
+        let y = b.height - safe.bottom - insetY
+        let left = CGPoint(x: safe.left + insetX, y: y)
+        let right = CGPoint(x: b.width - safe.right - insetX, y: y)
+        return (left, right, radius)
+    }
+
+    private func applyScaleIfNeeded(_ scale: CGFloat) {
+        guard abs(scale - appliedScale) > 0.01 else { return }
+        appliedScale = scale
+        let font = UIFont.monospacedSystemFont(ofSize: 12 * scale, weight: .light)
+        for label in [clockLabel, navLabel, speedLabel, weaponLabel, compassLabel, shieldLabel] {
+            label.font = font
+        }
+        promptLabel.font = UIFont.monospacedSystemFont(ofSize: 13 * scale, weight: .light)
+        resultsLabel.font = UIFont.monospacedSystemFont(ofSize: 15 * scale, weight: .light)
+        titleLabel.attributedText = tracked("NEON RIFT 2", size: 26 * scale, kern: 9 * scale)
+        skipButton.titleLabel?.font = UIFont.systemFont(ofSize: 13 * scale, weight: .light)
+    }
+
+    private func publishViewport() {
+        let b = view.bounds
+        guard b.height > 1 else { return }
+        world?.viewportAspect = Float(b.width / b.height)
+    }
+
+    private func logOrientation(_ bounds: CGRect) {
+        guard bounds.width > 1, bounds.height > 1 else { return }
+        let orient = bounds.width > bounds.height ? "landscape" : "portrait"
+        let line = "NR2 orientation \(orient) \(Int(bounds.width.rounded()))x\(Int(bounds.height.rounded()))"
+        guard line != lastOrientationLog else { return }
+        lastOrientationLog = line
+        NSLog("%@", line)
+        print(line)
+        fflush(stdout)
+    }
+
+    /// Simulator smoke launches pass -portrait or -landscape. iPhone stays portrait.
+    private func requestShowcaseOrientation() {
+        guard !requestedOrientation else { return }
+        requestedOrientation = true
+        guard isPad, let scene = view.window?.windowScene else { return }
+        let args = ProcessInfo.processInfo.arguments
+        let mask: UIInterfaceOrientationMask
+        if args.contains("-landscape") {
+            mask = .landscapeRight
+        } else if args.contains("-portrait") {
+            mask = .portrait
+        } else {
+            return
+        }
+        guard #available(iOS 16.0, *) else { return }
+        setNeedsUpdateOfSupportedInterfaceOrientations()
+        DispatchQueue.main.async { [weak scene] in
+            scene?.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { error in
+                let message = error.localizedDescription
+                NSLog("NR2 geometry %@", message)
+                print("NR2 geometry \(message)")
+                fflush(stdout)
+            }
+        }
     }
 
     private func project(_ worldPoint: simd_float3?) -> CGPoint? {
@@ -317,72 +417,80 @@ final class HudOverlay: UIView {
     var leftCenter = CGPoint.zero
     var rightCenter = CGPoint.zero
     var radius: CGFloat = 74
+    var scale: CGFloat = 1
 
     override func draw(_ rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
-        if let sun = sunPoint, rect.insetBy(dx: -40, dy: -40).contains(sun) {
+        let s = max(scale, 0.5)
+        if let sun = sunPoint, rect.insetBy(dx: -40 * s, dy: -40 * s).contains(sun) {
             ctx.setFillColor(UIColor(red: 1, green: 0.86, blue: 0.55, alpha: 0.22).cgColor)
-            ctx.fill(CGRect(x: 0, y: sun.y - 2, width: rect.width, height: 4))
+            ctx.fill(CGRect(x: 0, y: sun.y - 2 * s, width: rect.width, height: 4 * s))
             ctx.setFillColor(UIColor(white: 1, alpha: 0.85).cgColor)
-            ctx.fillEllipse(in: CGRect(x: sun.x - 5, y: sun.y - 5, width: 10, height: 10))
+            let sunR = 5 * s
+            ctx.fillEllipse(in: CGRect(x: sun.x - sunR, y: sun.y - sunR, width: sunR * 2, height: sunR * 2))
         }
         if combat {
             strokeRing(ctx, leftCenter, radius, UIColor(white: 1, alpha: 0.28))
             let knob = CGPoint(x: leftCenter.x + stick.x * radius * 0.72, y: leftCenter.y - stick.y * radius * 0.72)
+            let knobR = 16 * s
             ctx.setFillColor(UIColor(white: 0.95, alpha: 0.9).cgColor)
-            ctx.fillEllipse(in: CGRect(x: knob.x - 16, y: knob.y - 16, width: 32, height: 32))
+            ctx.fillEllipse(in: CGRect(x: knob.x - knobR, y: knob.y - knobR, width: knobR * 2, height: knobR * 2))
             strokeRing(ctx, rightCenter, radius, firing ? UIColor(red: 1, green: 0.55, blue: 0.2, alpha: 0.95) : UIColor(white: 1, alpha: 0.28))
             if firing {
+                let fireR = 22 * s
                 ctx.setFillColor(UIColor(red: 1, green: 0.45, blue: 0.12, alpha: 0.35).cgColor)
-                ctx.fillEllipse(in: CGRect(x: rightCenter.x - 22, y: rightCenter.y - 22, width: 44, height: 44))
+                ctx.fillEllipse(in: CGRect(x: rightCenter.x - fireR, y: rightCenter.y - fireR, width: fireR * 2, height: fireR * 2))
             }
-            let reticle = CGPoint(x: rect.midX, y: rect.midY - 20)
+            let reticle = CGPoint(x: rect.midX, y: rect.midY - 20 * s)
+            let reticleR = 7 * s
             ctx.setStrokeColor(UIColor(white: 1, alpha: 0.35).cgColor)
-            ctx.setLineWidth(1)
-            ctx.stroke(CGRect(x: reticle.x - 7, y: reticle.y - 7, width: 14, height: 14))
+            ctx.setLineWidth(max(1, s))
+            ctx.stroke(CGRect(x: reticle.x - reticleR, y: reticle.y - reticleR, width: reticleR * 2, height: reticleR * 2))
         }
         if let lock = lockPoint {
-            bracket(ctx, lock, 34, UIColor(red: 1, green: 0.18, blue: 0.08, alpha: 0.95))
+            bracket(ctx, lock, 34 * s, UIColor(red: 1, green: 0.18, blue: 0.08, alpha: 0.95))
         }
         for gem in pickupPoints {
             ctx.setStrokeColor(UIColor(red: 1, green: 0.78, blue: 0.35, alpha: 0.9).cgColor)
-            ctx.setLineWidth(1.25)
-            ctx.move(to: CGPoint(x: gem.x, y: gem.y - 8))
-            ctx.addLine(to: CGPoint(x: gem.x + 6, y: gem.y))
-            ctx.addLine(to: CGPoint(x: gem.x, y: gem.y + 8))
-            ctx.addLine(to: CGPoint(x: gem.x - 6, y: gem.y))
+            ctx.setLineWidth(1.25 * s)
+            ctx.move(to: CGPoint(x: gem.x, y: gem.y - 8 * s))
+            ctx.addLine(to: CGPoint(x: gem.x + 6 * s, y: gem.y))
+            ctx.addLine(to: CGPoint(x: gem.x, y: gem.y + 8 * s))
+            ctx.addLine(to: CGPoint(x: gem.x - 6 * s, y: gem.y))
             ctx.closePath()
             ctx.strokePath()
         }
         for popup in popups {
             let alpha = CGFloat(max(0, 1 - popup.age / 0.95))
             let attrs: [NSAttributedString.Key: Any] = [
-                .font: UIFont.monospacedSystemFont(ofSize: 13, weight: .light),
+                .font: UIFont.monospacedSystemFont(ofSize: 13 * s, weight: .light),
                 .foregroundColor: UIColor(red: 1, green: 0.86, blue: 0.55, alpha: alpha),
             ]
-            let origin = CGPoint(x: popup.point.x - 22, y: popup.point.y - 30 - CGFloat(popup.age) * 18)
+            let origin = CGPoint(x: popup.point.x - 22 * s, y: popup.point.y - 30 * s - CGFloat(popup.age) * 18 * s)
             (popup.text as NSString).draw(at: origin, withAttributes: attrs)
         }
     }
 
     private func strokeRing(_ ctx: CGContext, _ center: CGPoint, _ radius: CGFloat, _ color: UIColor) {
         ctx.setStrokeColor(color.cgColor)
-        ctx.setLineWidth(1.25)
+        ctx.setLineWidth(1.25 * max(scale, 0.5))
         ctx.strokeEllipse(in: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
     }
 
     private func bracket(_ ctx: CGContext, _ center: CGPoint, _ arm: CGFloat, _ color: UIColor) {
+        let s = max(scale, 0.5)
         ctx.setStrokeColor(color.cgColor)
-        ctx.setLineWidth(1.5)
+        ctx.setLineWidth(1.5 * s)
+        let tick = 12 * s
         let corners: [(CGFloat, CGFloat, CGFloat, CGFloat)] = [
             (-1, -1, 1, 1), (1, -1, -1, 1), (-1, 1, 1, -1), (1, 1, -1, -1),
         ]
         for (sx, sy, dx, dy) in corners {
             let x = center.x + sx * arm
             let y = center.y + sy * arm
-            ctx.move(to: CGPoint(x: x, y: y + dy * 12))
+            ctx.move(to: CGPoint(x: x, y: y + dy * tick))
             ctx.addLine(to: CGPoint(x: x, y: y))
-            ctx.addLine(to: CGPoint(x: x + dx * 12, y: y))
+            ctx.addLine(to: CGPoint(x: x + dx * tick, y: y))
             ctx.strokePath()
         }
     }

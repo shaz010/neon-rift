@@ -37,8 +37,10 @@ WHATS_NEW = (
     "red, pickups are gold. It opens in a hangar facing the rift. You can "
     "skip that. Clear the interceptors and the Rift Warden comes through. "
     "Tap the results to fly again. Haptics on shots and hits. Audio plays "
-    "with the silent switch on. This replaces the earlier touch prototype "
-    "in this same app."
+    "with the silent switch on. Full screen on iPhone and iPad. On iPad it "
+    "fills every size in portrait or landscape, with larger thumb controls "
+    "and a larger HUD. This replaces the earlier touch prototype in this "
+    "same app."
 )
 
 

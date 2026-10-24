@@ -40,7 +40,7 @@ struct RenderProfile {
         RenderProfile(high: false, bloom: 0.28, dof: false, debris: 4, sparks: 8, grain: false, msaa: .none)
     }
 
-    /// iPhone 12 (iPhone13,x) and newer. Simulator stays cinematic.
+    /// iPhone 12 (iPhone13,x) and newer, plus every iPad. Simulator stays cinematic.
     private static var modernPhone: Bool {
         var system = utsname()
         uname(&system)
@@ -48,6 +48,7 @@ struct RenderProfile {
             $0.withMemoryRebound(to: CChar.self, capacity: 256) { String(cString: $0) }
         }
         if name == "arm64" || name == "x86_64" || name.hasPrefix("arm64") { return true }
+        if name.hasPrefix("iPad") { return true }
         guard name.hasPrefix("iPhone") else { return false }
         let digits = name.dropFirst("iPhone".count).prefix { $0.isNumber }
         return (Int(digits) ?? 0) >= 13
@@ -95,6 +96,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     private(set) var hud = HudModel()
     var inputStick = CGPoint.zero
     var inputFire = false
+    /// Viewport width divided by height. Landscape tightens the vertical field of view.
+    var viewportAspect: Float = 9.0 / 19.5
     var onFrame: ((FlightWorld) -> Void)?
 
     private var phase: FlightPhase = .cinema
@@ -537,6 +540,15 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         }
     }
 
+    /// Portrait keeps the iPhone chase framing. Landscape tightens the vertical
+    /// angle so the fighter stays large on a wide iPad.
+    private func verticalFieldOfView(boost: Float, shake: Float) -> CGFloat {
+        let wide = viewportAspect > 1.05
+        let base: CGFloat = wide ? 46 : 56
+        let boostGain: CGFloat = wide ? 6 : 8
+        return base + CGFloat(boost) * boostGain + CGFloat(shake) * 2
+    }
+
     private func updateCamera(_ raw: Float) {
         let fwd = forward()
         let chasePos = position - fwd * 15.5 + simd_float3(0, 3.7, 0)
@@ -578,7 +590,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let camFwd = safeNorm(camLook - camPos)
         cameraNode.simdOrientation = lookOrientation(forward: camFwd, up: simd_float3(0, 1, 0), roll: rollCam)
         let boost = max(0, min(1, simd_dot(velocity, fwd) / 90))
-        camera.fieldOfView = 56 + CGFloat(boost) * 8 + CGFloat(shake) * 2
+        camera.fieldOfView = verticalFieldOfView(boost: boost, shake: shake)
         let cinema = phase == .cinema || phase == .warden
         camera.wantsDepthOfField = profile.dof && cinema
         camera.focusDistance = cinema ? 28 : 18
@@ -918,7 +930,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         camera.motionBlurIntensity = 0
         camera.zNear = 0.05
         camera.zFar = 8000
-        camera.fieldOfView = 58
+        camera.fieldOfView = verticalFieldOfView(boost: 0, shake: 0)
         camera.wantsDepthOfField = false
         camera.fStop = 4
         camera.focusDistance = 24

@@ -44,7 +44,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         supportedInterfaceOrientationsFor window: UIWindow?
     ) -> UIInterfaceOrientationMask {
-        .portrait
+        UIDevice.current.userInterfaceIdiom == .pad ? .all : .portrait
     }
 }
 
@@ -58,7 +58,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
         AudioSession.engage()
-        if #available(iOS 16.0, *) {
+        if #available(iOS 16.0, *), UIDevice.current.userInterfaceIdiom != .pad {
             windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
         }
         let window = UIWindow(windowScene: windowScene)

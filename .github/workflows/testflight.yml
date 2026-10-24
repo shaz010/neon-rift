@@ -176,7 +176,7 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.neonrift2\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Changelog: native 3D test flight. Left thumb flies, right thumb fires, flight assist when you let go. Cyan engines, red enemies, gold pickups. Hangar launch, interceptors, then the Rift Warden. Same Neon Rift 2 app."
+            echo "- Changelog: native 3D test flight, full screen on iPhone and iPad. Left thumb flies, right thumb fires, flight assist when you let go. Cyan engines, red enemies, gold pickups. Hangar launch, interceptors, then the Rift Warden. iPad uses every orientation, with thumb controls and HUD scaled to the screen. Same Neon Rift 2 app."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Remove the API key
