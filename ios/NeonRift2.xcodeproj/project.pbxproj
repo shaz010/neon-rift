@@ -8,6 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		111111111111111111111201 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111104 /* AppDelegate.swift */; };
+		F3D2A1000000000000000011 /* FlightViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000001 /* FlightViewController.swift */; };
+		F3D2A1000000000000000012 /* FlightWorld.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000002 /* FlightWorld.swift */; };
+		F3D2A1000000000000000013 /* ProceduralArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000003 /* ProceduralArt.swift */; };
+		F3D2A1000000000000000014 /* FlightAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000004 /* FlightAudio.swift */; };
+		F3D2A1000000000000000015 /* Meshes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000005 /* Meshes.swift */; };
 		111111111111111111111202 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111106 /* Assets.xcassets */; };
 		111111111111111111111204 /* silence.wav in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111108 /* silence.wav */; };
 /* End PBXBuildFile section */
@@ -15,6 +20,11 @@
 /* Begin PBXFileReference section */
 		111111111111111111111103 /* NeonRift2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeonRift2.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		111111111111111111111104 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000001 /* FlightViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightViewController.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000002 /* FlightWorld.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightWorld.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000003 /* ProceduralArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProceduralArt.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000004 /* FlightAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightAudio.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000005 /* Meshes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Meshes.swift; sourceTree = "<group>"; };
 		111111111111111111111105 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		111111111111111111111106 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		111111111111111111111108 /* silence.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = silence.wav; sourceTree = "<group>"; };
@@ -51,6 +61,11 @@
 			isa = PBXGroup;
 			children = (
 				111111111111111111111104 /* AppDelegate.swift */,
+				F3D2A1000000000000000001 /* FlightViewController.swift */,
+				F3D2A1000000000000000002 /* FlightWorld.swift */,
+				F3D2A1000000000000000003 /* ProceduralArt.swift */,
+				F3D2A1000000000000000004 /* FlightAudio.swift */,
+				F3D2A1000000000000000005 /* Meshes.swift */,
 				111111111111111111111105 /* Info.plist */,
 				111111111111111111111106 /* Assets.xcassets */,
 				111111111111111111111108 /* silence.wav */,
@@ -151,6 +166,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				111111111111111111111201 /* AppDelegate.swift in Sources */,
+				F3D2A1000000000000000011 /* FlightViewController.swift in Sources */,
+				F3D2A1000000000000000012 /* FlightWorld.swift in Sources */,
+				F3D2A1000000000000000013 /* ProceduralArt.swift in Sources */,
+				F3D2A1000000000000000014 /* FlightAudio.swift in Sources */,
+				F3D2A1000000000000000015 /* Meshes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

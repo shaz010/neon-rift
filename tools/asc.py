@@ -30,12 +30,15 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "One finger. The ship sits above your thumb, with a white dot where you "
-    "touch. Graze the red rocks to fill the charge, then tap to unleash. "
-    "The screen says GRAZE TO CHARGE and TAP TO UNLEASH. You start with a "
-    "shield and 3 lives, and the first minute is slow. Brighter full-screen "
-    "color, a 7 second intro you can skip, and tap to restart. Audio plays "
-    "with the silent switch on. This app is separate from the original Neon Rift."
+    "Native 3D test flight, one short mission. Left thumb flies: up thrusts, "
+    "down brakes, sideways steers. Let go and the flight assist slows and "
+    "steadies the ship. Hold the right thumb to fire. Shots bend toward the "
+    "enemy inside the red bracket. Your engines are cyan, enemy lights are "
+    "red, pickups are gold. It opens in a hangar facing the rift. You can "
+    "skip that. Clear the interceptors and the Rift Warden comes through. "
+    "Tap the results to fly again. Haptics on shots and hits. Audio plays "
+    "with the silent switch on. This replaces the earlier touch prototype "
+    "in this same app."
 )
 
 
