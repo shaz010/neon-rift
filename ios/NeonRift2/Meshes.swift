@@ -1,4 +1,5 @@
 import SceneKit
+import UIKit
 import simd
 
 enum ShipPoints {
@@ -299,11 +300,20 @@ enum Meshes {
 
     static func planet(art: ArtSet) -> SCNNode {
         let root = SCNNode()
+        root.castsShadow = false
         let sphere = SCNSphere(radius: 260)
-        sphere.segmentCount = 48
-        sphere.materials = [art.planet]
+        sphere.segmentCount = 64
+        sphere.materials = [SkyMaps.surface(day: "saturn", normal: "saturn-normal", rough: 0.78)]
         let body = SCNNode(geometry: sphere)
+        body.castsShadow = false
         root.addChildNode(body)
+        let air = SCNSphere(radius: 268)
+        air.segmentCount = 32
+        air.materials = [SkyMaps.atmosphere(UIColor(red: 0.95, green: 0.78, blue: 0.48, alpha: 1))]
+        let shell = SCNNode(geometry: air)
+        shell.castsShadow = false
+        shell.renderingOrder = 6
+        root.addChildNode(shell)
 
         let disc = SCNCylinder(radius: 430, height: 0.8)
         disc.radialSegmentCount = 64
@@ -314,6 +324,7 @@ enum Meshes {
         clear.transparency = 0.01
         disc.materials = [clear, art.ring, art.ring]
         let ring = SCNNode(geometry: disc)
+        ring.castsShadow = false
         ring.eulerAngles.z = Float(0.42)
         ring.eulerAngles.x = Float(0.35)
         root.addChildNode(ring)
@@ -322,13 +333,31 @@ enum Meshes {
     }
 
     static func sun(art: ArtSet) -> SCNNode {
+        let root = SCNNode()
+        root.name = "sun"
+        root.simdPosition = SpaceLook.sunDirection * 2200
+        root.castsShadow = false
         let sphere = SCNSphere(radius: 80)
         sphere.segmentCount = 24
         sphere.materials = [art.sunMat]
-        let node = SCNNode(geometry: sphere)
-        node.simdPosition = SpaceLook.sunDirection * 2200
-        node.name = "sun"
-        return node
+        let body = SCNNode(geometry: sphere)
+        body.castsShadow = false
+        root.addChildNode(body)
+        let glow = SCNPlane(width: 520, height: 520)
+        let flare = SCNMaterial()
+        flare.lightingModel = .constant
+        flare.diffuse.contents = UIColor(red: 1, green: 0.93, blue: 0.78, alpha: 1)
+        flare.emission.contents = UIColor(red: 1, green: 0.9, blue: 0.7, alpha: 1)
+        flare.transparency = 0.22
+        flare.blendMode = .add
+        flare.writesToDepthBuffer = false
+        flare.isDoubleSided = true
+        glow.materials = [flare]
+        let disc = SCNNode(geometry: glow)
+        disc.castsShadow = false
+        disc.constraints = [SCNBillboardConstraint()]
+        root.addChildNode(disc)
+        return root
     }
 
     static func pickup(art: ArtSet) -> SCNNode {
@@ -348,54 +377,108 @@ enum Meshes {
         return root
     }
 
+    /// Canopy and instrument panel in camera space. FlightWorld places the
+    /// named pieces on the view frustum so they read on a phone and an iPad.
     static func cockpit(art: ArtSet) -> SCNNode {
         let root = SCNNode()
         root.name = "cockpit"
-        let helmet = SCNSphere(radius: 0.22)
-        helmet.segmentCount = 16
-        helmet.materials = [art.helmet]
-        let h = SCNNode(geometry: helmet)
-        h.simdPosition = simd_float3(-0.34, -0.42, -0.85)
-        root.addChildNode(h)
-        let visor = SCNSphere(radius: 0.12)
-        visor.segmentCount = 12
-        visor.materials = [art.visor]
-        let v = SCNNode(geometry: visor)
-        v.simdScale = simd_float3(1.1, 0.72, 0.45)
-        v.simdPosition = simd_float3(-0.24, -0.38, -0.78)
-        root.addChildNode(v)
-        // Canopy struts in camera space. -Z is out the glass.
-        box(root, simd_float3(0.025, 0.7, 0.025), simd_float3(-0.42, 0.05, -0.9), art.strut, euler: simd_float3(0.4, 0, 0.5))
-        box(root, simd_float3(0.025, 0.7, 0.025), simd_float3(0.42, 0.05, -0.9), art.strut, euler: simd_float3(0.4, 0, -0.5))
-        box(root, simd_float3(0.9, 0.02, 0.02), simd_float3(0, 0.38, -0.95), art.strut)
-        box(root, simd_float3(0.72, 0.08, 0.28), simd_float3(0, -0.42, -0.72), art.hullDark, chamfer: 0.02)
-        let screen = SCNPlane(width: 0.16, height: 0.07)
-        screen.materials = [art.cyanGlow]
-        let leftScreen = SCNNode(geometry: screen)
-        leftScreen.simdPosition = simd_float3(-0.16, -0.36, -0.58)
-        leftScreen.eulerAngles.x = -0.6
-        root.addChildNode(leftScreen)
-        let right = SCNPlane(width: 0.12, height: 0.06)
-        right.materials = [art.orangeGlow]
-        let rightScreen = SCNNode(geometry: right)
-        rightScreen.simdPosition = simd_float3(0.14, -0.36, -0.58)
-        rightScreen.eulerAngles.x = -0.6
-        root.addChildNode(rightScreen)
-        for side: Float in [-1, 1] {
-            let hand = SCNSphere(radius: 0.045)
-            hand.segmentCount = 8
-            hand.materials = [art.hullWorn]
-            let node = SCNNode(geometry: hand)
-            node.simdPosition = simd_float3(side * 0.08, -0.46, -0.5)
+        let frame = art.strut
+        let dashMat = art.hullDark
+        func screen(_ color: UIColor) -> SCNMaterial {
+            let material = SCNMaterial()
+            material.lightingModel = .constant
+            material.diffuse.contents = color
+            material.emission.contents = color
+            material.isDoubleSided = true
+            return material
+        }
+        let rail = SCNBox(width: 0.05, height: 1, length: 0.035, chamferRadius: 0.008)
+        rail.materials = [frame]
+        let railL = SCNNode(geometry: rail)
+        railL.name = "railL"
+        let railR = SCNNode(geometry: rail.copy() as? SCNGeometry ?? rail)
+        railR.name = "railR"
+        let bowGeom = SCNBox(width: 1, height: 0.055, length: 0.04, chamferRadius: 0.01)
+        bowGeom.materials = [frame]
+        let bow = SCNNode(geometry: bowGeom)
+        bow.name = "bow"
+        let dashGeom = SCNBox(width: 1, height: 1, length: 0.06, chamferRadius: 0.02)
+        dashGeom.materials = [dashMat]
+        let dash = SCNNode(geometry: dashGeom)
+        dash.name = "dash"
+        for node in [railL, railR, bow, dash] {
             root.addChildNode(node)
         }
-        let stick = SCNCylinder(radius: 0.012, height: 0.16)
-        stick.materials = [art.strut]
-        let grip = SCNNode(geometry: stick)
-        grip.simdPosition = simd_float3(0, -0.4, -0.48)
-        grip.eulerAngles.x = 0.4
+
+        func lamp(_ name: String, color: UIColor, wide: CGFloat) -> SCNNode {
+            let bar = SCNBox(width: wide, height: 0.018, length: 0.008, chamferRadius: 0.002)
+            bar.materials = [screen(color)]
+            let node = SCNNode(geometry: bar)
+            node.name = name
+            node.pivot = SCNMatrix4MakeTranslation(Float(-wide / 2), 0, 0)
+            return node
+        }
+        let shield = lamp("shieldFill", color: UIColor(red: 0.35, green: 0.85, blue: 1, alpha: 1), wide: 0.22)
+        let hullBar = lamp("hullFill", color: UIColor(red: 0.45, green: 1, blue: 0.55, alpha: 1), wide: 0.22)
+        let weapon = lamp("weaponFill", color: UIColor(red: 1, green: 0.62, blue: 0.22, alpha: 1), wide: 0.22)
+        let targetBar = lamp("targetFill", color: UIColor(red: 1, green: 0.35, blue: 0.2, alpha: 1), wide: 0.16)
+        for node in [shield, hullBar, weapon, targetBar] {
+            root.addChildNode(node)
+        }
+
+        let speed = readout("0.00c", size: 0.07, color: UIColor(red: 0.75, green: 0.95, blue: 1, alpha: 1))
+        speed.name = "speedText"
+        let target = readout("NO LOCK", size: 0.04, color: UIColor(red: 1, green: 0.72, blue: 0.4, alpha: 1))
+        target.name = "targetText"
+        root.addChildNode(speed)
+        root.addChildNode(target)
+        for (name, title, size) in [("capSpeed", "SPD", 0.028), ("capShield", "SHLD", 0.026), ("capHull", "HULL", 0.026), ("capWeapon", "WPN", 0.026), ("capTarget", "TGT", 0.026), ("capRadar", "RDR", 0.026)] {
+            let label = readout(title, size: CGFloat(size), color: UIColor(white: 0.78, alpha: 1))
+            label.name = name
+            root.addChildNode(label)
+        }
+
+        let disc = SCNPlane(width: 0.16, height: 0.16)
+        let glass = screen(UIColor(red: 0.02, green: 0.08, blue: 0.1, alpha: 1))
+        glass.transparency = 0.15
+        disc.materials = [glass]
+        let radar = SCNNode(geometry: disc)
+        radar.name = "radar"
+        let ringGeom = SCNTorus(ringRadius: 0.07, pipeRadius: 0.003)
+        ringGeom.materials = [screen(UIColor(red: 0.4, green: 0.85, blue: 0.75, alpha: 1))]
+        let ring = SCNNode(geometry: ringGeom)
+        radar.addChildNode(ring)
+        root.addChildNode(radar)
+        for index in 0..<6 {
+            let dot = SCNSphere(radius: 0.008)
+            dot.segmentCount = 6
+            dot.materials = [screen(UIColor(red: 1, green: 0.45, blue: 0.25, alpha: 1))]
+            let blip = SCNNode(geometry: dot)
+            blip.name = "blip\(index)"
+            blip.isHidden = true
+            radar.addChildNode(blip)
+        }
+
+        let gripGeom = SCNCylinder(radius: 0.012, height: 0.11)
+        gripGeom.materials = [frame]
+        let grip = SCNNode(geometry: gripGeom)
+        grip.name = "grip"
+        grip.eulerAngles.x = 0.5
         root.addChildNode(grip)
         return root
+    }
+
+    private static func readout(_ text: String, size: CGFloat, color: UIColor) -> SCNNode {
+        let geo = SCNText(string: text, extrusionDepth: 0.0015)
+        geo.font = UIFont.monospacedSystemFont(ofSize: size, weight: .medium)
+        geo.flatness = 0.2
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        material.diffuse.contents = color
+        material.emission.contents = color
+        material.isDoubleSided = true
+        geo.materials = [material]
+        return SCNNode(geometry: geo)
     }
 
     static func freighter(art: ArtSet) -> SCNNode {
@@ -420,26 +503,35 @@ enum Meshes {
         return root
     }
 
-    static func body(art: ArtSet, radius: CGFloat, tint: UIColor, at point: simd_float3) -> SCNNode {
+    /// Textured planet. Night side is unlit. A thin fresnel shell is the air.
+    static func world(_ name: String, radius: CGFloat, at point: simd_float3, air: UIColor) -> SCNNode {
         let root = SCNNode()
+        root.name = name
+        root.castsShadow = false
         let sphere = SCNSphere(radius: radius)
-        sphere.segmentCount = 28
-        let mat = (art.planet.copy() as? SCNMaterial) ?? SCNMaterial()
-        mat.multiply.contents = tint
-        sphere.materials = [mat]
-        root.addChildNode(SCNNode(geometry: sphere))
-        let shell = SCNSphere(radius: radius * 1.06)
-        shell.segmentCount = 20
-        let air = SCNMaterial()
-        air.lightingModel = .constant
-        air.diffuse.contents = tint.withAlphaComponent(0.22)
-        air.transparency = 0.35
-        air.isDoubleSided = true
-        air.writesToDepthBuffer = false
-        shell.materials = [air]
-        let glow = SCNNode(geometry: shell)
-        glow.renderingOrder = 8
-        root.addChildNode(glow)
+        sphere.segmentCount = 48
+        let day = name == "earth" ? "earth-day" : name
+        let normal = name == "earth" ? "earth-normal" : "\(name)-normal"
+        sphere.materials = [SkyMaps.surface(day: day, normal: normal, rough: name == "jupiter" ? 0.55 : 0.92)]
+        let body = SCNNode(geometry: sphere)
+        body.castsShadow = false
+        root.addChildNode(body)
+        if name == "earth", let clouds = SkyMaps.clouds() {
+            let deck = SCNSphere(radius: radius * 1.025)
+            deck.segmentCount = 40
+            deck.materials = [clouds]
+            let veil = SCNNode(geometry: deck)
+            veil.name = "cloudDeck"
+            veil.castsShadow = false
+            root.addChildNode(veil)
+        }
+        let shellGeom = SCNSphere(radius: radius * 1.06)
+        shellGeom.segmentCount = 28
+        shellGeom.materials = [SkyMaps.atmosphere(air)]
+        let shell = SCNNode(geometry: shellGeom)
+        shell.castsShadow = false
+        shell.renderingOrder = 8
+        root.addChildNode(shell)
         root.simdPosition = point
         return root
     }

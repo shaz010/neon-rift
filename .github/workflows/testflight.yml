@@ -176,7 +176,7 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.neonrift2\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Changelog: same in-engine fighter. Hangar tumble on every axis, six saved paint schemes, and a medal board. Loops and barrel rolls, a wider chase view, bigger bogey brackets, a lock with a health bar, and pickups that pull in. Full screen on iPhone and iPad. Same Neon Rift 2 app."
+            echo "- Changelog: same in-engine fighter. Right thumb aims and fires, left thumb drives. Cockpit panel with canopy, gauges, and radar. Quieter HUD, hangar and pause always up, a compass to the freighter, a tow beam that stays locked, punchier guns, and sunlit NASA-style planets. Full screen on iPhone and iPad. Same Neon Rift 2 app."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Remove the API key

@@ -36,9 +36,12 @@ final class FlightAudio {
             var endChime = local.chime
             var endMusicPhase = local.musicPhase
             var endLockPhase = local.lockPhase
+            var endZap = local.zap
+            var endShotPhase = local.shotPhase
             let music = local.music
             let beam = local.beam
             let lock = local.lock
+            let shotTone = max(0.5, local.shotTone)
             for buffer in buffers {
                 guard let data = buffer.mData else { continue }
                 let ptr = data.assumingMemoryBound(to: Float.self)
@@ -52,6 +55,8 @@ final class FlightAudio {
                 var chime = local.chime
                 var musicPhase = local.musicPhase
                 var lockPhase = local.lockPhase
+                var zap = local.zap
+                var shotPhase = local.shotPhase
                 for i in 0..<frames {
                     phase += dt * (52 + thrust * 70)
                     if phase > 8 { phase -= 8 }
@@ -62,12 +67,20 @@ final class FlightAudio {
                     let noise = Float(Int32(bitPattern: seed)) / Float(Int32.max)
                     let hum = sin(phase * 2 * .pi) * (0.04 + thrust * 0.16)
                         + sin(phase * 3 * .pi) * thrust * 0.05
-                    shot *= 0.986
+                    let thumpK: Float = exp(-dt / 0.09)
+                    let zapK: Float = exp(-dt / 0.032)
+                    shot *= thumpK
+                    zap *= zapK
+                    shotPhase += dt
                     boom *= 0.9965
                     sting *= 0.996
                     launch *= 0.9992
                     chime *= 0.994
-                    let crack = noise * shot * 0.34 + sin(phase * 18 * .pi) * shot * 0.12
+                    let thump = sin(shotPhase * 2 * .pi * (72 * shotTone)) * shot * 0.26
+                        + sin(shotPhase * 2 * .pi * (38 * shotTone)) * shot * shot * 0.18
+                    let bite = sin(shotPhase * 2 * .pi * (1760 * shotTone)) * zap * 0.055
+                        + sin(shotPhase * 2 * .pi * (2480 * shotTone)) * zap * zap * 0.028
+                    let crack = thump + bite + noise * zap * shot * 0.03
                     let rumble = noise * boom * (0.28 + 0.16 * sin(phase * 0.22))
                     let hit = sin(phase * 1.4 * .pi) * sting * 0.16
                     let rise = sin(phase * (1.2 + launch) * .pi) * launch * 0.08
@@ -98,6 +111,8 @@ final class FlightAudio {
                 endChime = chime
                 endMusicPhase = musicPhase
                 endLockPhase = lockPhase
+                endZap = zap
+                endShotPhase = shotPhase
             }
             state.pointee.phase = endPhase
             state.pointee.nstate = endN
@@ -108,6 +123,8 @@ final class FlightAudio {
             state.pointee.chime = endChime
             state.pointee.musicPhase = endMusicPhase
             state.pointee.lockPhase = endLockPhase
+            state.pointee.zap = endZap
+            state.pointee.shotPhase = endShotPhase
             return noErr
         }
         engine.attach(source)
@@ -127,7 +144,12 @@ final class FlightAudio {
     func setMusic(_ value: Float) { box.pointee.music = min(1, max(0, value)) }
     func setBeam(_ value: Float) { box.pointee.beam = min(1, max(0, value)) }
     func setLock(_ value: Float) { box.pointee.lock = min(1, max(0, value)) }
-    func shot() { box.pointee.shot = 1 }
+    func shot() {
+        box.pointee.shot = 1
+        box.pointee.zap = 1
+        box.pointee.shotPhase = 0
+        box.pointee.shotTone = Float.random(in: 0.92...1.08)
+    }
     func explosion() { box.pointee.boom = 1 }
     func titleHit() { box.pointee.sting = 1 }
     func chime() { box.pointee.chime = 1 }
@@ -151,6 +173,9 @@ private struct AudioBox {
     var musicPhase: Float = 0
     var lock: Float = 0
     var lockPhase: Float = 0
+    var zap: Float = 0
+    var shotPhase: Float = 0
+    var shotTone: Float = 1
     var phase: Float = 0
     var nstate: UInt32 = 0x1234_5678
     var rate: Float = 44_100
@@ -170,9 +195,8 @@ final class FlightHaptics {
 
     func shot() {
         shotGate += 1
-        if shotGate % 3 != 0 { return }
-        light.impactOccurred(intensity: 0.55)
-        light.prepare()
+        rigid.impactOccurred(intensity: shotGate % 2 == 0 ? 0.72 : 0.5)
+        rigid.prepare()
     }
 
     func pickup() {

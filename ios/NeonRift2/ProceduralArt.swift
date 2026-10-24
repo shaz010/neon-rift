@@ -2,9 +2,72 @@ import SceneKit
 import UIKit
 import simd
 
-/// Procedural textures and PBR materials. No downloaded or generated-for-pay art.
+/// Procedural metal, plus public planet maps. One sun direction lights the ship,
+/// the debris, and the day side of every planet.
 enum SpaceLook {
     static let sunDirection = simd_normalize(simd_float3(-0.38, 0.58, -0.72))
+}
+
+/// Solar System Scope maps (CC BY 4.0), darkened starfield, and derived normals.
+enum SkyMaps {
+    static func image(_ name: String, ext: String) -> UIImage? {
+        let url = Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "Sky")
+            ?? Bundle.main.url(forResource: name, withExtension: ext)
+        guard let url else { return nil }
+        return UIImage(contentsOfFile: url.path)
+    }
+
+    static func surface(day: String, normal: String, rough: CGFloat) -> SCNMaterial {
+        let material = SCNMaterial()
+        material.lightingModel = .physicallyBased
+        material.diffuse.contents = image(day, ext: "jpg") ?? UIColor(white: 0.28, alpha: 1)
+        material.metalness.contents = 0.0
+        material.roughness.contents = rough
+        if let map = image(normal, ext: "jpg") {
+            material.normal.contents = map
+            material.normal.intensity = 0.7
+        }
+        material.emission.contents = UIColor.black
+        material.emission.intensity = 0
+        material.locksAmbientWithDiffuse = true
+        return material
+    }
+
+    static func clouds() -> SCNMaterial? {
+        guard let tex = image("earth-clouds", ext: "png") else { return nil }
+        let material = SCNMaterial()
+        material.lightingModel = .physicallyBased
+        material.diffuse.contents = tex
+        material.transparent.contents = tex
+        material.metalness.contents = 0
+        material.roughness.contents = 0.95
+        material.writesToDepthBuffer = false
+        material.isDoubleSided = false
+        return material
+    }
+
+    /// Rim only. The night side stays dark so the terminator stays hard.
+    static func atmosphere(_ color: UIColor) -> SCNMaterial {
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        material.diffuse.contents = color
+        material.emission.contents = color
+        material.emission.intensity = 0.45
+        material.transparency = 0.01
+        material.blendMode = .add
+        material.writesToDepthBuffer = false
+        material.isDoubleSided = false
+        material.shaderModifiers = [
+            .surface: """
+            #pragma transparent
+            float ndv = clamp(dot(normalize(_surface.normal), normalize(_surface.view)), 0.0, 1.0);
+            float fres = pow(1.0 - ndv, 2.8);
+            _surface.transparent.a = fres;
+            _surface.emission.rgb *= fres;
+            """
+        ]
+        return material
+    }
 }
 
 enum Noise {
@@ -174,12 +237,16 @@ final class ArtSet {
     let strut: SCNMaterial
 
     private init() {
-        sky = Raster.image(width: 1024, height: 512, opaque: true) { u, v in
-            let lon = (u - 0.5) * 2 * .pi
-            let lat = (0.5 - v) * .pi
-            let dir = simd_float3(sin(lon) * cos(lat), sin(lat), cos(lon) * cos(lat))
-            let c = SkyPaint.color(dir)
-            return SIMD4<Float>(c.x, c.y, c.z, 1)
+        if let photo = SkyMaps.image("stars", ext: "jpg") {
+            sky = photo
+        } else {
+            sky = Raster.image(width: 1024, height: 512, opaque: true) { u, v in
+                let lon = (u - 0.5) * 2 * .pi
+                let lat = (0.5 - v) * .pi
+                let dir = simd_float3(sin(lon) * cos(lat), sin(lat), cos(lon) * cos(lat))
+                let c = SkyPaint.color(dir)
+                return SIMD4<Float>(c.x, c.y, c.z, 1)
+            }
         }
         faces = Raster.cubeFaces(size: 96)
         grains = (0..<3).map { seed in
@@ -316,14 +383,16 @@ final class ArtSet {
         planet.diffuse.contents = planetTex
         planet.metalness.contents = 0.02
         planet.roughness.contents = 0.82
-        planet.emission.contents = planetTex
-        planet.emission.intensity = 0.12
+        planet.emission.contents = UIColor.black
+        planet.emission.intensity = 0
 
         ring = ArtSet.sprite(ringTex, additive: false)
         ring.lightingModel = .physicallyBased
         ring.diffuse.contents = ringTex
-        ring.metalness.contents = 0.05
-        ring.roughness.contents = 0.55
+        ring.emission.contents = UIColor.black
+        ring.emission.intensity = 0
+        ring.metalness.contents = 0.02
+        ring.roughness.contents = 0.62
         ring.isDoubleSided = true
 
         let concrete = Raster.image(width: 256, height: 256, opaque: true) { u, v in
