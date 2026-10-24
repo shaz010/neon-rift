@@ -357,7 +357,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let glow = 0.35 + abs(Float(stick.y)) * 0.65
         art.cyanGlow.emission.intensity = CGFloat(0.7 + glow * 0.8 + sin(missionTime * 28) * 0.08)
         heatScroll += dt * (0.4 + glow)
-        art.heat.diffuse.contentsTransform = SCNMatrix4MakeTranslation(CGFloat(heatScroll), 0, 0)
+        art.heat.diffuse.contentsTransform = SCNMatrix4MakeTranslation(heatScroll, 0, 0)
         audio.setThrust(assisting ? 0.18 : min(1, abs(Float(stick.y))))
 
         if abs(Float(stick.x)) > 0.35 {

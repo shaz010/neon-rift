@@ -18,6 +18,9 @@ xcodebuild \
   -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath "$DD" \
   CODE_SIGNING_ALLOWED=NO \
+  ARCHS=arm64 \
+  ONLY_ACTIVE_ARCH=YES \
+  EXCLUDED_ARCHS=x86_64 \
   build
 
 APP="$(find "$DD" -path '*iphonesimulator*' -name 'NeonRift2.app' -type d | head -1)"
