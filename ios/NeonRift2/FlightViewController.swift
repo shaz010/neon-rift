@@ -1,6 +1,7 @@
 import Darwin
 import SceneKit
 import UIKit
+import simd
 
 final class FlightViewController: UIViewController {
     private let scnView = SCNView()
@@ -37,6 +38,7 @@ final class FlightViewController: UIViewController {
     private var flightPaused = false
     private var hangarAtBottom = false
     private let faceButton = UIButton(type: .system)
+    private let gunButton = UIButton(type: .system)
     private let loopButton = UIButton(type: .system)
     private let rollButton = UIButton(type: .system)
     private var creditScroll: CGFloat = 0
@@ -154,6 +156,9 @@ final class FlightViewController: UIViewController {
             case 3: self.world?.requestRoll(direction: -1)
             default: break
             }
+            if let threat = self.touch.consumeThreat() {
+                self.world?.lockThreat(near: threat)
+            }
         }
         view.addSubview(touch)
 
@@ -173,7 +178,9 @@ final class FlightViewController: UIViewController {
         configure(viewButton, title: "COCKPIT", action: #selector(toggleView))
         configure(cycleButton, title: "CYCLE", action: #selector(cycleTarget))
         configure(beamButton, title: "BEAM", action: #selector(toggleBeam))
-        configure(faceButton, title: "FACE", action: #selector(faceTarget))
+        configure(faceButton, title: "LOCK THREAT", action: #selector(faceTarget))
+        faceButton.titleLabel?.font = UIFont.systemFont(ofSize: 11, weight: .medium)
+        configure(gunButton, title: "PULSE", action: #selector(cycleGun))
         configure(loopButton, title: "LOOP", action: #selector(doLoop))
         configure(rollButton, title: "ROLL", action: #selector(doRoll))
         configure(pauseButton, title: "PAUSE", action: #selector(togglePause))
@@ -303,6 +310,9 @@ final class FlightViewController: UIViewController {
         viewButton.isHidden = m.phase != .combat
         cycleButton.isHidden = m.phase != .combat
         faceButton.isHidden = m.phase != .combat
+        faceButton.layer.borderColor = (m.underFire ? UIColor(red: 1, green: 0.22, blue: 0.1, alpha: 1) : UIColor(white: 0.75, alpha: 0.85)).cgColor
+        gunButton.setTitle(m.gunName, for: .normal)
+        gunButton.isHidden = m.phase != .combat
         loopButton.isHidden = m.phase != .combat
         rollButton.isHidden = m.phase != .combat
         if m.showResults {
@@ -326,6 +336,7 @@ final class FlightViewController: UIViewController {
         overlay.lockTitle = m.lockTitle
         overlay.lockHealth = CGFloat(m.lockHealth)
         overlay.lockMissile = m.lockMissile
+        overlay.lockAttacking = m.lockAttacking
         overlay.cockpit = m.cockpit
         overlay.guideTitle = m.guideTitle
         overlay.guideBearing = CGFloat(m.guideBearing)
@@ -335,6 +346,15 @@ final class FlightViewController: UIViewController {
             guard let point = project(gem.0) else { return nil }
             return (point, gem.1)
         }
+        overlay.threats = m.threats.map { threat in
+            HudThreatView(
+                point: project(threat.world),
+                bearing: CGFloat(threat.bearing),
+                world: threat.world,
+                hit: threat.hit
+            )
+        }
+        touch.threatSpots = overlay.hotspots(in: overlay.bounds)
         overlay.marks = m.contacts.map { contact in
             HudMark(point: project(contact.world), kind: contact.kind, distance: contact.distance, bearing: contact.bearing)
         }
@@ -387,7 +407,8 @@ final class FlightViewController: UIViewController {
         let buttonW = 92 * scale
         let buttonH = 32 * scale
         viewButton.frame = CGRect(x: safe.left + 16 * scale, y: safe.top + 8 * scale, width: buttonW, height: buttonH)
-        faceButton.frame = CGRect(x: safe.left + 16 * scale, y: safe.top + 46 * scale, width: buttonW, height: buttonH)
+        faceButton.frame = CGRect(x: safe.left + 16 * scale, y: safe.top + 122 * scale, width: buttonW * 1.35, height: buttonH)
+        gunButton.frame = CGRect(x: b.width - safe.right - buttonW - 16 * scale, y: safe.top + 86 * scale, width: buttonW, height: buttonH)
         loopButton.frame = CGRect(x: safe.left + 16 * scale, y: safe.top + 84 * scale, width: buttonW * 0.72, height: buttonH)
         rollButton.frame = CGRect(x: safe.left + 16 * scale + buttonW * 0.78, y: safe.top + 84 * scale, width: buttonW * 0.72, height: buttonH)
         cycleButton.frame = CGRect(x: b.width - safe.right - buttonW - 16 * scale, y: safe.top + 48 * scale, width: buttonW, height: buttonH)
@@ -539,7 +560,8 @@ final class FlightViewController: UIViewController {
     @objc private func toggleView() { world?.toggleView() }
     @objc private func cycleTarget() { world?.cycleTarget() }
     @objc private func toggleBeam() { world?.toggleTractor() }
-    @objc private func faceTarget() { world?.requestFace() }
+    @objc private func faceTarget() { world?.lockThreat(near: nil) }
+    @objc private func cycleGun() { world?.cycleGun() }
     @objc private func doLoop() { world?.requestLoop() }
     @objc private func doRoll() { world?.requestRoll(direction: 1) }
 
@@ -605,6 +627,13 @@ struct HudBlipView {
     var kind: Int
 }
 
+struct HudThreatView {
+    var point: CGPoint?
+    var bearing: CGFloat
+    var world: simd_float3
+    var hit: Bool
+}
+
 final class HudOverlay: UIView {
     var combat = false
     var stick = CGPoint.zero
@@ -613,6 +642,7 @@ final class HudOverlay: UIView {
     var lockTitle = ""
     var lockHealth: CGFloat = 0
     var lockMissile = false
+    var lockAttacking = false
     var cockpit = false
     var guideTitle = ""
     var guideBearing: CGFloat = 0
@@ -623,6 +653,7 @@ final class HudOverlay: UIView {
     var sunPoint: CGPoint?
     var popups: [HudPopup] = []
     var marks: [HudMark] = []
+    var threats: [HudThreatView] = []
     var blips: [HudBlipView] = []
     var dragOrigin: CGPoint?
     var aimOrigin: CGPoint?
@@ -669,6 +700,7 @@ final class HudOverlay: UIView {
             }
             if !cockpit { drawRadar(ctx, rect, s) }
             drawMarks(ctx, rect, s)
+            drawThreatEdges(ctx, rect, s)
             if !cockpit { drawLock(ctx, rect, s) }
             drawGuide(ctx, rect, s)
             let reticle = CGPoint(x: rect.midX, y: rect.midY - 8 * s)
@@ -733,11 +765,12 @@ final class HudOverlay: UIView {
             case 1: color = UIColor(red: 1, green: 0.62, blue: 0.2, alpha: 1)
             case 2: color = UIColor(red: 0.95, green: 0.85, blue: 0.4, alpha: 1)
             case 3: color = UIColor(red: 0.4, green: 0.9, blue: 1, alpha: 1)
+            case 4: color = UIColor(red: 1, green: 0.08, blue: 0.04, alpha: 1)
             default: color = UIColor(red: 1, green: 0.2, blue: 0.12, alpha: 1)
             }
             ctx.setFillColor(color.cgColor)
             let p = CGPoint(x: center.x + blip.x * rad * 0.86, y: center.y - blip.y * rad * 0.86)
-            let dot: CGFloat = blip.kind == 0 ? 8 : 6.5
+            let dot: CGFloat = blip.kind == 4 ? 10 : (blip.kind == 0 ? 8 : 6.5)
             ctx.fillEllipse(in: CGRect(x: p.x - dot * s * 0.5, y: p.y - dot * s * 0.5, width: dot * s, height: dot * s))
         }
     }
@@ -763,7 +796,10 @@ final class HudOverlay: UIView {
         let title = "\(guideTitle)  \(Int(guideDistance))m"
         (title as NSString).draw(at: CGPoint(x: mid - 46 * s, y: y + 6 * s), withAttributes: attrs)
         let inset = rect.insetBy(dx: 36 * s, dy: 48 * s)
-        if guidePoint == nil || (guidePoint.map { !inset.contains($0) } ?? true) {
+        let attackerOff = marks.contains { mark in
+            mark.kind == 4 && (mark.point == nil || !inset.contains(mark.point!))
+        }
+        if !attackerOff && (guidePoint == nil || (guidePoint.map { !inset.contains($0) } ?? true)) {
             let tip = CGPoint(
                 x: rect.midX + CGFloat(sin(guideBearing)) * inset.width * 0.46,
                 y: rect.midY - CGFloat(cos(guideBearing)) * inset.height * 0.42
@@ -780,9 +816,11 @@ final class HudOverlay: UIView {
 
     private func drawLock(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {
         guard let lock = lockPoint, !lockTitle.isEmpty else { return }
-        let color = lockTitle == "BANDIT"
-            ? UIColor(red: 1, green: 0.62, blue: 0.18, alpha: 1)
-            : UIColor(red: 1, green: 0.22, blue: 0.12, alpha: 1)
+        let color = lockAttacking
+            ? UIColor(red: 1, green: 0.1, blue: 0.06, alpha: 1)
+            : (lockTitle == "BANDIT"
+                ? UIColor(red: 1, green: 0.62, blue: 0.18, alpha: 1)
+                : UIColor(red: 1, green: 0.22, blue: 0.12, alpha: 1))
         bracket(ctx, lock, 46 * s, color)
         let attrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.monospacedSystemFont(ofSize: 13 * s, weight: .medium),
@@ -801,26 +839,46 @@ final class HudOverlay: UIView {
             ]
             ("LOCK" as NSString).draw(at: CGPoint(x: lock.x - 16 * s, y: lock.y + 50 * s), withAttributes: lockAttrs)
         }
+        if lockAttacking {
+            let warn: [NSAttributedString.Key: Any] = [
+                .font: UIFont.monospacedSystemFont(ofSize: 11 * s, weight: .bold),
+                .foregroundColor: UIColor(red: 1, green: 0.2, blue: 0.1, alpha: 1),
+            ]
+            let text = "ATTACKING YOU" as NSString
+            let size = text.size(withAttributes: warn)
+            text.draw(at: CGPoint(x: lock.x - size.width * 0.5, y: lock.y + 34 * s), withAttributes: warn)
+        }
     }
 
     private func drawMarks(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {
         let inset = rect.insetBy(dx: 28 * s, dy: 36 * s)
-        for mark in marks {
+        let ordered = marks.sorted { ($0.kind == 4 ? 1 : 0) < ($1.kind == 4 ? 1 : 0) }
+        for mark in ordered {
             let color: UIColor
             switch mark.kind {
             case 1: color = UIColor(red: 1, green: 0.62, blue: 0.18, alpha: 0.95)
             case 2: color = UIColor(red: 1, green: 0.86, blue: 0.4, alpha: 0.95)
             case 3: color = UIColor(red: 0.45, green: 0.9, blue: 1, alpha: 0.95)
+            case 4: color = UIColor(red: 1, green: 0.08, blue: 0.04, alpha: 1)
             default: color = UIColor(red: 1, green: 0.18, blue: 0.08, alpha: 0.95)
             }
             if let point = mark.point, inset.contains(point) {
                 if let lock = lockPoint, hypot(point.x - lock.x, point.y - lock.y) < 36 * s { continue }
                 let near = mark.distance < 140
                 let fade = near ? 0.95 : max(0.18, 1 - Double(mark.distance - 140) / 380)
-                let faded = color.withAlphaComponent(mark.kind == 2 ? 0.95 : CGFloat(fade))
-                let arm: CGFloat = mark.kind == 0 ? 26 : 18
+                let faded = color.withAlphaComponent(mark.kind == 2 || mark.kind == 4 ? 0.95 : CGFloat(fade))
+                let arm: CGFloat = mark.kind == 4 ? 32 : (mark.kind == 0 ? 26 : 18)
                 bracket(ctx, point, arm * s, faded)
-            } else if mark.kind == 2 {
+                if mark.kind == 4 {
+                    let attrs: [NSAttributedString.Key: Any] = [
+                        .font: UIFont.monospacedSystemFont(ofSize: 11 * s, weight: .bold),
+                        .foregroundColor: color,
+                    ]
+                    let text = "ATTACKING YOU" as NSString
+                    let size = text.size(withAttributes: attrs)
+                    text.draw(at: CGPoint(x: point.x - size.width * 0.5, y: point.y - arm * s - 16 * s), withAttributes: attrs)
+                }
+            } else if mark.kind == 2 || mark.kind == 4 {
                 let rx = inset.width * 0.48
                 let ry = inset.height * 0.46
                 let tip = CGPoint(
@@ -830,12 +888,58 @@ final class HudOverlay: UIView {
                 ctx.setFillColor(color.cgColor)
                 ctx.move(to: tip)
                 let back = CGFloat(mark.bearing)
-                ctx.addLine(to: CGPoint(x: tip.x + CGFloat(sin(back + 2.6)) * 20 * s, y: tip.y - CGFloat(cos(back + 2.6)) * 20 * s))
-                ctx.addLine(to: CGPoint(x: tip.x + CGFloat(sin(back - 2.6)) * 20 * s, y: tip.y - CGFloat(cos(back - 2.6)) * 20 * s))
+                let size: CGFloat = mark.kind == 4 ? 28 : 20
+                ctx.addLine(to: CGPoint(x: tip.x + CGFloat(sin(back + 2.6)) * size * s, y: tip.y - CGFloat(cos(back + 2.6)) * size * s))
+                ctx.addLine(to: CGPoint(x: tip.x + CGFloat(sin(back - 2.6)) * size * s, y: tip.y - CGFloat(cos(back - 2.6)) * size * s))
                 ctx.closePath()
                 ctx.fillPath()
             }
         }
+    }
+
+    private func drawThreatEdges(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {
+        for threat in threats {
+            let bearing = threat.bearing
+            let edge = CGPoint(
+                x: rect.midX + sin(bearing) * (rect.width * 0.5 - 12 * s),
+                y: rect.midY - cos(bearing) * (rect.height * 0.5 - 16 * s)
+            )
+            let alpha: CGFloat = threat.hit ? 0.96 : 0.78
+            ctx.setStrokeColor(UIColor(red: 1, green: 0.14, blue: 0.06, alpha: alpha).cgColor)
+            ctx.setLineWidth((threat.hit ? 4.5 : 3) * s)
+            let len: CGFloat = (threat.hit ? 22 : 15) * s
+            let tx = cos(bearing)
+            let ty = sin(bearing)
+            ctx.move(to: CGPoint(x: edge.x - tx * len, y: edge.y - ty * len))
+            ctx.addLine(to: edge)
+            ctx.addLine(to: CGPoint(x: edge.x + tx * len, y: edge.y + ty * len))
+            ctx.move(to: edge)
+            ctx.addLine(to: CGPoint(x: edge.x - sin(bearing) * 12 * s, y: edge.y + cos(bearing) * 12 * s))
+            ctx.strokePath()
+        }
+    }
+
+    func hotspots(in rect: CGRect) -> [(CGPoint, simd_float3)] {
+        guard rect.width > 1, rect.height > 1 else { return [] }
+        let s = max(scale, 0.5)
+        let inset = rect.insetBy(dx: 28 * s, dy: 36 * s)
+        var spots: [(CGPoint, simd_float3)] = []
+        for threat in threats {
+            if let point = threat.point, inset.contains(point) {
+                spots.append((point, threat.world))
+            }
+            let tip = CGPoint(
+                x: rect.midX + sin(threat.bearing) * inset.width * 0.48,
+                y: rect.midY - cos(threat.bearing) * inset.height * 0.46
+            )
+            spots.append((tip, threat.world))
+            let edge = CGPoint(
+                x: rect.midX + sin(threat.bearing) * (rect.width * 0.5 - 12 * s),
+                y: rect.midY - cos(threat.bearing) * (rect.height * 0.5 - 16 * s)
+            )
+            spots.append((edge, threat.world))
+        }
+        return spots
     }
 
     private func strokeRing(_ ctx: CGContext, _ center: CGPoint, _ radius: CGFloat, _ color: UIColor) {
@@ -872,7 +976,9 @@ final class TouchPad: UIView {
     var rightCenter = CGPoint.zero
     var radius: CGFloat = 74
     var onChange: (() -> Void)?
+    var threatSpots: [(CGPoint, simd_float3)] = []
     var dragOrigin: CGPoint?
+    private var threatWorld: simd_float3?
     private var leftTouch: UITouch?
     private var rightTouch: UITouch?
     private var rightOrigin: CGPoint?
@@ -896,6 +1002,12 @@ final class TouchPad: UIView {
         return code
     }
 
+    func consumeThreat() -> simd_float3? {
+        let world = threatWorld
+        threatWorld = nil
+        return world
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         backgroundColor = .clear
@@ -916,6 +1028,11 @@ final class TouchPad: UIView {
     private func claim(_ touches: Set<UITouch>) {
         for touch in touches {
             let p = touch.location(in: self)
+            if let spot = threatSpots.min(by: { hypot($0.0.x - p.x, $0.0.y - p.y) < hypot($1.0.x - p.x, $1.0.y - p.y) }),
+               hypot(spot.0.x - p.x, spot.0.y - p.y) < 48 {
+                threatWorld = spot.1
+                continue
+            }
             if p.x < bounds.midX {
                 if leftTouch == nil {
                     if lastWasTap && touch.timestamp - lastEnded < 0.32 {
