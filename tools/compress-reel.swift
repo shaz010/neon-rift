@@ -44,21 +44,24 @@ func encode(maxWidth: CGFloat, to url: URL) -> Bool {
     let scale = min(1, maxWidth / sourceWidth)
     let width = even(sourceWidth * scale)
     let height = even(sourceHeight * scale)
-    let duration = max(CMTimeGetSeconds(asset.duration), 1)
-    let videoBitrate = max(450_000, Int((Double(limit - 400 * 1024) * 8 * 0.9) / duration))
-    fputs("encode \(width)x\(height) bitrate \(videoBitrate) duration \(String(format: "%.1f", duration))\n", stderr)
+    let full = max(CMTimeGetSeconds(asset.duration), 1)
+    let keepSeconds = min(full, 80)
+    let keep = CMTime(seconds: keepSeconds, preferredTimescale: 600)
+    let videoBitrate = max(180_000, Int((Double(limit - 400 * 1024) * 8 * 0.85) / keepSeconds))
+    fputs("encode \(width)x\(height) bitrate \(videoBitrate) keep \(String(format: "%.1f", keepSeconds)) of \(String(format: "%.1f", full))\n", stderr)
 
     let composition = AVMutableVideoComposition()
     composition.renderSize = CGSize(width: width, height: height)
     composition.frameDuration = CMTime(value: 1, timescale: 30)
     let instruction = AVMutableVideoCompositionInstruction()
-    instruction.timeRange = CMTimeRange(start: .zero, duration: asset.duration)
+    instruction.timeRange = CMTimeRange(start: .zero, duration: keep)
     let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
     layerInstruction.setTransform(fitTransform(videoTrack, target: composition.renderSize), at: .zero)
     instruction.layerInstructions = [layerInstruction]
     composition.instructions = [instruction]
 
     guard let reader = try? AVAssetReader(asset: asset) else { return false }
+    reader.timeRange = CMTimeRange(start: .zero, duration: keep)
     let formats = [
         kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
         kCVPixelFormatType_32BGRA,
