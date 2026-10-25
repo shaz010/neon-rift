@@ -1,15 +1,20 @@
 name: TestFlight
 
-# Push to neon-rift-2-3d builds the native 3D test flight and uploads the
-# next TestFlight build of the same Neon Rift 2 app. The simulator reel
-# has to finish first, so a compile or launch failure does not spend a
-# build number. The web game on neon-rift-2 is not part of this branch's
-# trigger.
+# Push to neon-rift-2-3d uploads the next TestFlight build of the same
+# Neon Rift 2 app when the commit message contains [upload]. The simulator
+# reel does not run, and the archive does not wait on it. Recording runs
+# only when a commit message contains [record], or a manual dispatch sets
+# record to true. The web game on neon-rift-2 is not part of this trigger.
 on:
   push:
     branches:
       - neon-rift-2-3d
   workflow_dispatch:
+    inputs:
+      record:
+        description: Record the simulator reel
+        type: boolean
+        default: false
 
 concurrency:
   group: testflight-neon-rift-2-3d
@@ -22,6 +27,7 @@ permissions:
 jobs:
   record:
     name: Record simulator reel
+    if: contains(github.event.head_commit.message, '[record]') || github.event.inputs.record == 'true'
     runs-on: macos-26
     timeout-minutes: 40
     steps:
@@ -52,9 +58,8 @@ jobs:
 
   testflight:
     name: Archive and upload
-    needs: record
-    # A normal push only records the reel so it can be reviewed first.
     # Upload runs on a manual dispatch, or when the commit message contains [upload].
+    # It does not wait for a reel.
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[upload]')
     runs-on: macos-26
     timeout-minutes: 45
