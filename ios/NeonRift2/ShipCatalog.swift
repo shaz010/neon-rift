@@ -340,25 +340,6 @@ enum PilotLog {
     }
 }
 
-/// The rift remembers the last crossing. A clean scar makes the next line faster.
-/// A sloppy one makes the warden meaner.
-enum RiftScar: String {
-    case none
-    case clean
-    case sloppy
-
-    private static let key = "nr2.rift.scar"
-
-    static var current: RiftScar {
-        get { RiftScar(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .none }
-        set { UserDefaults.standard.set(newValue.rawValue, forKey: key) }
-    }
-
-    static func commit(clean: Bool) {
-        current = clean ? .clean : .sloppy
-    }
-}
-
 enum ShipModelLoader {
     static func load(art: ArtSet) -> SCNNode {
         if let bought = loadUSDZ() ?? loadOBJ() {

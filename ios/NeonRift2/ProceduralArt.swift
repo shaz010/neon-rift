@@ -229,9 +229,6 @@ final class ArtSet {
     let floorMat: SCNMaterial
     let boltPlayer: SCNMaterial
     let boltEnemy: SCNMaterial
-    let arcGlow: SCNMaterial
-    let beamGlow: SCNMaterial
-    let phaserGlow: SCNMaterial
     let debris: SCNMaterial
     let sunMat: SCNMaterial
     let crack: SCNMaterial
@@ -419,9 +416,6 @@ final class ArtSet {
 
         boltPlayer = ArtSet.glow(UIColor(red: 1, green: 0.62, blue: 0.22, alpha: 1))
         boltEnemy = ArtSet.glow(UIColor(red: 1, green: 0.16, blue: 0.08, alpha: 1))
-        arcGlow = ArtSet.energy(UIColor(red: 0.72, green: 0.92, blue: 1, alpha: 1))
-        beamGlow = ArtSet.energy(UIColor(red: 0.62, green: 1, blue: 0.18, alpha: 1))
-        phaserGlow = ArtSet.energy(UIColor(red: 0.78, green: 0.55, blue: 1, alpha: 1))
 
         debris = ArtSet.pbr(diffuse: metal, rough: rough, normal: normal, metal: 0.7)
         debris.multiply.contents = UIColor(white: 0.35, alpha: 1)
@@ -450,14 +444,6 @@ final class ArtSet {
         m.normal.wrapS = .repeat
         m.normal.wrapT = .repeat
         return m
-    }
-
-    private static func energy(_ color: UIColor) -> SCNMaterial {
-        let material = glow(color)
-        material.blendMode = .add
-        material.writesToDepthBuffer = false
-        material.isDoubleSided = true
-        return material
     }
 
     private static func glow(_ color: UIColor) -> SCNMaterial {
