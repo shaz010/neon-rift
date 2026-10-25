@@ -155,15 +155,13 @@ shot combat
 wait_mark "NR2 mark warden" 120
 shot warden
 wait_mark "NR2 phase results" 90
-sleep 1.2
+sleep 0.6
 shot results
-sleep 0.8
-
+xcrun simctl terminate "$UDID" com.shaz010.neonrift2 >/dev/null 2>&1 || true
 kill -INT "$REC" 2>/dev/null || true
 wait "$REC" 2>/dev/null || true
 trap - EXIT
 kill "$APP_WRAP" 2>/dev/null || true
-xcrun simctl terminate "$UDID" com.shaz010.neonrift2 >/dev/null 2>&1 || true
 
 test -s "$OUT/raw.mp4"
 "$OUT/compress-reel" "$OUT/raw.mp4" "$OUT/neon-rift-2-3d-gameplay.mp4"
