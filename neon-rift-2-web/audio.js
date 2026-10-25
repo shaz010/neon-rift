@@ -70,6 +70,12 @@ export function createAudio() {
     osc.stop(t + duration + 0.02);
   }
 
+  function bass(freq, duration, gain) {
+    tone(freq, Math.max(28, freq * 0.42), duration, gain, 'sine');
+    tone(Math.max(24, freq * 0.5), Math.max(22, freq * 0.2), duration * 1.35, gain * 0.9, 'sine');
+    burst(duration * 0.85, Math.max(48, freq * 0.7), 0.45, gain * 0.55, 'lowpass');
+  }
+
   return {
     unlock() { ensure(); },
     setMuted(next) {
@@ -79,41 +85,87 @@ export function createAudio() {
     get muted() { return muted; },
     play(name) {
       if (name === 'pulse') {
-        tone(540, 110, 0.09, 0.22, 'sine');
-        burst(0.045, 1600, 0.7, 0.28, 'bandpass');
+        bass(78, 0.11, 0.42);
+        tone(640, 150, 0.08, 0.16, 'sine');
+        burst(0.05, 1900, 0.7, 0.22, 'bandpass');
+      } else if (name === 'spread') {
+        bass(64, 0.12, 0.4);
+        tone(520, 180, 0.1, 0.16, 'triangle');
+        tone(880, 240, 0.08, 0.1, 'sine');
+      } else if (name === 'arc') {
+        bass(90, 0.14, 0.38);
+        tone(240, 860, 0.12, 0.14, 'sawtooth');
+        burst(0.08, 1400, 1.2, 0.2, 'bandpass');
+      } else if (name === 'rail') {
+        bass(48, 0.28, 0.7);
+        tone(180, 40, 0.22, 0.28, 'sine');
+        burst(0.16, 900, 0.5, 0.32, 'bandpass');
+      } else if (name === 'mine') {
+        bass(55, 0.16, 0.36);
+        tone(140, 70, 0.12, 0.14, 'triangle');
+      } else if (name === 'charge') {
+        tone(90, 140, 0.08, 0.08, 'sine');
       } else if (name === 'torpedo') {
-        tone(96, 42, 0.22, 0.4, 'sine');
-        burst(0.16, 240, 0.6, 0.35, 'lowpass');
+        bass(42, 0.34, 0.72);
+        tone(70, 32, 0.28, 0.4, 'sine');
+        burst(0.22, 160, 0.4, 0.4, 'lowpass');
       } else if (name === 'impact') {
-        tone(86, 34, 0.16, 0.55, 'sine');
-        burst(0.12, 180, 0.5, 0.4, 'lowpass');
+        bass(54, 0.2, 0.62);
+        burst(0.14, 140, 0.45, 0.42, 'lowpass');
       } else if (name === 'blast') {
-        tone(62, 26, 0.42, 0.75, 'sine');
-        tone(44, 22, 0.5, 0.45, 'sine');
-        burst(0.38, 520, 0.4, 0.5, 'lowpass');
+        bass(40, 0.42, 0.8);
+        tone(90, 28, 0.36, 0.34, 'sine');
+        burst(0.32, 220, 0.35, 0.48, 'lowpass');
+      } else if (name === 'shock') {
+        bass(32, 0.62, 0.95);
+        tone(48, 22, 0.55, 0.55, 'sine');
+        tone(96, 30, 0.4, 0.28, 'triangle');
+        burst(0.5, 180, 0.3, 0.55, 'lowpass');
       } else if (name === 'hurt') {
-        tone(70, 28, 0.28, 0.6, 'sine');
-        burst(0.2, 140, 0.4, 0.45, 'lowpass');
-      } else if (name === 'bolt') {
-        tone(220, 90, 0.12, 0.3, 'triangle');
-        tone(480, 180, 0.08, 0.12, 'sine');
-        burst(0.06, 900, 1, 0.2, 'bandpass');
+        bass(46, 0.32, 0.7);
+        burst(0.22, 110, 0.35, 0.4, 'lowpass');
+      } else if (name === 'bolt' || name === 'shield') {
+        bass(72, 0.16, 0.4);
+        tone(260, 110, 0.12, 0.22, 'triangle');
+        tone(620, 220, 0.08, 0.1, 'sine');
+      } else if (name === 'spike') {
+        bass(60, 0.14, 0.45);
+        tone(900, 180, 0.1, 0.16, 'square');
       } else if (name === 'dash') {
-        burst(0.09, 700, 0.6, 0.22, 'bandpass');
-        tone(180, 70, 0.1, 0.18, 'sine');
+        bass(58, 0.18, 0.5);
+        tone(220, 70, 0.14, 0.2, 'sine');
+        burst(0.1, 500, 0.5, 0.22, 'bandpass');
+      } else if (name === 'streak') {
+        bass(50, 0.24, 0.62);
+        tone(160, 50, 0.2, 0.24, 'sine');
+        tone(480, 140, 0.12, 0.1, 'triangle');
+      } else if (name === 'brake') {
+        bass(44, 0.2, 0.55);
+        burst(0.16, 200, 0.6, 0.3, 'lowpass');
+      } else if (name === 'dodge') {
+        bass(52, 0.16, 0.58);
+        tone(300, 90, 0.12, 0.2, 'sine');
+        burst(0.08, 1200, 0.7, 0.18, 'bandpass');
+      } else if (name === 'switch') {
+        tone(420, 680, 0.07, 0.1, 'sine');
+        bass(80, 0.08, 0.2);
       } else if (name === 'graze') {
         tone(880, 1320, 0.06, 0.08, 'sine');
       } else if (name === 'card' || name === 'start') {
-        tone(420, 640, 0.08, 0.1, 'sine');
+        tone(420, 640, 0.08, 0.12, 'sine');
+        bass(90, 0.1, 0.22);
       } else if (name === 'win') {
-        tone(180, 90, 0.3, 0.3, 'sine');
-        tone(360, 180, 0.34, 0.16, 'sine');
+        bass(70, 0.4, 0.45);
+        tone(180, 90, 0.3, 0.28, 'sine');
+        tone(360, 180, 0.34, 0.14, 'sine');
       } else if (name === 'die') {
-        tone(90, 30, 0.45, 0.5, 'sine');
-        burst(0.35, 120, 0.3, 0.4, 'lowpass');
+        bass(36, 0.55, 0.75);
+        tone(90, 24, 0.5, 0.4, 'sine');
+        burst(0.4, 100, 0.3, 0.4, 'lowpass');
       } else if (name === 'boss') {
-        tone(70, 40, 0.35, 0.35, 'sine');
-        burst(0.25, 200, 0.4, 0.3, 'lowpass');
+        bass(34, 0.45, 0.7);
+        tone(70, 36, 0.35, 0.3, 'sine');
+        burst(0.28, 160, 0.35, 0.32, 'lowpass');
       }
     },
   };
@@ -121,17 +173,26 @@ export function createAudio() {
 
 export function vibrate(name) {
   const map = {
-    pulse: 8,
-    torpedo: 16,
-    impact: 14,
-    blast: [28, 24, 56],
-    hurt: [36, 30, 70],
-    bolt: 22,
-    dash: 12,
-    graze: 8,
-    boss: 20,
+    pulse: 10,
+    spread: 12,
+    arc: 14,
+    rail: [18, 20, 28],
+    mine: 12,
+    torpedo: [24, 16, 36],
+    impact: [16, 12, 22],
+    blast: [32, 20, 64],
+    shock: [40, 24, 36, 70],
+    hurt: [40, 28, 80],
+    bolt: 24,
+    shield: 18,
+    spike: 20,
+    dash: [14, 10, 18],
+    streak: [20, 12, 28],
+    brake: [22, 16, 30],
+    dodge: [18, 12, 26],
+    boss: [24, 16, 32],
     win: [20, 30, 40],
-    die: [50, 40, 80],
+    die: [56, 40, 90],
   };
   const pattern = map[name];
   if (pattern == null) return;
