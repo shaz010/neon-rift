@@ -290,9 +290,9 @@ final class FlightViewController: UIViewController {
         weaponLabel.alpha = 0
         compassLabel.alpha = 0
         shieldLabel.alpha = combat && !m.cockpit ? 1 : 0
-        bigObjective = m.phase == .combat
+        bigObjective = m.phase == .cinema || m.phase == .combat || m.phase == .warden
         promptLabel.text = bigObjective ? m.objective : "LEFT DRIVES  ·  RIGHT AIMS"
-        promptLabel.alpha = bigObjective ? 1 : (m.phase == .cinema && m.titleAlpha < 0.25 ? 1 : 0)
+        promptLabel.alpha = bigObjective ? 1 : 0
         promptLabel.textColor = bigObjective
             ? UIColor(red: 1, green: 0.95, blue: 0.82, alpha: 1)
             : UIColor(white: 0.92, alpha: 1)
@@ -413,9 +413,9 @@ final class FlightViewController: UIViewController {
         let stickY = controlCenters(scale: scale).0.y
         shieldLabel.frame = CGRect(x: 20 * scale, y: stickY - 78 * scale, width: b.width - 40 * scale, height: rowH)
         if bigObjective {
-            let y = max(safe.top + 4 * scale, b.height * 0.15)
-            promptLabel.frame = CGRect(x: 16 * scale, y: y, width: b.width - 32 * scale, height: 84 * scale)
-            promptLabel.font = UIFont.systemFont(ofSize: 30 * scale, weight: .heavy)
+            let y = max(safe.top + 158 * scale, b.height * 0.22)
+            promptLabel.frame = CGRect(x: 24 * scale, y: y, width: b.width - 48 * scale, height: 84 * scale)
+            promptLabel.font = UIFont.systemFont(ofSize: 28 * scale, weight: .heavy)
         } else {
             promptLabel.frame = CGRect(x: b.midX - 110 * scale, y: safe.top + 46 * scale, width: 220 * scale, height: 22 * scale)
             promptLabel.font = UIFont.monospacedSystemFont(ofSize: 13 * scale, weight: .light)

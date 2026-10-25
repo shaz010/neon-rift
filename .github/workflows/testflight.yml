@@ -179,7 +179,7 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.neonrift2\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Changelog: guided dogfight. Big objective text, a guide light on the next raider, enemies that come to you, and a soft lane that turns you back. Close kills, hit sparks, smoke, combos, and a boss. Recorded cannon, crack, explosion, and engine samples. GUN, LOOP, and ROLL stay hidden until the opening lesson. Same fighter, hangar, paint, and planets. Full screen on iPhone and iPad."
+            echo "- Changelog: convoy mission. A launch briefing, then three phases: defend the freighters, capture their leader, stop the Rift Warden. Each phase has a goal, a progress line, and a payoff. The win reads CONVOY SAVED. Guide light, close raiders, recorded cannon, crack, blast, and engine. Same fighter, hangar, paint, and planets. Full screen on iPhone and iPad."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Remove the API key
