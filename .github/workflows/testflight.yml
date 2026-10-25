@@ -3,8 +3,8 @@ name: TestFlight
 # Push to neon-rift-2-3d uploads the next TestFlight build of the same
 # Neon Rift 2 app when the commit message contains [upload]. The simulator
 # reel does not run, and the archive does not wait on it. Recording runs
-# only when a commit message contains [record], or a manual dispatch sets
-# record to true. The web game on neon-rift-2 is not part of this trigger.
+# only when a commit subject starts with the word record-reel, or a manual
+# dispatch sets record to true. The web game on neon-rift-2 is not part of this trigger.
 on:
   push:
     branches:
@@ -27,7 +27,7 @@ permissions:
 jobs:
   record:
     name: Record simulator reel
-    if: contains(github.event.head_commit.message, '[record]') || github.event.inputs.record == 'true'
+    if: startsWith(github.event.head_commit.message, 'record-reel') || github.event.inputs.record == 'true'
     runs-on: macos-26
     timeout-minutes: 40
     steps:
