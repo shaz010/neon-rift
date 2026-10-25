@@ -1,3 +1,4 @@
+import AudioToolbox
 import AVFoundation
 import UIKit
 
@@ -8,7 +9,7 @@ final class FlightAudio {
     private let engine = AVAudioEngine()
     private let box = UnsafeMutablePointer<AudioBox>.allocate(capacity: 1)
     private let bus = AVAudioMixerNode()
-    private let compressor = AVAudioUnitDynamicsProcessor()
+    private let compressor = FlightAudio.makeCompressor()
     private let engineVoice = AVAudioPlayerNode()
     private var shotVoices: [AVAudioPlayerNode] = []
     private var boomVoices: [AVAudioPlayerNode] = []
@@ -198,11 +199,7 @@ final class FlightAudio {
         crack = Self.loadSample("crack")
         boomBuffer = Self.loadSample("boom")
         engineLoop = Self.loadSample("engine")
-        compressor.threshold = -16
-        compressor.headRoom = 6
-        compressor.attackTime = 0.005
-        compressor.releaseTime = 0.14
-        compressor.masterGain = 3
+        tuneCompressor()
         engine.attach(source)
         engine.attach(bus)
         engine.attach(compressor)
@@ -272,6 +269,28 @@ final class FlightAudio {
         voice.volume = volume
         voice.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
         if !voice.isPlaying { voice.play() }
+    }
+
+    /// Apple's Dynamics Processor audio unit. The old Swift wrapper is gone from the iOS 26 SDK.
+    private static func makeCompressor() -> AVAudioUnitEffect {
+        let description = AudioComponentDescription(
+            componentType: kAudioUnitType_Effect,
+            componentSubType: kAudioUnitSubType_DynamicsProcessor,
+            componentManufacturer: kAudioUnitManufacturer_Apple,
+            componentFlags: 0,
+            componentFlagsMask: 0
+        )
+        return AVAudioUnitEffect(audioComponentDescription: description)
+    }
+
+    private func tuneCompressor() {
+        let unit = compressor.audioUnit
+        // Threshold, headroom, attack, release, makeup gain.
+        AudioUnitSetParameter(unit, 0, kAudioUnitScope_Global, 0, -16, 0)
+        AudioUnitSetParameter(unit, 1, kAudioUnitScope_Global, 0, 6, 0)
+        AudioUnitSetParameter(unit, 4, kAudioUnitScope_Global, 0, 0.005, 0)
+        AudioUnitSetParameter(unit, 5, kAudioUnitScope_Global, 0, 0.14, 0)
+        AudioUnitSetParameter(unit, 6, kAudioUnitScope_Global, 0, 3, 0)
     }
 
     private static func loadSample(_ name: String) -> AVAudioPCMBuffer? {
