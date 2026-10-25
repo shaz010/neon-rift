@@ -23,7 +23,7 @@ private enum FoeKind {
 }
 
 private enum SwarmBuzz {
-    case shot, dash, blast, graze, bolt, hurt, boom, tap
+    case shot, dash, blast, graze, bolt, hurt, boom, tap, torpedo
 }
 
 private struct SwarmSnap {
@@ -45,6 +45,7 @@ private struct SwarmSnap {
     var survived: Float = 0
     var cleared = false
     var buzz: [SwarmBuzz] = []
+    var cockpit = false
 }
 
 private struct SwarmPad {
@@ -60,6 +61,8 @@ private struct SwarmPad {
     var hasGravity = false
     var tilt = false
     var shotEvery = false
+    var cockpit = false
+    var torpedo = false
 }
 
 private struct CardOffer {
@@ -143,17 +146,28 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
     private var camGap: Float = 0
     private var camLeft: Float = 0
     private var camEye = simd_float3.zero
-    private var camDir = simd_float3(0, 0, -1)
+    private var camAnchor = simd_float3.zero
+    private var camQuat = simd_quatf(angle: 0, axis: simd_float3(0, 1, 0))
     private var camHold = false
+    private var posed = false
+    private var poseCockpit = false
+    private let commandQuat = levelLook(forward: simd_float3(0, -1, 0), fallbackRight: simd_float3(1, 0, 0))
+    private let cockpitQuat = levelLook(forward: simd_float3(0, -0.04, -1), fallbackRight: simd_float3(1, 0, 0))
     private var pipLeft: Float = 0
     private var grazeText = ""
     private var grazeLeft: Float = 0
     private var flash: Float = 0
+    private var shake: Float = 0
+    private var shakePhase: Float = 0
+    private var frameRaw: Float = 1.0 / 60
     private var buzz: [SwarmBuzz] = []
     private var aimWorld = simd_float3(0, 0, -20)
     private var lockWorld: simd_float3?
     private var locked = false
     private var muzzle = 0
+    private var cockpit = false
+    private var torpedoCool: Float = 0
+    private var lastAim = simd_float3(0, 0, -1)
 
     init(audio: FlightAudio, showcase: Bool) {
         self.audio = audio
@@ -178,6 +192,11 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
 
     private func step(_ raw: Float) {
         let input = peekPad()
+        frameRaw = raw
+        if phase == .gate { cockpit = input.cockpit }
+        shakePhase += raw
+        shake = max(0, shake - raw * 1.7)
+        torpedoCool = max(0, torpedoCool - raw)
         buzz.removeAll()
         if !markedCinema {
             markedCinema = true
@@ -203,10 +222,10 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
             if input.skip || camLeft <= 0 {
                 endCam()
             } else {
-                sim = raw * 0.36
+                sim = raw * 0.42
             }
         }
-        let playerDt = phase == .run && camHold ? raw * 0.84 : sim
+        let playerDt = phase == .run && camHold ? raw * 0.9 : sim
 
         if phase == .run {
             realRun += raw
@@ -248,10 +267,13 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
             tiltReady = true
         }
         audio.startIfNeeded()
-        audio.setMusic(0.4)
+        audio.setMusic(0.22)
+        audio.setThrust(0)
+        cockpit = input.cockpit
+        posed = false
         if foes.isEmpty {
-            spawnFoe(kind: .drone, at: simd_float3(-3.2, 0, -28))
-            spawnFoe(kind: .drone, at: simd_float3(4.0, 0, -32))
+            spawnFoe(kind: .drone, at: simd_float3(-3.5, 0, -16))
+            spawnFoe(kind: .drone, at: simd_float3(4.2, 0, -20))
         }
         logMark("NR2 phase combat")
     }
@@ -316,8 +338,18 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
                 lockWorld = focus.pos
             }
         }
-        aimWorld = origin + aimDir * 26
+        aimWorld = origin + aimDir * 22
+        if cockpit {
+            player.simdOrientation = simd_quatf(angle: 0, axis: simd_float3(0, 1, 0))
+        } else {
+            let yaw = atan2(-aimDir.x, -aimDir.z)
+            player.simdOrientation = simd_quatf(angle: yaw, axis: simd_float3(0, 1, 0))
+        }
         poseAimLine(from: origin, dir: aimDir, hot: input.aimOn)
+
+        if input.torpedo && torpedoCool <= 0 {
+            fireTorpedo(dir: aimDir, from: origin, focus: focus)
+        }
 
         let firing = input.aimOn && simd_length(input.aim) > 0.12
         if firing {
@@ -373,31 +405,39 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
             pos.x += stick.x * speed * dt
             pos.z += -stick.y * speed * dt
         }
-        pos.x = min(7.6, max(-7.6, pos.x))
-        pos.z = min(6.5, max(-6.0, pos.z))
+        pos.x = min(9.5, max(-9.5, pos.x))
+        pos.z = min(8, max(-6, pos.z))
         pos.y = 0
         player.simdPosition = pos
-        player.simdOrientation = simd_quatf(angle: 0, axis: simd_float3(0, 1, 0))
         let grown = 0.70 + Float(turrets + plates + engines) * 0.028
         player.simdScale = simd_float3(repeating: grown)
-        audio.setThrust(min(1, simd_length(stick)))
+        audio.setThrust(0)
     }
 
     private func aimDirection(_ aim: simd_float2) -> simd_float3 {
-        let x = min(1, max(-1, aim.x))
-        let y = min(1, max(-1, aim.y))
-        return swarmNorm(simd_float3(x * 0.92, y * 0.40, -1))
+        if cockpit {
+            let x = min(1, max(-1, aim.x))
+            let y = min(1, max(-1, aim.y))
+            if abs(x) < 0.04 && abs(y) < 0.04 { return lastAim }
+            let dir = swarmNorm(simd_float3(x * 0.55, y * 0.1, -1))
+            lastAim = dir
+            return dir
+        }
+        // Screen up is world -Z and screen right is world +X, in both views.
+        let x = aim.x
+        let z = -aim.y
+        if hypot(x, z) < 0.08 { return lastAim }
+        let dir = swarmNorm(simd_float3(x, 0, z))
+        lastAim = dir
+        return dir
     }
 
     private func launchVolley(dir: simd_float3, from origin: simd_float3, focus: Foe?, blast: Bool) {
         let guns = blast ? 1 : 2 + turrets
         let damage: Float = blast ? 36 + heavy * 8 : 7 + heavy * 4
-        let predicted = focus.map { $0.hull <= damage * Float(min(guns, 2)) } ?? false
-        let cinematic = blast || (shotEvery && focus != nil) || predicted
-        if cinematic && !camHold && camGap <= 0 {
-            let target = focus?.pos ?? (origin + dir * 28)
-            beginCam(from: origin, to: target, seconds: blast || predicted ? 1.9 : 1.6)
-        }
+        let killing = focus.map { $0.hull <= damage * Float(guns) + 14 } ?? false
+        let cinematic = cockpit || shotEvery || blast || killing
+        openShotCam(cinematic, from: origin, to: focus?.pos ?? (origin + dir * 24), seconds: blast || killing ? 2.05 : 1.8)
         let spread = blast ? 0 : spreadRank * 0.07
         for index in 0..<guns {
             let along: Float = guns == 1 ? 0 : (Float(index) - Float(guns - 1) * 0.5)
@@ -422,6 +462,39 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
         audio.shot(blast ? 3 : 0)
         buzz.append(blast ? .boom : .shot)
         flash = max(flash, blast ? 0.55 : 0.18)
+        bumpShake(blast ? 0.8 : 0.38)
+    }
+
+    private func fireTorpedo(dir: simd_float3, from origin: simd_float3, focus: Foe?) {
+        torpedoCool = 2.1
+        let target = focus?.pos ?? (origin + dir * 26)
+        openShotCam(true, from: origin, to: target, seconds: 2.2)
+        spawnBolt(
+            origin: origin + dir * 1.4,
+            dir: dir,
+            speed: 22,
+            life: 3.2,
+            player: true,
+            damage: 240,
+            radius: 1.15,
+            blast: true,
+            featured: true,
+            torpedo: true
+        )
+        audio.shot(4)
+        buzz.append(.torpedo)
+        flash = max(flash, 0.4)
+        bumpShake(0.7)
+    }
+
+    /// Outside view of a shot. The first call cuts. A later call only holds the same angle.
+    private func openShotCam(_ show: Bool, from origin: simd_float3, to target: simd_float3, seconds: Float) {
+        guard show else { return }
+        if camHold {
+            camLeft = max(camLeft, min(seconds, 1.35))
+            return
+        }
+        beginCam(from: origin, to: target, seconds: seconds)
     }
 
     private func spawnBolt(
@@ -433,11 +506,18 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
         damage: Float,
         radius: Float,
         blast: Bool,
-        featured: Bool
+        featured: Bool,
+        torpedo: Bool = false
     ) {
-        let mat = (player ? art.boltPlayer.copy() : art.boltEnemy.copy()) as? SCNMaterial ?? SCNMaterial()
-        let sphere = SCNSphere(radius: CGFloat(blast ? 0.55 : (player ? 0.22 : 0.62)))
-        sphere.segmentCount = 8
+        let mat = glow(
+            torpedo
+                ? UIColor(red: 0.75, green: 0.95, blue: 1, alpha: 1)
+                : (player ? UIColor(red: 0.55, green: 0.9, blue: 1, alpha: 1) : UIColor(red: 1, green: 0.35, blue: 0.15, alpha: 1)),
+            intensity: torpedo ? 2.4 : 1.2,
+            alpha: 0
+        )
+        let sphere = SCNSphere(radius: CGFloat(torpedo ? 0.72 : (blast ? 0.55 : (player ? 0.22 : 0.62))))
+        sphere.segmentCount = torpedo ? 12 : 8
         sphere.materials = [mat]
         let node = SCNNode(geometry: sphere)
         node.simdPosition = origin
@@ -452,7 +532,8 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
             radius: radius,
             grazed: false,
             blast: blast,
-            featured: featured
+            featured: featured,
+            torpedo: torpedo
         ))
         if bolts.count > 70 {
             bolts.removeFirst().node.removeFromParentNode()
@@ -462,16 +543,33 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
     private func updateBolts(_ dt: Float) {
         var keep: [Bolt] = []
         for var bolt in bolts {
-            bolt.life -= dt
-            bolt.pos += bolt.vel * dt
+            let clock = (bolt.featured && camHold) ? max(dt, frameRaw * 0.82) : dt
+            bolt.life -= clock
+            bolt.pos += bolt.vel * clock
             bolt.node.simdPosition = bolt.pos
-            if bolt.life <= 0 || abs(bolt.pos.x) > 40 || bolt.pos.z > 18 || bolt.pos.z < -70 {
+            if bolt.life <= 0 || abs(bolt.pos.x) > 48 || bolt.pos.z > 20 || bolt.pos.z < -70 {
+                if bolt.torpedo && bolt.life <= 0 { detonateTorpedo(at: bolt.pos, direct: nil) }
                 bolt.node.removeFromParentNode()
             } else {
                 keep.append(bolt)
             }
         }
         bolts = keep
+        watchKillingShots()
+    }
+
+    /// If a shot will kill and the outside view is not already up, cut to it
+    /// while the bolt is still in the air so the hit is on screen.
+    private func watchKillingShots() {
+        guard !camHold, phase == .run else { return }
+        for bolt in bolts where bolt.player {
+            for foe in foes where foe.alive {
+                if simd_distance(bolt.pos, foe.pos) < 12 && foe.hull <= bolt.damage + 10 {
+                    beginCam(from: pos, to: foe.pos, seconds: bolt.torpedo ? 2.1 : 1.75)
+                    return
+                }
+            }
+        }
     }
 
     private func collide(_ dt: Float) {
@@ -483,7 +581,11 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
                 var hit = false
                 for foe in foes where foe.alive {
                     if simd_distance(bolt.pos, foe.pos) < bolt.radius + foe.radius {
-                        hurtFoe(foe, damage: bolt.damage, featured: bolt.featured, blast: bolt.blast)
+                        if bolt.torpedo {
+                            detonateTorpedo(at: bolt.pos, direct: foe)
+                        } else {
+                            hurtFoe(foe, damage: bolt.damage, featured: bolt.featured, blast: bolt.blast)
+                        }
                         hit = true
                         break
                     }
@@ -514,26 +616,52 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
         }
     }
 
+    private func detonateTorpedo(at point: simd_float3, direct: Foe?) {
+        var killed = false
+        if let direct {
+            let wasAlive = direct.alive
+            hurtFoe(direct, damage: 240, featured: true, blast: true)
+            killed = wasAlive && !direct.alive
+        }
+        for foe in foes where foe.alive {
+            if let direct, foe === direct { continue }
+            if simd_distance(foe.pos, point) < 4.4 {
+                hurtFoe(foe, damage: 90, featured: false, blast: true)
+            }
+        }
+        if !killed {
+            explode(at: point, power: 1.7)
+        }
+        bumpShake(1)
+        buzz.append(.torpedo)
+        if !camHold {
+            beginCam(from: pos, to: point, seconds: 1.8)
+        } else {
+            camLeft = max(camLeft, 0.9)
+        }
+    }
+
     private func hurtFoe(_ foe: Foe, damage: Float, featured: Bool, blast: Bool) {
         foe.hull -= damage
+        _ = featured
         foe.flash = 0.12
         spark(at: foe.pos)
         audio.impact()
+        bumpShake(blast ? 0.55 : 0.28)
         if foe.hull <= 0 && foe.alive {
             foe.alive = false
             score += foe.kind == .boss ? 800 : 100
-            explode(at: foe.pos, power: foe.kind == .boss ? 1.4 : 1)
+            explode(at: foe.pos, power: foe.kind == .boss ? 1.6 : 1.05)
             dropWreck(at: foe.pos)
             foe.node.removeFromParentNode()
-            if !camHold && (featured || blast || shotEvery) {
-                beginCam(from: pos, to: foe.pos, seconds: 1.6)
+            // A kill always cuts to the outside view, even when the shot was not predicted.
+            if !camHold {
+                beginCam(from: pos, to: foe.pos, seconds: 1.75)
+            } else {
+                camLeft = max(camLeft, 0.85)
             }
-        } else if !camHold {
-            if shotEvery {
-                beginCam(from: pos, to: foe.pos, seconds: 1.5)
-            } else if pipLeft <= 0 {
-                showPip(at: foe.pos)
-            }
+        } else if !camHold && !cockpit && !shotEvery {
+            if pipLeft <= 0 { showPip(at: foe.pos) }
         }
     }
 
@@ -562,20 +690,20 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
             case .ring:
                 let radial = simd_float2(foe.pos.x - playerPos.x, foe.pos.z - playerPos.z)
                 let dist = simd_length(radial)
-                if dist > 16 {
+                if dist > 10 {
                     foe.vel = swarmNorm(simd_float3(-radial.x, 0, -radial.y)) * 8
                 } else {
                     foe.vel = simd_float3(-radial.y, 0, radial.x) / max(dist, 1) * 5
                 }
             case .boss:
-                if foe.pos.z < -16 {
+                if foe.pos.z < -12 {
                     foe.vel = simd_float3(0, 0, 6)
                 } else {
                     foe.vel = simd_float3(sin(foe.age * 0.7) * 4, 0, 0)
                 }
             }
             foe.pos += foe.vel * dt
-            if foe.kind != .boss && (foe.pos.z > playerPos.z + 10 || abs(foe.pos.x) > 28) {
+            if foe.kind != .boss && (foe.pos.z > playerPos.z + 12 || abs(foe.pos.x) > 22) {
                 foe.alive = false
                 foe.node.removeFromParentNode()
             }
@@ -684,7 +812,7 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
         guard phase == .run else { return }
         if !bossSpawned && simTime > 46 {
             bossSpawned = true
-            spawnFoe(kind: .boss, at: simd_float3(0, 0, -34))
+            spawnFoe(kind: .boss, at: simd_float3(0, 0, -22))
         }
         let alive = foes.filter { $0.alive && $0.kind != .boss }.count
         guard alive < 5 else { return }
@@ -705,11 +833,11 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
         let edge = foes.count % 3
         let at: simd_float3
         if edge == 0 {
-            at = simd_float3(Float((foes.count % 5) - 2) * 2.2, 0, -36)
+            at = simd_float3(Float((foes.count % 5) - 2) * 2.4, 0, -24)
         } else if edge == 1 {
-            at = simd_float3(-11, 0, -18 - Float(foes.count % 4) * 3)
+            at = simd_float3(-8.5, 0, -14 - Float(foes.count % 4) * 2.2)
         } else {
-            at = simd_float3(11, 0, -16 - Float(foes.count % 4) * 3)
+            at = simd_float3(8.5, 0, -12 - Float(foes.count % 4) * 2.2)
         }
         spawnFoe(kind: kind, at: at)
     }
@@ -950,21 +1078,27 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
 
     private func beginCam(from origin: simd_float3, to target: simd_float3, seconds: Float) {
         let mid = (origin + target) * 0.5
-        let base = mid + simd_float3(14, 7, 9)
-        camDir = swarmNorm(mid - base)
-        camEye = base
+        camAnchor = target
+        camEye = simd_float3(mid.x + 18, max(4, mid.y + 7), mid.z + 1)
+        let forward = swarmNorm(target + simd_float3(0, 0.6, 0) - camEye)
+        camQuat = levelLook(forward: forward, fallbackRight: simd_float3(0, 0, 1))
         camHold = true
         camLeft = seconds
         camAge = 0.01
-        shotNode.simdPosition = camEye
-        shotNode.simdOrientation = swarmLook(forward: camDir, up: simd_float3(0, 1, 0))
+        posed = false
+        logMark("NR2 shotcam \(cockpit ? "cockpit" : "command")")
     }
 
     private func endCam() {
         camHold = false
         camLeft = 0
         camAge = 0
-        camGap = 0.28
+        camGap = 0.2
+        posed = false
+    }
+
+    private func bumpShake(_ amount: Float) {
+        shake = min(1, max(shake, amount))
     }
 
     private func offerCardIfDue() {
@@ -1010,20 +1144,60 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
     }
 
     private func updateCamera() {
-        let pull: Float = phase == .results ? 1.22 : 1
-        let eye = pos + simd_float3(0, 8, 22) * pull
-        let look = eye + simd_float3(0, -6.8, -40)
-        cameraNode.simdPosition = eye
-        cameraNode.simdOrientation = swarmLook(forward: swarmNorm(look - eye), up: simd_float3(0, 1, 0))
+        let gameplayCockpit = cockpit && phase != .results
         if camHold {
-            let dolly = min(3.2, camAge * 1.5)
-            shotNode.simdPosition = camEye - camDir * dolly
-            shotNode.simdOrientation = swarmLook(forward: camDir, up: simd_float3(0, 1, 0))
+            if !posed {
+                cameraNode.simdOrientation = camQuat
+                cameraNode.camera?.fieldOfView = 48
+                posed = true
+                poseCockpit = false
+            }
+            let dolly = min(2.2, camAge * 1.05)
+            var away = simd_float3(camEye.x - camAnchor.x, 0, camEye.z - camAnchor.z)
+            if simd_length(away) < 0.2 { away = simd_float3(1, 0, 0) }
+            away = swarmNorm(away)
+            cameraNode.simdPosition = camEye + away * dolly + shakeOffset(scale: 0.6)
+            lockRing.isHidden = true
+            return
         }
-        lockRing.isHidden = !locked || camHold || phase != .run
+        if !posed || poseCockpit != gameplayCockpit {
+            cameraNode.simdOrientation = gameplayCockpit ? cockpitQuat : commandQuat
+            posed = true
+            poseCockpit = gameplayCockpit
+        }
+        if gameplayCockpit {
+            cameraNode.camera?.fieldOfView = 62
+            cameraNode.simdPosition = pos + simd_float3(0, 1.85, 1.15) + shakeOffset(scale: 0.16)
+        } else {
+            let height: Float
+            let focusZ: Float
+            let fov: CGFloat
+            if phase == .gate {
+                height = 18
+                focusZ = pos.z - 0.5
+                fov = 40
+            } else if phase == .results {
+                height = 34
+                focusZ = pos.z - 1
+                fov = 46
+            } else {
+                height = 48
+                focusZ = pos.z - 7
+                fov = 52
+            }
+            cameraNode.camera?.fieldOfView = fov
+            cameraNode.simdPosition = simd_float3(pos.x, height, focusZ) + shakeOffset(scale: 1.6)
+        }
+        lockRing.isHidden = !locked || phase != .run
         if let lockWorld {
-            lockRing.simdPosition = lockWorld + simd_float3(0, 0.2, 0)
+            lockRing.simdPosition = lockWorld + simd_float3(0, 0.4, 0)
         }
+    }
+
+    /// Position kick only. The orientation above is never nudged, so the horizon cannot roll.
+    private func shakeOffset(scale: Float) -> simd_float3 {
+        let mag = shake * scale
+        return simd_float3(sin(shakePhase * 51) * mag, 0, cos(shakePhase * 43) * mag)
     }
 
     private func poseAimLine(from origin: simd_float3, dir: simd_float3, hot: Bool) {
@@ -1044,7 +1218,7 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
             let along = simd_dot(to, dir)
             if along < 2 || along > 52 + rangeRank * 8 { continue }
             let closest = origin + dir * along
-            if simd_distance(closest, foe.pos) < foe.radius + 1.8 && along < bestDist {
+            if simd_distance(closest, foe.pos) < foe.radius + 2.6 && along < bestDist {
                 best = foe
                 bestDist = along
             }
@@ -1062,40 +1236,49 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
         if let threat = bolts.filter({ !$0.player }).min(by: { simd_distance($0.pos, pos) < simd_distance($1.pos, pos) }) {
             let dist = simd_distance(threat.pos, pos)
             if dist < 8 {
-                let away = simd_float2(pos.x - threat.pos.x, -(pos.z - threat.pos.z))
+                let away = simd_float3(pos.x - threat.pos.x, 0, pos.z - threat.pos.z)
                 let len = simd_length(away)
                 if len > 0.01 {
-                    let side = away / len
-                    move = simd_float2(side.x, side.y)
+                    let world = away / len
+                    move = simd_float2(world.x, -world.z)
                 }
                 if dist < 3.4 && dashCool <= 0 {
                     updatePad { pad in
-                        pad.dash = simd_float3(move.x, 0, -move.y)
+                        pad.dash = simd_float3(pos.x - threat.pos.x, 0, pos.z - threat.pos.z)
                         pad.dashOn = true
                     }
                 }
             }
         }
-        if simd_length(simd_float2(pos.x, pos.z)) > 6.2 {
-            move = simd_float2(move.x - pos.x * 0.15, move.y + pos.z * 0.08)
+        if simd_length(simd_float2(pos.x, pos.z)) > 7.4 {
+            move = simd_float2(move.x - pos.x * 0.12, move.y + pos.z * 0.08)
         }
         var aim = simd_float2.zero
         var aimOn = false
-        if let foe = foes.filter({ $0.alive && $0.pos.z < pos.z - 2 }).min(by: { simd_distance($0.pos, pos) < simd_distance($1.pos, pos) }) {
-            let to = swarmNorm(foe.pos - simd_float3(pos.x, 0.6, pos.z))
-            if to.z < -0.15 {
-                let k = -1 / to.z
-                aim = simd_float2(max(-1, min(1, to.x * k / 0.92)), max(-1, min(1, to.y * k / 0.40)))
+        if let foe = foes.filter({ $0.alive }).min(by: { simd_distance($0.pos, pos) < simd_distance($1.pos, pos) }) {
+            let flat = foe.pos - simd_float3(pos.x, 0, pos.z)
+            if cockpit {
+                let to = swarmNorm(foe.pos - simd_float3(pos.x, 0.6, pos.z))
+                if to.z < -0.15 {
+                    let k = -1 / to.z
+                    aim = simd_float2(max(-1, min(1, to.x * k / 0.55)), max(-1, min(1, to.y * k / 0.10)))
+                    aimOn = true
+                }
+            } else if simd_length(flat) > 0.4 {
+                let dir = swarmNorm(simd_float3(flat.x, 0, flat.z))
+                aim = simd_float2(max(-1, min(1, dir.x)), max(-1, min(1, -dir.z)))
                 aimOn = true
             }
         }
         let release = charge > 0.9 && Int(simTime * 2) % 7 == 0
+        let toss = aimOn && torpedoCool <= 0 && Int(simTime) % 5 == 0 && simTime > 6
         updatePad { pad in
             pad.move = move
             pad.moveOn = simd_length(move) > 0.05
             pad.aim = aim
             pad.aimOn = aimOn && !release
             if release { pad.release = true }
+            if toss { pad.torpedo = true }
         }
     }
 
@@ -1112,6 +1295,7 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
         pad.release = false
         pad.dashOn = false
         pad.skip = false
+        pad.torpedo = false
         lock.unlock()
         return copy
     }
@@ -1136,6 +1320,7 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
         snap.survived = simTime
         snap.cleared = cleared
         snap.buzz = buzz
+        snap.cockpit = cockpit
         let send = snap
         let pip = pipLeft > 0 && !camHold
         DispatchQueue.main.async { [weak self] in
@@ -1305,6 +1490,7 @@ private struct Bolt {
     var grazed: Bool
     var blast: Bool
     var featured: Bool
+    var torpedo: Bool
 }
 
 private struct Wreck {
@@ -1348,6 +1534,7 @@ final class SalvageSwarmViewController: UIViewController {
     private var requestedOrientation = false
     private var tiltOn = UserDefaults.standard.bool(forKey: "nr2.swarm.tilt")
     private var shotEvery = UserDefaults.standard.string(forKey: "nr2.swarm.shotcam") == "every"
+    private var cockpitOn = UserDefaults.standard.string(forKey: "nr2.swarm.view") == "cockpit"
 
     private let flashView = UIView()
     private let titleLabel = UILabel()
@@ -1355,12 +1542,15 @@ final class SalvageSwarmViewController: UIViewController {
     private let timerLabel = UILabel()
     private let scoreLabel = UILabel()
     private let grazeLabel = UILabel()
+    private let cameraLabel = UILabel()
     private let healthTrack = UIView()
     private let healthFill = UIView()
     private let cross = UIView()
     private let lockBox = UIView()
     private let tiltButton = UIButton(type: .system)
+    private let viewButton = UIButton(type: .system)
     private let camButton = UIButton(type: .system)
+    private let torpedoButton = UIButton(type: .system)
     private let playButton = UIButton(type: .system)
     private let againButton = UIButton(type: .system)
     private let classicButton = UIButton(type: .system)
@@ -1425,11 +1615,14 @@ final class SalvageSwarmViewController: UIViewController {
         titleLabel.text = "SALVAGE SWARM"
         style(subLabel, size: 13, weight: .regular, align: .center)
         subLabel.numberOfLines = 3
-        subLabel.text = "Spot the red foe. Drag the right thumb to aim and fire.\nFlick the left thumb to dash. Fly into wreckage."
+        subLabel.text = "Command Center looks down on the fight. Aim with the right thumb.\nPhoton torpedo is the heavy shot. Flick the left thumb to dash."
         style(timerLabel, size: 22, weight: .medium, align: .center)
         style(scoreLabel, size: 16, weight: .semibold, align: .left)
         style(grazeLabel, size: 28, weight: .heavy, align: .center)
         grazeLabel.textColor = UIColor(red: 0.7, green: 1, blue: 0.85, alpha: 1)
+        style(cameraLabel, size: 13, weight: .semibold, align: .center)
+        cameraLabel.textColor = UIColor(red: 0.65, green: 0.95, blue: 1, alpha: 1)
+        cameraLabel.text = "COMMAND CENTER"
         style(resultLabel, size: 22, weight: .semibold, align: .center)
         resultLabel.numberOfLines = 5
         healthTrack.backgroundColor = UIColor(white: 1, alpha: 0.16)
@@ -1438,7 +1631,10 @@ final class SalvageSwarmViewController: UIViewController {
         healthFill.isUserInteractionEnabled = false
         healthTrack.addSubview(healthFill)
         configure(tiltButton, title: tiltTitle(), action: #selector(toggleTilt))
+        configure(viewButton, title: viewTitle(), action: #selector(toggleView))
         configure(camButton, title: camTitle(), action: #selector(toggleCam))
+        configure(torpedoButton, title: "PHOTON TORPEDO", action: #selector(fireTorpedo))
+        torpedoButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .heavy)
         configure(playButton, title: "PLAY", action: #selector(play))
         playButton.titleLabel?.font = UIFont.systemFont(ofSize: 22, weight: .heavy)
         configure(againButton, title: "PLAY AGAIN", action: #selector(replay))
@@ -1446,12 +1642,14 @@ final class SalvageSwarmViewController: UIViewController {
         configure(classicButton, title: "CLASSIC FLIGHT", action: #selector(classic))
         configure(skipButton, title: "SKIP", action: #selector(skipCam))
         buildCross()
-        for item in [titleLabel, subLabel, timerLabel, scoreLabel, grazeLabel, resultLabel, healthTrack, cross, lockBox, tiltButton, camButton, playButton, againButton, classicButton, skipButton] {
+        for item in [titleLabel, subLabel, timerLabel, scoreLabel, grazeLabel, cameraLabel, resultLabel, healthTrack, cross, lockBox, tiltButton, viewButton, camButton, torpedoButton, playButton, againButton, classicButton, skipButton] {
             view.addSubview(item)
         }
         againButton.isHidden = true
         resultLabel.isHidden = true
         skipButton.isHidden = true
+        torpedoButton.isHidden = true
+        cameraLabel.isHidden = true
         timerLabel.isHidden = true
         scoreLabel.isHidden = true
         healthTrack.isHidden = true
@@ -1478,14 +1676,17 @@ final class SalvageSwarmViewController: UIViewController {
         timerLabel.frame = CGRect(x: b.midX - 50 * scale, y: safe.top + 8, width: 100 * scale, height: 32 * scale)
         scoreLabel.frame = CGRect(x: 16, y: safe.top + 10, width: 140 * scale, height: 28 * scale)
         healthTrack.frame = CGRect(x: b.midX - 80 * scale, y: timerLabel.frame.maxY + 2, width: 160 * scale, height: 8 * scale)
+        cameraLabel.frame = CGRect(x: 16, y: healthTrack.frame.maxY + 2, width: b.width - 32, height: 18 * scale)
         grazeLabel.frame = CGRect(x: 20, y: b.midY - 80, width: b.width - 40, height: 40)
         resultLabel.frame = CGRect(x: 20, y: safe.top + 24, width: b.width - 40, height: 150 * scale)
         let buttonW = min(b.width - 48, 340 * scale)
         let buttonX = (b.width - buttonW) / 2
         classicButton.frame = CGRect(x: buttonX, y: b.height - safe.bottom - 44 * scale, width: buttonW, height: 34 * scale)
-        playButton.frame = CGRect(x: buttonX, y: classicButton.frame.minY - 72 * scale, width: buttonW, height: 64 * scale)
-        camButton.frame = CGRect(x: buttonX, y: playButton.frame.minY - 62 * scale, width: buttonW, height: 52 * scale)
-        tiltButton.frame = CGRect(x: buttonX, y: camButton.frame.minY - 62 * scale, width: buttonW, height: 52 * scale)
+        playButton.frame = CGRect(x: buttonX, y: classicButton.frame.minY - 68 * scale, width: buttonW, height: 58 * scale)
+        camButton.frame = CGRect(x: buttonX, y: playButton.frame.minY - 52 * scale, width: buttonW, height: 44 * scale)
+        viewButton.frame = CGRect(x: buttonX, y: camButton.frame.minY - 52 * scale, width: buttonW, height: 44 * scale)
+        tiltButton.frame = CGRect(x: buttonX, y: viewButton.frame.minY - 52 * scale, width: buttonW, height: 44 * scale)
+        torpedoButton.frame = CGRect(x: buttonX, y: b.height - safe.bottom - 62 * scale, width: buttonW, height: 52 * scale)
         againButton.frame = CGRect(x: buttonX, y: b.height * 0.62, width: buttonW, height: 68 * scale)
         skipButton.frame = CGRect(x: b.midX - 48 * scale, y: safe.top + 46 * scale, width: 96 * scale, height: 36 * scale)
         layoutCards(scale: scale, safe: safe)
@@ -1589,6 +1790,10 @@ final class SalvageSwarmViewController: UIViewController {
     private func apply(_ snap: SwarmSnap) {
         shown = snap.phase
         shotCam = snap.shotCam
+        cockpitOn = snap.phase == .gate ? cockpitOn : snap.cockpit
+        if scnView.pointOfView !== world.cameraNode {
+            scnView.pointOfView = world.cameraNode
+        }
         let gate = snap.phase == .gate
         let run = snap.phase == .run
         let cards = snap.phase == .cards
@@ -1596,9 +1801,13 @@ final class SalvageSwarmViewController: UIViewController {
         titleLabel.isHidden = !gate
         subLabel.isHidden = !gate
         tiltButton.isHidden = !gate
+        viewButton.isHidden = !gate
         camButton.isHidden = !gate
         playButton.isHidden = !gate
         classicButton.isHidden = !(gate || results)
+        torpedoButton.isHidden = !run
+        cameraLabel.isHidden = !(run || cards)
+        cameraLabel.text = snap.cockpit ? "COCKPIT" : "COMMAND CENTER"
         timerLabel.isHidden = !(run || cards)
         scoreLabel.isHidden = !(run || cards || results)
         healthTrack.isHidden = !(run || cards)
@@ -1619,7 +1828,6 @@ final class SalvageSwarmViewController: UIViewController {
             resultLabel.text = "\(headline)\nSCORE \(snap.score)\nTIME \(time)s\n\(snap.parts) PARTS BOLTED"
             scoreLabel.isHidden = true
         }
-        scnView.pointOfView = snap.shotCam ? world.shotNode : world.cameraNode
         placeCross(snap)
         rebuildCards(snap, show: cards)
         for buzz in snap.buzz { playBuzz(buzz) }
@@ -1713,6 +1921,7 @@ final class SalvageSwarmViewController: UIViewController {
         case .bolt: haptics.boom(power: 0.85)
         case .hurt: haptics.hit()
         case .boom: haptics.boom(power: 1)
+        case .torpedo: haptics.boom(power: 1)
         case .tap: haptics.shot(2)
         }
     }
@@ -1740,12 +1949,24 @@ final class SalvageSwarmViewController: UIViewController {
         haptics.shot(2)
     }
 
+    @objc private func toggleView() {
+        cockpitOn.toggle()
+        UserDefaults.standard.set(cockpitOn ? "cockpit" : "command", forKey: "nr2.swarm.view")
+        viewButton.setTitle(viewTitle(), for: .normal)
+        pushSettings()
+        haptics.shot(2)
+    }
+
     @objc private func toggleCam() {
         shotEvery.toggle()
         UserDefaults.standard.set(shotEvery ? "every" : "kills", forKey: "nr2.swarm.shotcam")
         camButton.setTitle(camTitle(), for: .normal)
         pushSettings()
         haptics.shot(2)
+    }
+
+    @objc private func fireTorpedo() {
+        world.updatePad { $0.torpedo = true }
     }
 
     @objc private func play() {
@@ -1788,6 +2009,7 @@ final class SalvageSwarmViewController: UIViewController {
         world.updatePad { pad in
             pad.tilt = self.tiltOn
             pad.shotEvery = self.shotEvery
+            pad.cockpit = self.cockpitOn
         }
     }
 
@@ -1801,6 +2023,7 @@ final class SalvageSwarmViewController: UIViewController {
     }
 
     private func tiltTitle() -> String { tiltOn ? "TILT STEERING  ·  ON" : "TILT STEERING  ·  OFF" }
+    private func viewTitle() -> String { cockpitOn ? "VIEW  ·  COCKPIT" : "VIEW  ·  COMMAND CENTER" }
     private func camTitle() -> String { shotEvery ? "SHOT CAM  ·  EVERY SHOT" : "SHOT CAM  ·  KILL SHOTS" }
 
     private var hudScale: CGFloat {
@@ -1910,6 +2133,22 @@ private func swarmLook(forward: simd_float3, up: simd_float3) -> simd_quatf {
     x = simd_normalize(x)
     let y = simd_normalize(simd_cross(z, x))
     return simd_normalize(simd_quatf(simd_float3x3(columns: (x, y, z))))
+}
+
+/// Roll is zero. The camera's right axis stays horizontal, including when looking straight down.
+/// Looking toward -Z puts world +X on screen right, matching the old chase controls.
+private func levelLook(forward: simd_float3, fallbackRight: simd_float3) -> simd_quatf {
+    let f = swarmNorm(forward)
+    let z = -f
+    var right = simd_cross(simd_float3(0, 1, 0), z)
+    if simd_length(right) < 0.2 {
+        right = fallbackRight
+    } else {
+        right.y = 0
+    }
+    right = swarmNorm(right)
+    let up = simd_normalize(simd_cross(z, right))
+    return simd_normalize(simd_quatf(simd_float3x3(columns: (right, up, z))))
 }
 
 private func logMark(_ text: String) {

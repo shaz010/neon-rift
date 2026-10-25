@@ -184,7 +184,7 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.neonrift2\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Changelog: Salvage Swarm is the default one-minute launch. Fixed-horizon chase, manual aim and fire, dash, graze, charge blasts, a steady kill-shot camera, and wreckage you bolt onto the ship. Tilt steering starts off. The classic flight stays available."
+            echo "- Changelog: Command Center is the steady overhead view. Cockpit is the other view, and every cockpit shot cuts to an outside view of the shot and the blast, then snaps back. Command Center plays that view on a kill, a charged blast, and a photon torpedo. The deep bass hit is back. The movement drone is gone. Photon torpedo is a slow shot you fire yourself."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Remove the API key

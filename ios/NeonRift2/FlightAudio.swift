@@ -91,15 +91,14 @@ final class FlightAudio {
                     nstate = seed
                     seed = (seed >> ((seed >> 28) &+ 4)) ^ seed &* 277803737
                     let noise = Float(Int32(bitPattern: seed)) / Float(Int32.max)
-                    let hum = sin(phase * 2 * .pi) * (0.04 + thrust * 0.16)
-                        + sin(phase * 3 * .pi) * thrust * 0.05
-                    let shotTau: Float = shotKind > 2.5 ? 0.18 : (shotKind > 0.5 && shotKind < 1.5 ? 0.1 : 0.12)
-                    let zapTau: Float = shotKind > 0.5 && shotKind < 1.5 ? 0.06 : 0.034
+                    // No thrust hum. That drone was the noise under the ship while it moved.
+                    let shotTau: Float = shotKind > 2.5 ? 0.2 : 0.15
+                    let zapTau: Float = 0.07
                     let shotK: Float = exp(-dt / shotTau)
                     let zapK: Float = exp(-dt / zapTau)
-                    let boomK: Float = exp(-dt / 0.28)
-                    let bodyK: Float = exp(-dt / 0.17)
-                    let crackK: Float = exp(-dt / 0.09)
+                    let boomK: Float = exp(-dt / 0.46)
+                    let bodyK: Float = exp(-dt / 0.24)
+                    let crackK: Float = exp(-dt / 0.08)
                     shot *= shotK
                     zap *= zapK
                     crackle *= crackK
@@ -111,36 +110,18 @@ final class FlightAudio {
                     sting *= 0.996
                     launch *= 0.9992
                     chime *= 0.994
-                    let crack: Float
-                    if shotKind < 0.5 {
-                        let sub = sin(shotPhase * 2 * .pi * (44 * shotTone)) * shot * 0.32
-                        let chest = sin(shotPhase * 2 * .pi * (88 * shotTone)) * shot * shot * 0.18
-                        let mid = sin(shotPhase * 2 * .pi * (230 * shotTone)) * zap * 0.06
-                        let bite = sin(shotPhase * 2 * .pi * (1540 * shotTone)) * zap * 0.05
-                            + sin(shotPhase * 2 * .pi * (2320 * shotTone)) * zap * zap * 0.02
-                        crack = sub + chest + mid + bite + noise * zap * 0.035
-                    } else if shotKind < 1.5 {
-                        let sweep = 2400 * shotTone - shotPhase * 1400
-                        let spark = sin(shotPhase * 2 * .pi * max(Float(180), sweep)) * zap * 0.08
-                        let gate: Float = sin(shotPhase * 2 * .pi * 90) > 0.2 ? 1 : 0.12
-                        let ticks = noise * gate * crackle * 0.18
-                        let tick = sin(shotPhase * 2 * .pi * (160 * shotTone)) * shot * 0.1
-                        crack = spark + ticks + tick
-                    } else if shotKind < 2.5 {
-                        let fundamental = sin(shotPhase * 2 * .pi * (720 * shotTone)) * shot * 0.11
-                        let overtone = sin(shotPhase * 2 * .pi * (1440 * shotTone)) * zap * 0.04
-                        let sub = sin(shotPhase * 2 * .pi * (62 * shotTone)) * shot * 0.14
-                        crack = fundamental + overtone + sub
-                    } else {
-                        let laser = sin(shotPhase * 2 * .pi * (480 * shotTone)) * shot * 0.13
-                            + sin(shotPhase * 2 * .pi * (960 * shotTone)) * zap * 0.045
-                        crack = laser + noise * zap * 0.03
-                    }
-                    let thunder = sin(boomPhase * 2 * .pi * (36 * boomTone)) * boom * 0.34
-                        + sin(boomPhase * 2 * .pi * (72 * boomTone)) * boom * boom * 0.15
-                        + noise * boom * 0.09
-                    let punch = sin(bodyPhase * 2 * .pi * 50) * body * 0.28
-                        + noise * body * 0.05
+                    let drop = max(0, 1 - shotPhase * 2.4)
+                    let phaserFreq = (90 + drop * (380 + shotKind * 40)) * shotTone
+                    let phaser = sin(shotPhase * 2 * .pi * phaserFreq) * shot * 0.2
+                        + sin(shotPhase * 2 * .pi * phaserFreq * 0.5) * zap * 0.08
+                    let sub = sin(shotPhase * 2 * .pi * (32 * shotTone)) * shot * 0.62
+                    let chest = sin(shotPhase * 2 * .pi * (64 * shotTone)) * shot * shot * 0.3
+                    let crack = sub + chest + phaser
+                    let thunder = sin(boomPhase * 2 * .pi * (28 * boomTone)) * boom * 0.7
+                        + sin(boomPhase * 2 * .pi * (54 * boomTone)) * boom * boom * 0.28
+                        + noise * boom * 0.035
+                    let punch = sin(bodyPhase * 2 * .pi * 40) * body * 0.55
+                        + sin(bodyPhase * 2 * .pi * 80) * body * body * 0.16
                     let hit = sin(phase * 1.4 * .pi) * sting * 0.16
                     let rise = sin(phase * (1.2 + launch) * .pi) * launch * 0.08
                     let bell = sin(musicPhase * 880 * .pi) * chime * 0.12
@@ -149,12 +130,9 @@ final class FlightAudio {
                     let pulse = max(0, sin(musicPhase * 2 * .pi))
                     let bed = sin(musicPhase * 2 * .pi * (92 + music * 70)) * pulse * (0.006 + music * 0.018)
                     lockPhase += dt * (7 + lock * 8)
-                    var gate: Float = 0
-                    if sin(lockPhase * 2 * .pi) > 0.45 { gate = 1 }
-                    let seeker = gate * sin(lockPhase * 16 * .pi) * lock * 0.055
-                    // Weapon voices are recorded samples. The synth shot, blast, and seeker stay silent.
-                    let voiced = hum + crack + thunder + punch + seeker
-                    let sample = (hit + rise + bell + tow + bed) * 0.45 + voiced * 0
+                    // Deep bass and a descending phaser. The thrust hum stays out.
+                    let voiced = crack + thunder + punch
+                    let sample = (hit + rise + bell + tow + bed) * 0.16 + voiced
                     if channels <= 1 {
                         ptr[i] = sample
                     } else {
@@ -222,46 +200,63 @@ final class FlightAudio {
         do {
             try engine.start()
             started = true
-            if let engineLoop {
-                engineVoice.volume = 0.22
-                engineVoice.scheduleBuffer(engineLoop, at: nil, options: .loops)
-                engineVoice.play()
-            }
+            engineVoice.volume = 0
         } catch {
             NSLog("Neon Rift 2 audio engine: \(error.localizedDescription)")
         }
     }
 
     func setThrust(_ value: Float) {
-        let v = min(1, max(0, value))
-        box.pointee.thrust = v
+        _ = value
+        box.pointee.thrust = 0
         guard started else { return }
-        engineVoice.volume = 0.2 + v * 0.75
+        engineVoice.volume = 0
     }
     func setLaunch(_ value: Float) { box.pointee.launch = min(1, max(box.pointee.launch, value)) }
     func setMusic(_ value: Float) { box.pointee.music = min(1, max(0, value)) }
     func setBeam(_ value: Float) { box.pointee.beam = min(1, max(0, value)) }
     func setLock(_ value: Float) { box.pointee.lock = min(1, max(0, value)) }
-    /// 0 pulse cannon, 1 energy crack, 2 beam crack, 3 phaser crack plus blast.
+    /// 0 pulse, 1 dash, 2 beam, 3 charge blast, 4 photon torpedo.
+    /// The weight is the synth bass. Recorded samples only add a quiet layer.
     func shot(_ kind: Int) {
+        box.pointee.shotKind = Float(kind)
+        box.pointee.shotTone = kind >= 4 ? 0.72 : (kind >= 3 ? 0.82 : 1)
+        box.pointee.shot = 1
+        box.pointee.zap = kind == 1 ? 0.3 : 0.9
+        box.pointee.shotPhase = 0
+        box.pointee.body = kind >= 3 ? 1 : 0.78
+        box.pointee.bodyPhase = 0
+        if kind >= 3 {
+            box.pointee.boom = 1
+            box.pointee.boomTone = kind >= 4 ? 0.7 : 0.85
+            box.pointee.boomPhase = 0
+        }
+        let low = cannonLow ?? cannon
         switch kind {
         case 1:
-            play(crack, cursor: &shotCursor, voices: shotVoices, volume: 0.92)
-        case 2:
-            play(crack, cursor: &shotCursor, voices: shotVoices, volume: 0.7)
+            play(low, cursor: &shotCursor, voices: shotVoices, volume: 0.16)
         case 3:
-            play(crack, cursor: &shotCursor, voices: shotVoices, volume: 1)
-            play(boomBuffer, cursor: &boomCursor, voices: boomVoices, volume: 0.62)
+            play(low, cursor: &shotCursor, voices: shotVoices, volume: 0.26)
+            play(boomBuffer, cursor: &boomCursor, voices: boomVoices, volume: 0.22)
+        case 4:
+            play(low, cursor: &shotCursor, voices: shotVoices, volume: 0.2)
         default:
-            let body = (shotCursor % 2 == 0) ? (cannon ?? cannonLow) : (cannonLow ?? cannon)
-            play(body, cursor: &shotCursor, voices: shotVoices, volume: 1)
+            play(low, cursor: &shotCursor, voices: shotVoices, volume: 0.24)
         }
     }
     func explosion(power: Float = 1) {
-        play(boomBuffer, cursor: &boomCursor, voices: boomVoices, volume: min(1, 0.58 + power * 0.42))
+        box.pointee.boom = 1
+        box.pointee.boomTone = 0.7
+        box.pointee.boomPhase = 0
+        box.pointee.body = 1
+        box.pointee.bodyPhase = 0
+        play(boomBuffer, cursor: &boomCursor, voices: boomVoices, volume: min(0.4, 0.16 + power * 0.16))
     }
     func impact() {
-        play(cannon ?? cannonLow, cursor: &shotCursor, voices: shotVoices, volume: 0.7)
+        box.pointee.body = max(box.pointee.body, 0.65)
+        box.pointee.bodyPhase = 0
+        box.pointee.shot = max(box.pointee.shot, 0.35)
+        play(cannonLow ?? cannon, cursor: &shotCursor, voices: shotVoices, volume: 0.18)
     }
 
     private func play(_ buffer: AVAudioPCMBuffer?, cursor: inout Int, voices: [AVAudioPlayerNode], volume: Float) {
