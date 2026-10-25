@@ -15,6 +15,7 @@
 		F3D2A1000000000000000015 /* Meshes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000005 /* Meshes.swift */; };
 		F3D2A1000000000000000016 /* ShipCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000006 /* ShipCatalog.swift */; };
 		F3D2A1000000000000000017 /* ShipShowroomViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000007 /* ShipShowroomViewController.swift */; };
+		F3D2A1000000000000000018 /* SalvageSwarm.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000008 /* SalvageSwarm.swift */; };
 		F3D2A1000000000000000019 /* fighter-hotspots.json in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000009 /* fighter-hotspots.json */; };
 		F3D2A1000000000000000031 /* earth-day.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000021 /* earth-day.jpg */; };
 		F3D2A1000000000000000032 /* earth-clouds.png in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000022 /* earth-clouds.png */; };
@@ -45,6 +46,7 @@
 		F3D2A1000000000000000005 /* Meshes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Meshes.swift; sourceTree = "<group>"; };
 		F3D2A1000000000000000006 /* ShipCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShipCatalog.swift; sourceTree = "<group>"; };
 		F3D2A1000000000000000007 /* ShipShowroomViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShipShowroomViewController.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000008 /* SalvageSwarm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalvageSwarm.swift; sourceTree = "<group>"; };
 		F3D2A1000000000000000009 /* fighter-hotspots.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Ship/fighter-hotspots.json; sourceTree = "<group>"; };
 		F3D2A1000000000000000021 /* earth-day.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Sky/earth-day.jpg"; sourceTree = "<group>"; };
 		F3D2A1000000000000000022 /* earth-clouds.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Sky/earth-clouds.png"; sourceTree = "<group>"; };
@@ -104,6 +106,7 @@
 				F3D2A1000000000000000005 /* Meshes.swift */,
 				F3D2A1000000000000000006 /* ShipCatalog.swift */,
 				F3D2A1000000000000000007 /* ShipShowroomViewController.swift */,
+				F3D2A1000000000000000008 /* SalvageSwarm.swift */,
 				F3D2A1000000000000000009 /* fighter-hotspots.json */,
 				F3D2A1000000000000000021 /* earth-day.jpg */,
 				F3D2A1000000000000000022 /* earth-clouds.png */,
@@ -243,6 +246,7 @@
 				F3D2A1000000000000000015 /* Meshes.swift in Sources */,
 				F3D2A1000000000000000016 /* ShipCatalog.swift in Sources */,
 				F3D2A1000000000000000017 /* ShipShowroomViewController.swift in Sources */,
+				F3D2A1000000000000000018 /* SalvageSwarm.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -314,6 +314,12 @@ final class FlightAudio {
     func titleHit() { box.pointee.sting = 1 }
     func chime() { box.pointee.chime = 1 }
 
+    func stop() {
+        guard started else { return }
+        engine.stop()
+        started = false
+    }
+
     deinit {
         engine.stop()
         box.deinitialize(count: 1)

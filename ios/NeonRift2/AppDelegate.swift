@@ -71,18 +71,15 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.window = window
     }
 
-    /// The reel passes -showcase and must open straight into the flight.
-    /// A normal launch stops in the hangar. -showroom opens the inspection pad.
+    /// Salvage Swarm is the launch, including the reel. -showroom still opens
+    /// the inspection pad. The classic flight is a button inside Salvage Swarm.
     private func rootController() -> UIViewController {
         let args = ProcessInfo.processInfo.arguments
         let env = ProcessInfo.processInfo.environment
-        if args.contains("-showcase") || env["NR2_SHOWCASE"] == "1" {
-            return FlightViewController()
-        }
         if args.contains("-showroom") || env["NR2_SHOWROOM"] == "1" {
             return ShipShowroomViewController(mode: .inspect, announce: true)
         }
-        return ShipShowroomViewController(mode: .menu)
+        return SalvageSwarmViewController()
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {
