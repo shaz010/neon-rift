@@ -179,7 +179,7 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.neonrift2\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Changelog: convoy mission. A launch briefing, then three phases: defend the freighters, capture their leader, stop the Rift Warden. Each phase has a goal, a progress line, and a payoff. The win reads CONVOY SAVED. Guide light, close raiders, recorded cannon, crack, blast, and engine. Same fighter, hangar, paint, and planets. Full screen on iPhone and iPad."
+            echo "- Changelog: the wake is the gun, a loop stitches the leader, and the rift keeps your scar. A clean scar is a faster next line. A sloppy scar is a meaner warden. Same convoy mission, fighter, hangar, paint, and planets. Full screen on iPhone and iPad."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Remove the API key

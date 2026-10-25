@@ -4,15 +4,17 @@
 
 Neon Rift 2 must be unique. It has to feel completely different from every game out there. A generic space shooter is a failure even if the pictures are pretty. It also has to be absolutely fun and addictive, the kind of game a player loses sleep wanting to play. Every decision, in this build and the next, is judged against both halves of that rule.
 
-This upload does not invent new verbs. It finishes the convoy mission below so the story and the fight are on TestFlight. The hooks after that are the next iteration. Unity and Unreal rebuild the mission in the sections under this one. They use the hooks when they build the pass after this upload.
+The convoy mission below is the sortie. These three hooks are how it plays. Unity and Unreal rebuild both.
 
 ### Signature hooks
 
 These are the mechanics nobody else has. They replace "fly around and shoot waves."
 
-1. **The wake is the gun.** The freighters leave a ribbon of rift-light. Cannons only fire inside that ribbon. The fight is the ribbon, not an arena. Drift out of it and the guns go dark and the rift drags the ship back. Where you fly is the weapon.
-2. **A loop is a capture.** The swipe-loop is how you take the leader. Close a loop around them and they are stitched to your wake. Their lamp joins the convoy. You grow the lane by what you catch. The trick is the verb.
-3. **The rift keeps your scar.** One crossing is one short session. A clean phase brands a bright scar on the rift. The next run can ride that scar for a faster line. A sloppy scar makes the warden meaner. Mastery is in the sky before the score card.
+1. **The wake is the gun.** The freighters leave a ribbon of rift-light under the fight. Cannons only fire inside that ribbon. Drift out and the guns go dark, the screen says ENTER THE WAKE, and the lane pulls the ship back. Where you fly is the weapon.
+2. **A loop is a capture.** Swipe up to loop. Finish that loop with the leader inside it and they are stitched into the wake. The screen says STITCHED. The trick is the verb.
+3. **The rift keeps your scar.** The rift stores the last crossing on the device. A clean clear (convoy held, leader stitched, warden down) makes the next line faster. A death or a failed clear makes the next warden meaner and turns the wake angry. The opening says which scar you are carrying. The score card names the scar you just earned.
+
+Shot sounds are Kenney CC0 until the owner delivers Logic Pro WAVs for pulse, arc, beam, phaser, hit, and explosion. Those files replace the current samples. They do not change the hooks.
 
 ### Addiction loop
 
@@ -31,9 +33,9 @@ You are the escort fighter on a freighter convoy crossing the Neon Rift. Raiders
 About ten seconds, in the hangar launch. Big centered text, one card at a time:
 
 1. YOU FLY ESCORT
-2. RAIDERS HIT THE CONVOY
-3. DEFEND THE FREIGHTERS
-4. CAPTURE THEIR LEADER
+2. GUNS LIVE IN THE WAKE
+3. LOOP THEIR LEADER
+4. THE RIFT WILL REMEMBER (or the scar you already carry)
 5. STOP THE RIFT WARDEN
 
 The title NEON RIFT 2 sits in the lower letterbox, then fades. Skip is a button.
@@ -42,11 +44,11 @@ The title NEON RIFT 2 sits in the lower letterbox, then fades. Skip is a button.
 
 No gap between them. The next job starts the moment the last one pays off. A short guide light marks only the current target. Enemies spawn in front of the camera and come to you. A soft arena turns the ship back if it drifts. The freighter sits beside the fight, a short hop away, never a haul across the map.
 
-**Phase 1 — Defend the convoy.** Destroy 3 raiders. On screen: `DEFEND THE CONVOY` and `RAIDERS n/3`. Reward: the callout CONVOY HOLDS, a chime, and phase 2.
+**Phase 1 — Defend the convoy.** Destroy 3 raiders from inside the wake. On screen: `DEFEND THE CONVOY` and `RAIDERS n/3`. Outside the ribbon the guns are dark and the screen says `ENTER THE WAKE`. Reward: CONVOY HOLDS, then phase 2.
 
-**Phase 2 — Capture the leader.** Disable the leader. Do not destroy them. Beam the wreck and tow it to the freighter. On screen, in order: `CAPTURE THE LEADER`, `BEAM THE LEADER`, `DELIVER THE LEADER`, each marked phase 2 of 3. Reward: LEADER ABOARD, bounty, and phase 3.
+**Phase 2 — Loop the leader.** Swipe a loop with the leader inside it. On screen: `LOOP THE LEADER`, phase 2 of 3. Reward: STITCHED, bounty, and phase 3. The leader joins the wake.
 
-**Phase 3 — Stop the Rift Warden.** The warden appears ahead. On screen: `STOP THE RIFT WARDEN`, phase 3 of 3. Reward: WARDEN DOWN, a heavy blast, then the victory scene.
+**Phase 3 — Stop the Rift Warden.** The warden appears ahead. A sloppy scar from last run makes this one meaner. Reward: WARDEN DOWN, then `CONVOY SAVED` and the scar this run earned. A clean scar is a faster line next time.
 
 ## Victory
 
@@ -58,7 +60,7 @@ One readable dogfight at a time. Hits spark. Hurt ships smoke and break apart. A
 
 ## How the controls should feel
 
-Left thumb: thrust, strafe, and a little yaw. Right thumb: aim, and holding it fires. The two sticks add together. Flight assist levels the wings and the nose when you let go, so the ship never feels like it is falling downhill. Swipe up to loop, swipe sideways to barrel-roll, double-tap to boost. Chase camera sits level behind the fighter. Advanced buttons stay hidden until the three raiders are down. Gestures work the whole time.
+Left thumb: thrust, strafe, and a little yaw. Right thumb: aim, and holding it fires, but only inside the wake. The two sticks add together. Flight assist levels the wings and the nose when you let go, so the ship never feels like it is falling downhill. Swipe up to loop (that loop captures the leader), swipe sideways to barrel-roll, double-tap to boost. A clean scar adds thrust on the next run. Chase camera sits level behind the fighter. Advanced buttons stay hidden until the three raiders are down. Gestures work the whole time.
 
 ## What every version keeps
 

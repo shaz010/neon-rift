@@ -265,6 +265,13 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     private var fightCenter = simd_float3.zero
     private var missionPhase = 1
     private var leaderSpawned = false
+    private var leaderStitched = false
+    private var loopClosest: Float = 999
+    private var wakeOrigin = simd_float3.zero
+    private var wakeForward = simd_float3(0, 0, -1)
+    private let wakeRibbon = SCNNode()
+    private let wakeMaterial = SCNMaterial()
+    private let scarNode = SCNNode()
     private var lessonSpawned = 0
     private var lessonKills = 0
     private var bossSpawned = false
@@ -438,10 +445,16 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     }
 
     private func briefingLine() -> String {
-        if phaseTime < 2.4 { return "YOU FLY ESCORT" }
-        if phaseTime < 4.6 { return "RAIDERS HIT THE CONVOY" }
-        if phaseTime < 6.8 { return "DEFEND THE FREIGHTERS" }
-        if phaseTime < 9.0 { return "CAPTURE THEIR LEADER" }
+        if phaseTime < 2.2 { return "YOU FLY ESCORT" }
+        if phaseTime < 5.2 { return "GUNS LIVE IN THE WAKE" }
+        if phaseTime < 7.6 { return "LOOP THEIR LEADER" }
+        if phaseTime < 9.6 {
+            switch RiftScar.current {
+            case .clean: return "CLEAN SCAR\nFASTER LINE"
+            case .sloppy: return "SLOPPY SCAR\nMEANER WARDEN"
+            case .none: return "THE RIFT WILL REMEMBER"
+            }
+        }
         return "STOP THE RIFT WARDEN"
     }
 
@@ -494,6 +507,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         guard phase == .combat, !died, trick == nil else { return }
         trick = kind
         trickAge = 0
+        loopClosest = 999
         trickDir = direction >= 0 ? 1 : -1
         trickPitch0 = pitch
         trickRoll0 = roll
@@ -611,6 +625,11 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 stick = CGPoint(x: 0, y: 0.35)
                 fire = false
             }
+            if missionPhase == 2, !leaderStitched, trick == nil,
+               let leader = enemies.first(where: { $0.leader && $0.alive }),
+               simd_distance(leader.position, position) < 24 {
+                beginTrick(.loop, direction: 1)
+            }
         }
         if phase != .combat || died {
             fire = false
@@ -654,9 +673,13 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         }
         if let trick {
             trickAge += dt
-            let duration: Float = trick == .loop ? 1.25 : 0.72
+            let finished = trick
+            if finished == .loop, let leader = enemies.first(where: { $0.leader && $0.alive && !leaderStitched }) {
+                loopClosest = min(loopClosest, simd_distance(leader.position, position))
+            }
+            let duration: Float = finished == .loop ? 1.25 : 0.72
             let u = min(1, trickAge / duration)
-            if trick == .loop {
+            if finished == .loop {
                 pitch = trickPitch0 + u * 2 * .pi
             } else {
                 roll = trickRoll0 + trickDir * u * 2 * .pi
@@ -665,6 +688,14 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 pitch = trickPitch0
                 roll = trickRoll0
                 self.trick = nil
+                if finished == .loop {
+                    if loopClosest < 30 {
+                        stitchLeader()
+                    } else if missionPhase == 2 {
+                        say("LOOP CLOSER")
+                    }
+                    loopClosest = 999
+                }
             }
         } else {
             var targetPitch = aimY * 0.5
@@ -687,7 +718,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let fwd = forward()
         let thrustScale: Float = y >= 0 ? y : y * 0.55
         let thrustMul: Float = boosting ? 1.9 : 1
-        var force = fwd * (thrustScale * maxThrust * thrustMul)
+        let lineBoost: Float = (phase == .combat && RiftScar.current == .clean) ? 1.22 : 1
+        var force = fwd * (thrustScale * maxThrust * thrustMul * lineBoost)
         if trick != nil { force += fwd * maxThrust * 0.7 }
         if !auto {
             let strafe = safeNorm(simd_cross(fwd, simd_float3(0, 1, 0)))
@@ -706,6 +738,14 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 force.y += (8 - position.y) * mass * 3.2
                 if position.y < 3 { force.y += (3 - position.y) * mass * 6 }
                 if position.y > 16 { force.y -= (position.y - 16) * mass * 5 }
+                let rel = position - wakeOrigin
+                let along = simd_dot(rel, wakeForward)
+                let off = rel - wakeForward * along
+                let flat = simd_float3(off.x, 0, off.z)
+                let lane = simd_length(flat)
+                if lane > 12 {
+                    force -= safeNorm(flat) * mass * (lane - 12) * 5
+                }
             } else {
                 if position.y < 2 { force.y += (2 - position.y) * mass * 4 }
                 if position.y > 28 { force.y -= (position.y - 28) * mass * 3 }
@@ -771,7 +811,10 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         fireClock -= dt
         let active: Gun = showcase ? .pulse : gun
         let wantFire = fire && weapon > 4
-        if wantFire && fireClock <= 0 {
+        if wantFire && fireClock <= 0 && !insideWake() {
+            fireClock = 0.4
+            if calloutLeft < 0.2 { say("ENTER THE WAKE") }
+        } else if wantFire && fireClock <= 0 {
             let cost: Float
             let gap: Float
             switch active {
@@ -1401,6 +1444,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         if entry > 22 { velocity *= 22 / entry }
         missionPhase = 1
         leaderSpawned = false
+        leaderStitched = false
+        loopClosest = 999
         lessonSpawned = 0
         lessonKills = 0
         bossSpawned = false
@@ -1426,6 +1471,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         }
         advanceMission()
         updateGuideColumn()
+        updateWake()
     }
 
     /// Backup only. A clean showcase fight finishes each phase before these fire.
@@ -1437,21 +1483,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         if missionPhase == 1 && phaseTime > 16 && lessonKills < lessonGoal {
             for enemy in raiders { destroy(enemy) }
         }
-        if missionPhase == 2 && phaseTime > 22, let leader = enemies.first(where: { $0.leader && $0.alive && !$0.disabled }) {
-            bite(leader, 800)
-        }
-        if missionPhase == 2 && phaseTime > 26 && deliveries < captureGoal {
-            if let leader = enemies.first(where: { $0.leader && $0.alive }) {
-                if !leader.disabled { disable(leader) }
-                towed = leader
-                let to = dropoff - position
-                let dist = simd_length(to)
-                if dist > 18 {
-                    position += safeNorm(to) * (dist - 16)
-                    placePlayer()
-                }
-            }
-            tryDeliver()
+        if missionPhase == 2 && phaseTime > 24 && !leaderStitched {
+            stitchLeader()
         }
         if missionPhase == 3 && phaseTime > 32, let boss = enemies.first(where: { $0.boss && $0.alive }) {
             destroy(boss)
@@ -1482,6 +1515,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let up = simd_float3(0, 1, 0)
         let beside = (right * Float(36)) + (fwd * Float(8)) + (up * Float(4))
         dropoff = position + beside
+        wakeForward = fwd
+        wakeOrigin = position + right * Float(8)
         convoyNode.simdPosition = dropoff
         convoyNode.simdOrientation = lookOrientation(forward: fwd, up: up, roll: 0)
         let mateA = (right * Float(54)) + (fwd * Float(-8)) + (up * Float(3))
@@ -1502,6 +1537,69 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         haptics.pickup()
         flash = max(flash, 0.4)
         spawnLeader()
+    }
+
+    /// A finished loop close to the leader sews them into the wake. That is the capture.
+    private func stitchLeader() {
+        guard !leaderStitched, let leader = enemies.first(where: { $0.leader && $0.alive }) else { return }
+        leaderStitched = true
+        leader.disabled = true
+        leader.hull = max(leader.hull, 1)
+        let park = dropoff - wakeForward * 16 + simd_float3(0, 1.2, 0)
+        leader.position = park
+        leader.velocity = .zero
+        leader.node.simdPosition = park
+        deliveries += 1
+        addBounty(900, text: "LEADER STITCHED", at: park)
+        say("STITCHED")
+        popups.append(Popup(position: park + simd_float3(0, 5, 0), text: "STITCHED", age: 0))
+        flash = max(flash, 0.7)
+        shake = min(1.4, shake + 0.6)
+        haptics.launch()
+        audio.titleHit()
+    }
+
+    private func insideWake() -> Bool {
+        let rel = position - wakeOrigin
+        let along = simd_dot(rel, wakeForward)
+        let off = rel - wakeForward * along
+        let flat = simd_length(simd_float3(off.x, 0, off.z))
+        return flat < 20 && along > -30 && along < 160
+    }
+
+    private func updateWake() {
+        guard phase == .combat else {
+            wakeRibbon.isHidden = true
+            return
+        }
+        wakeRibbon.isHidden = false
+        let mid = wakeOrigin + wakeForward * 40
+        wakeRibbon.simdPosition = simd_float3(mid.x, 3.2, mid.z)
+        wakeRibbon.simdOrientation = lookOrientation(forward: wakeForward, up: simd_float3(0, 1, 0), roll: 0)
+        wakeRibbon.opacity = insideWake() ? 1 : 0.55
+    }
+
+    private func paintScar() {
+        let color: UIColor
+        let intensity: CGFloat
+        switch RiftScar.current {
+        case .clean:
+            color = UIColor(red: 0.45, green: 0.95, blue: 1, alpha: 1)
+            intensity = 1.7
+        case .sloppy:
+            color = UIColor(red: 1, green: 0.32, blue: 0.14, alpha: 1)
+            intensity = 1.8
+        case .none:
+            color = UIColor(white: 0.8, alpha: 1)
+            intensity = 0.4
+        }
+        scarNode.geometry?.firstMaterial?.diffuse.contents = color
+        scarNode.geometry?.firstMaterial?.emission.contents = color
+        scarNode.geometry?.firstMaterial?.emission.intensity = intensity
+        if RiftScar.current == .sloppy {
+            wakeMaterial.diffuse.contents = UIColor(red: 1, green: 0.45, blue: 0.2, alpha: 1)
+            wakeMaterial.emission.contents = UIColor(red: 1, green: 0.4, blue: 0.16, alpha: 1)
+        }
     }
 
     private func spawnLeader() {
@@ -1558,6 +1656,12 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         bossSpawned = true
         spawnRaider(distance: showcase ? 46 : 52, lateral: 0, boss: true)
         if let boss = enemies.last(where: { $0.boss }) {
+            if RiftScar.current == .sloppy {
+                let mul: Float = showcase ? 1.12 : 1.45
+                boss.hull *= mul
+                boss.hullMax *= mul
+                boss.cooldown *= showcase ? 0.92 : 0.72
+            }
             popups.append(Popup(position: boss.position + simd_float3(0, 8, 0), text: "RIFT WARDEN", age: 0))
         }
         if calloutLeft < 0.35 { say("RIFT WARDEN") }
@@ -2009,20 +2113,25 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
     private func objectiveLine() -> String {
         if phase == .cinema { return briefingLine() }
-        if phase == .warden { return "CONVOY SAVED\nTHE RIFT HOLDS" }
+        if phase == .warden || bossDead {
+            return thisRunClean() ? "CONVOY SAVED\nCLEAN SCAR" : "CONVOY SAVED\nSLOPPY SCAR"
+        }
         if phase != .combat { return "LEFT DRIVES  ·  RIGHT AIMS" }
-        if bossDead { return "CONVOY SAVED\nTHE RIFT HOLDS" }
         if missionPhase <= 1 {
+            if !insideWake() { return "ENTER THE WAKE\nGUNS ARE DARK" }
             return "DEFEND THE CONVOY\nRAIDERS \(lessonKills)/\(lessonGoal)"
         }
         if missionPhase == 2 {
-            if towed != nil { return "DELIVER THE LEADER\nPHASE 2 OF 3" }
-            if enemies.contains(where: { $0.leader && $0.alive && $0.disabled }) {
-                return "BEAM THE LEADER\nPHASE 2 OF 3"
-            }
-            return "CAPTURE THE LEADER\nPHASE 2 OF 3"
+            return "LOOP THE LEADER\nPHASE 2 OF 3"
+        }
+        if RiftScar.current == .sloppy {
+            return "MEANER WARDEN\nPHASE 3 OF 3"
         }
         return "STOP THE RIFT WARDEN\nPHASE 3 OF 3"
+    }
+
+    private func thisRunClean() -> Bool {
+        !died && leaderStitched && lessonKills >= lessonGoal && (bossDead || phase == .warden)
     }
 
     private func guidePoint() -> (simd_float3, String) {
@@ -2202,9 +2311,10 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             let seconds = Int(missionTime)
             let time = String(format: "%d:%02d", seconds / 60, seconds % 60)
             if died {
-                hud.resultsBody = "SHIP LOST\n\(time) IN THE LANE\nBOUNTY \(bounty)"
+                hud.resultsBody = "SHIP LOST\nSLOPPY SCAR\n\(time) IN THE LANE\nBOUNTY \(bounty)"
             } else {
-                hud.resultsBody = "CONVOY SAVED\nBOUNTY \(bounty)\n\(kills) RAIDERS DOWN\n\(time) IN THE LANE\nRANK \(rank)"
+                let scar = RiftScar.current == .clean ? "CLEAN SCAR" : "SLOPPY SCAR"
+                hud.resultsBody = "CONVOY SAVED\n\(scar)\nBOUNTY \(bounty)\n\(kills) RAIDERS DOWN\n\(time) IN THE LANE\nRANK \(rank)"
             }
             hud.credits = creditsText()
         }
@@ -2247,6 +2357,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             player.isHidden = false
             guideColumn.isHidden = true
             guideLight.isHidden = true
+            wakeRibbon.isHidden = true
             spawnWarden()
         case .results:
             cockpitOn = false
@@ -2254,8 +2365,12 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             player.isHidden = false
             guideColumn.isHidden = true
             guideLight.isHidden = true
+            wakeRibbon.isHidden = true
             audio.setThrust(0.05)
             audio.setLock(0)
+            let clean = !died && leaderStitched && lessonKills >= lessonGoal && bossDead
+            RiftScar.commit(clean: clean)
+            paintScar()
             if !loggedSortie {
                 loggedSortie = true
                 let fresh = PilotLog.commit(kills: kills, deliveries: deliveries, bounty: bounty, streak: bestStreak)
@@ -2373,6 +2488,18 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         rift = Meshes.rift(art: art, radius: 120)
         rift.simdPosition = simd_float3(0, 18, -900)
         scene.rootNode.addChildNode(rift)
+        let scar = SCNTorus(ringRadius: 86, pipeRadius: 1.4)
+        scar.ringSegmentCount = 48
+        scar.pipeSegmentCount = 12
+        let scarMat = SCNMaterial()
+        scarMat.lightingModel = .constant
+        scarMat.blendMode = .add
+        scarMat.writesToDepthBuffer = false
+        scar.materials = [scarMat]
+        scarNode.geometry = scar
+        scarNode.eulerAngles.x = .pi / 2
+        rift.addChildNode(scarNode)
+        paintScar()
 
         scene.rootNode.addChildNode(Meshes.planet(art: art))
         scene.rootNode.addChildNode(Meshes.world("moon", radius: 70, at: simd_float3(180, 40, -520), air: UIColor(white: 0.75, alpha: 1)))
@@ -2400,6 +2527,35 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         guideLight.light?.attenuationEndDistance = 36
         guideLight.isHidden = true
         scene.rootNode.addChildNode(guideLight)
+        wakeMaterial.lightingModel = .constant
+        wakeMaterial.diffuse.contents = UIColor(red: 0.4, green: 0.9, blue: 1, alpha: 1)
+        wakeMaterial.emission.contents = UIColor(red: 0.4, green: 0.9, blue: 1, alpha: 1)
+        wakeMaterial.emission.intensity = 0.9
+        wakeMaterial.transparency = 0.42
+        wakeMaterial.blendMode = .add
+        wakeMaterial.writesToDepthBuffer = false
+        wakeMaterial.isDoubleSided = true
+        let deck = SCNBox(width: 22, height: 0.14, length: 120, chamferRadius: 0)
+        deck.materials = [wakeMaterial]
+        let deckNode = SCNNode(geometry: deck)
+        wakeRibbon.addChildNode(deckNode)
+        for side: Float in [-1, 1] {
+            let rail = SCNBox(width: 0.22, height: 1.1, length: 120, chamferRadius: 0.05)
+            rail.materials = [wakeMaterial]
+            let node = SCNNode(geometry: rail)
+            node.simdPosition = simd_float3(side * 11, 0.55, 0)
+            wakeRibbon.addChildNode(node)
+        }
+        let laneLamp = SCNNode()
+        laneLamp.light = SCNLight()
+        laneLamp.light?.type = .omni
+        laneLamp.light?.color = UIColor(red: 0.45, green: 0.9, blue: 1, alpha: 1)
+        laneLamp.light?.intensity = 160
+        laneLamp.light?.attenuationEndDistance = 46
+        wakeRibbon.addChildNode(laneLamp)
+        wakeRibbon.isHidden = true
+        scene.rootNode.addChildNode(wakeRibbon)
+        paintScar()
         convoyNode = Meshes.freighter(art: art)
         convoyNode.simdPosition = dropoff
         scene.rootNode.addChildNode(convoyNode)

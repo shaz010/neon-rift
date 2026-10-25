@@ -5,6 +5,8 @@ import UIKit
 /// Recorded cannon, crack, blast, and engine samples (Kenney Sci-fi Sounds, CC0)
 /// through a compressor. A quiet synth bed stays underneath. Silent-switch safe
 /// because the session is `.playback` before the engine starts.
+/// Logic Pro WAVs for pulse, arc, beam, phaser, hit, and explosion can replace
+/// these buffers at the load site when the owner delivers them.
 final class FlightAudio {
     private let engine = AVAudioEngine()
     private let box = UnsafeMutablePointer<AudioBox>.allocate(capacity: 1)
