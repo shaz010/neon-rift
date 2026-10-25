@@ -1,14 +1,15 @@
-import * as THREE from './vendor/three.module.min.js?v=20261025c';
+import * as THREE from './vendor/three.module.min.js?v=20261026a';
 import {
   SAVE_KEY,
   LIVERIES,
+  WEAPONS,
   defaultSave,
   createMatch,
   startRun,
   mergeSave,
   step,
   forward,
-} from './sim.js?v=20261025c';
+} from './sim.js?v=20261026a';
 import {
   commandBasis,
   commandFocus,
@@ -16,8 +17,8 @@ import {
   cockpitEye,
   shotPose,
   basisLooking,
-} from './cameraRig.js?v=20261025g';
-import { createAudio, vibrate } from './audio.js?v=20261025c';
+} from './cameraRig.js?v=20261026a';
+import { createAudio, vibrate } from './audio.js?v=20261026a';
 
 const $ = (id) => document.getElementById(id);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -50,6 +51,10 @@ const ui = {
   flash: $('flash'),
   coach: $('coach'),
   torpedo: $('torpedo'),
+  weaponName: $('weaponName'),
+  charge: $('charge'),
+  streak: $('streak'),
+  grain: $('grain'),
   stickL: $('stickL'),
   stickR: $('stickR'),
   popups: $('popups'),
@@ -96,18 +101,21 @@ if (!renderer.getContext()) {
   $('fatal').style.display = 'flex';
   throw new Error('webgl');
 }
-renderer.setClearColor(0x8ec8f0, 1);
+renderer.setClearColor(0x05030a, 1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.NoToneMapping;
 const camera = new THREE.PerspectiveCamera(42, 1, 0.08, 700);
 const scene = new THREE.Scene();
-scene.add(new THREE.AmbientLight(0xc5d4e4, 0.55));
-const sun = new THREE.DirectionalLight(0xfff3e2, 1.7);
+scene.add(new THREE.AmbientLight(0x140818, 0.28));
+const sun = new THREE.DirectionalLight(0xfff4dd, 1.15);
 sun.position.set(18, 36, 12);
 scene.add(sun);
-const fill = new THREE.DirectionalLight(0x8eb4d8, 0.35);
-fill.position.set(-12, 8, -6);
-scene.add(fill);
+const rimMagenta = new THREE.DirectionalLight(0xff2bd6, 1.55);
+rimMagenta.position.set(-22, 10, 16);
+scene.add(rimMagenta);
+const rimCyan = new THREE.DirectionalLight(0x22f0ff, 0.85);
+rimCyan.position.set(16, 8, -22);
+scene.add(rimCyan);
 
 const vx = new THREE.Vector3();
 const vy = new THREE.Vector3();
@@ -129,10 +137,10 @@ function applyBasis(obj, basis) {
 
 const hullMat = new THREE.MeshStandardMaterial({
   color: PAINT[save.livery],
-  metalness: 0.62,
-  roughness: 0.34,
-  emissive: 0x102028,
-  emissiveIntensity: 0.28,
+  metalness: 0.72,
+  roughness: 0.28,
+  emissive: 0x2a1040,
+  emissiveIntensity: 0.55,
 });
 const darkMat = new THREE.MeshStandardMaterial({
   color: 0x2a3340,
@@ -183,17 +191,30 @@ const player = new THREE.Group();
 player.add(shipMesh());
 const deckRing = new THREE.Mesh(
   new THREE.RingGeometry(1.15, 1.45, 28),
-  new THREE.MeshBasicMaterial({ color: 0x7af0ff, side: THREE.DoubleSide }),
+  new THREE.MeshBasicMaterial({ color: 0x7af6ff, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }),
 );
+const shell = new THREE.Mesh(
+  new THREE.SphereGeometry(1.9, 18, 12),
+  new THREE.MeshBasicMaterial({
+    color: 0x7af6ff,
+    transparent: true,
+    opacity: 0.12,
+    side: THREE.BackSide,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  }),
+);
+player.add(shell);
 deckRing.rotation.x = -Math.PI / 2;
 deckRing.position.y = 0.06;
 player.add(deckRing);
 scene.add(player);
+const shafts = [];
 
 function buildWorld() {
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(180, 160),
-    new THREE.MeshStandardMaterial({ color: 0x101a28, metalness: 0.22, roughness: 0.86 }),
+    new THREE.MeshStandardMaterial({ color: 0x07060e, metalness: 0.4, roughness: 0.78, emissive: 0x05020a, emissiveIntensity: 0.4 }),
   );
   floor.rotation.x = -Math.PI / 2;
   floor.position.set(0, -0.05, -20);
@@ -203,7 +224,7 @@ function buildWorld() {
   for (let z = -90; z <= 30; z += 4) lines.push(-80, 0.02, z, 80, 0.02, z);
   scene.add(new THREE.LineSegments(
     new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(lines, 3)),
-    new THREE.LineBasicMaterial({ color: 0x3f8fb8, transparent: true, opacity: 0.7 }),
+    new THREE.LineBasicMaterial({ color: 0x1a6e88, transparent: true, opacity: 0.45 }),
   ));
   const stars = new Float32Array(500 * 3);
   for (let i = 0; i < 500; i++) {
@@ -220,6 +241,68 @@ function buildWorld() {
   );
   sunDisc.position.set(36, 48, -28);
   scene.add(sunDisc);
+  const nebula = document.createElement('canvas');
+  nebula.width = 512;
+  nebula.height = 256;
+  const paint = nebula.getContext('2d');
+  paint.fillStyle = '#05030a';
+  paint.fillRect(0, 0, 512, 256);
+  for (const [color, x, y, radius] of [
+    ['#3a0848', 90, 50, 150],
+    ['#ff2bd6', 310, 70, 80],
+    ['#102848', 180, 160, 170],
+    ['#6a3cff', 430, 140, 110],
+    ['#06323a', 40, 190, 120],
+  ]) {
+    const grad = paint.createRadialGradient(x, y, 8, x, y, radius);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    paint.fillStyle = grad;
+    paint.beginPath();
+    paint.arc(x, y, radius, 0, Math.PI * 2);
+    paint.fill();
+  }
+  const skyMap = new THREE.CanvasTexture(nebula);
+  skyMap.colorSpace = THREE.SRGBColorSpace;
+  scene.add(new THREE.Mesh(
+    new THREE.SphereGeometry(260, 20, 14),
+    new THREE.MeshBasicMaterial({ map: skyMap, side: THREE.BackSide, depthWrite: false }),
+  ));
+  const haze = new THREE.Mesh(
+    new THREE.CircleGeometry(96, 24),
+    new THREE.MeshBasicMaterial({
+      color: 0x2a1460,
+      transparent: true,
+      opacity: 0.16,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  haze.rotation.x = -Math.PI / 2;
+  haze.position.y = 7;
+  scene.add(haze);
+  for (const spec of [
+    { x: -18, z: -12, color: 0xff2bd6, rot: 0.35 },
+    { x: 26, z: -40, color: 0x22e7ff, rot: -0.25 },
+    { x: 4, z: 10, color: 0x7a4bff, rot: 0.05 },
+  ]) {
+    const shaft = new THREE.Mesh(
+      new THREE.PlaneGeometry(16, 78),
+      new THREE.MeshBasicMaterial({
+        color: spec.color,
+        transparent: true,
+        opacity: 0.055,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      }),
+    );
+    shaft.position.set(spec.x, 30, spec.z);
+    shaft.rotation.set(0.2, spec.rot, 0);
+    shaft.userData.shaft = true;
+    scene.add(shaft);
+    shafts.push(shaft);
+  }
   const freighter = new THREE.Group();
   const hull = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.1, 11), new THREE.MeshStandardMaterial({
     color: 0xc5d0da, metalness: 0.55, roughness: 0.4, emissive: 0x123040, emissiveIntensity: 0.25,
@@ -239,6 +322,67 @@ function buildWorld() {
   scene.add(pad);
 }
 buildWorld();
+
+const sparkMax = 96;
+const sparkPos = new Float32Array(sparkMax * 3);
+const sparkCol = new Float32Array(sparkMax * 3);
+const sparkGeo = new THREE.BufferGeometry();
+sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+sparkGeo.setAttribute('color', new THREE.BufferAttribute(sparkCol, 3));
+const sparkPoints = new THREE.Points(sparkGeo, new THREE.PointsMaterial({
+  size: 0.42,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.95,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+}));
+scene.add(sparkPoints);
+
+const arcMax = 8;
+const arcPos = new Float32Array(arcMax * 2 * 3);
+const arcGeo = new THREE.BufferGeometry();
+arcGeo.setAttribute('position', new THREE.BufferAttribute(arcPos, 3));
+const arcLines = new THREE.LineSegments(arcGeo, new THREE.LineBasicMaterial({
+  color: 0xc46bff,
+  transparent: true,
+  opacity: 0.95,
+  blending: THREE.AdditiveBlending,
+}));
+scene.add(arcLines);
+
+const speedLines = new THREE.Group();
+for (let i = 0; i < 8; i++) {
+  const line = new THREE.Mesh(
+    new THREE.BoxGeometry(0.05, 0.05, 2.2),
+    new THREE.MeshBasicMaterial({
+      color: 0x9ff6ff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }),
+  );
+  speedLines.add(line);
+}
+scene.add(speedLines);
+
+const grainCtx = ui.grain.getContext('2d');
+ui.grain.width = 128;
+ui.grain.height = 128;
+const grainPixels = grainCtx.createImageData(128, 128);
+for (let i = 0; i < grainPixels.data.length; i += 4) {
+  const n = 90 + Math.random() * 80;
+  grainPixels.data[i] = n;
+  grainPixels.data[i + 1] = n;
+  grainPixels.data[i + 2] = n;
+  grainPixels.data[i + 3] = 50;
+}
+grainCtx.putImageData(grainPixels, 0, 0);
+
+let quality = reduceMotion ? 'low' : 'high';
+let slowFrames = 0;
+document.body.dataset.quality = quality;
 
 const foeMat = {
   bandit: new THREE.MeshStandardMaterial({ color: 0x3a2412, emissive: 0xffb03a, emissiveIntensity: 0.7, metalness: 0.4, roughness: 0.4 }),
@@ -302,8 +446,10 @@ function syncGroup(list, kind, factory) {
     if (kind === 'foe') syncFoe(mesh, item);
     if (kind === 'blast') {
       const k = item.age / item.life;
-      mesh.scale.setScalar(item.radius * (0.25 + k));
-      mesh.material.opacity = (1 - k) * 0.6;
+      mesh.scale.setScalar(item.radius * (0.2 + k));
+      mesh.traverse((child) => {
+        if (child.material) child.material.opacity = (1 - k) * (child.userData.glow ? 0.4 : 0.75);
+      });
     }
   }
   for (const [id, mesh] of entities) {
@@ -330,13 +476,17 @@ const pointers = new Map();
 let torpedoEdge = false;
 let boostEdge = false;
 let skipEdge = false;
+let weaponEdge = 0;
+let dodgeEdge = null;
 let lastLeftTap = 0;
+let lastRightTap = 0;
 
 function resize() {
   const vv = window.visualViewport;
   const w = vv ? vv.width : window.innerWidth;
   const h = vv ? vv.height : window.innerHeight;
-  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  const cap = quality === 'low' ? 1 : Math.min(1.75, window.devicePixelRatio || 1);
+  renderer.setPixelRatio(cap);
   renderer.setSize(w, h, false);
   camera.aspect = Math.max(0.3, w / Math.max(1, h));
   camera.updateProjectionMatrix();
@@ -418,14 +568,22 @@ ui.touch.addEventListener('pointerdown', (event) => {
   if (state.phase !== 'run') return;
   const side = (event.clientX - rect.left) < rect.width * 0.5 ? 'L' : 'R';
   const now = performance.now();
+  let gesture = null;
   if (side === 'L' && now - lastLeftTap < 320) boostEdge = true;
   if (side === 'L') lastLeftTap = now;
+  if (side === 'R' && now - lastRightTap < 280) {
+    torpedoEdge = true;
+    gesture = 'tap';
+  }
+  if (side === 'R') lastRightTap = now;
   pointers.set(event.pointerId, {
     side,
     ox: event.clientX,
     oy: event.clientY,
     x: event.clientX,
     y: event.clientY,
+    t0: now,
+    gesture,
   });
 });
 ui.touch.addEventListener('pointermove', (event) => {
@@ -436,6 +594,21 @@ ui.touch.addEventListener('pointermove', (event) => {
   pointer.x = event.clientX;
   pointer.y = event.clientY;
   if (pointer.side === 'H') tumble(dx, dy);
+  if (pointer.side === 'R' && !pointer.gesture) {
+    const adx = pointer.x - pointer.ox;
+    const ady = pointer.y - pointer.oy;
+    const dist = Math.hypot(adx, ady);
+    const elapsed = performance.now() - pointer.t0;
+    if (elapsed < 190 && dist > 54) {
+      if (Math.abs(adx) > Math.abs(ady) * 1.3) {
+        pointer.gesture = 'swipe';
+        weaponEdge = adx > 0 ? 1 : -1;
+      } else {
+        pointer.gesture = 'flick';
+        dodgeEdge = { x: adx, y: -ady };
+      }
+    }
+  }
 });
 function endPointer(event) { pointers.delete(event.pointerId); }
 ui.touch.addEventListener('pointerup', endPointer);
@@ -446,6 +619,9 @@ window.addEventListener('keydown', (event) => {
   keys.add(event.code);
   if (event.code === 'KeyT') torpedoEdge = true;
   if (event.code === 'KeyB') boostEdge = true;
+  if (event.code === 'KeyE') weaponEdge = 1;
+  if (event.code === 'KeyQ') weaponEdge = -1;
+  if (event.code === 'KeyF') dodgeEdge = { x: keys.has('KeyA') ? -1 : 1, y: 0.2 };
   if (event.code === 'KeyV') toggleView();
   if (event.code === 'Enter') {
     if (state.phase === 'hangar') launch();
@@ -473,7 +649,9 @@ function readInput() {
   if (keys.has('KeyS')) moveY -= 1;
   if (keys.has('ArrowLeft')) aimX -= 1;
   if (keys.has('ArrowRight')) aimX += 1;
-  const fire = !!pointerBySide('R') || keys.has('Space');
+  const right = pointerBySide('R');
+  const held = right && !right.gesture && performance.now() - right.t0 > 60;
+  const fire = held || keys.has('Space');
   const input = {
     moveX: Math.max(-1, Math.min(1, moveX)),
     moveY: Math.max(-1, Math.min(1, moveY)),
@@ -482,10 +660,16 @@ function readInput() {
     torpedo: torpedoEdge,
     boost: boostEdge,
     skip: skipEdge,
+    weapon: weaponEdge,
+    dodge: !!dodgeEdge,
+    dodgeX: dodgeEdge ? dodgeEdge.x : 0,
+    dodgeY: dodgeEdge ? dodgeEdge.y : 0,
   };
   torpedoEdge = false;
   boostEdge = false;
   skipEdge = false;
+  weaponEdge = 0;
+  dodgeEdge = null;
   return input;
 }
 
@@ -567,12 +751,21 @@ function syncHud() {
   ui.hull.style.transform = `scaleX(${Math.max(0, state.hull / state.hullMax)})`;
   ui.viewName.textContent = viewMode === 'command' ? 'COMMAND CENTER' : 'COCKPIT';
   document.body.classList.toggle('cinema', !!state.cam);
-  ui.flash.style.opacity = String(Math.min(0.4, state.flash * 0.34));
+  ui.flash.style.opacity = String(Math.min(0.55, state.flash * 0.5));
+  ui.streak.style.opacity = String(Math.min(0.9, state.flash * 0.85));
   ui.coach.classList.toggle('show', state.phase === 'run' && performance.now() < coachUntil);
   const cool = state.torpedoCool > 0.08;
   ui.torpedo.classList.toggle('cool', cool);
   ui.torpedo.firstChild.textContent = cool ? state.torpedoCool.toFixed(1) : 'TORPEDO';
+  const weapon = WEAPONS[state.weapon] || WEAPONS[0];
+  ui.weaponName.textContent = weapon.name;
+  ui.charge.style.transform = `scaleX(${weapon.id === 'rail' ? state.charge : 0})`;
   ui.stickR.classList.toggle('hot', !!pointerBySide('R') || keys.has('Space'));
+  const shellOn = state.shield > 8 || state.shieldGlow > 0 || state.dodge > 0;
+  shell.visible = state.phase === 'run' && shellOn;
+  const shellColor = state.shieldKind === 'spike' ? 0xff4ad4 : state.shieldKind === 'aegis' ? 0xc46bff : 0x7af6ff;
+  shell.material.color.setHex(state.dodge > 0 ? 0xf4fbff : shellColor);
+  shell.material.opacity = state.dodge > 0 ? 0.55 : state.shieldGlow > 0 ? 0.38 : 0.16;
   if (state.say) {
     ui.banner.textContent = state.say;
     bannerT = Math.max(bannerT, state.sayT);
@@ -739,6 +932,16 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
+  if (quality === 'high') {
+    if (dt > 0.021) slowFrames += 1;
+    else slowFrames = Math.max(0, slowFrames - 1);
+    if (slowFrames > 45) {
+      quality = 'low';
+      document.body.dataset.quality = 'low';
+      renderer.setPixelRatio(1);
+      for (const shaft of shafts) shaft.visible = false;
+    }
+  }
   if (state.phase !== 'run' && state.phase !== 'hangar') pointers.clear();
   const input = state.phase === 'run' ? readInput() : { skip: skipEdge };
   if (state.phase !== 'run') skipEdge = false;
@@ -762,12 +965,28 @@ function frame(now) {
   }
   syncGroup(state.enemies, 'foe', foeVisual);
   syncGroup(state.bolts, 'bolt', (bolt) => {
-    const mat = bolt.kind === 'torpedo' ? torpedoMat : bolt.kind === 'enemy' ? enemyShotMat : pulseMat;
-    const length = bolt.kind === 'torpedo' ? 2.4 : bolt.kind === 'enemy' ? 1.5 : 1.7;
-    const thick = bolt.kind === 'torpedo' ? 0.42 : 0.16;
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(thick, thick, length), mat);
-    scene.add(mesh);
-    return mesh;
+    const color = bolt.color || (bolt.kind === 'enemy' ? 0xff3a6a : 0x7af6ff);
+    const length = bolt.kind === 'torpedo' ? 2.8 : bolt.kind === 'rail' ? 3.4 : bolt.kind === 'mine' ? 0.7 : 1.7;
+    const thick = bolt.kind === 'torpedo' ? 0.5 : bolt.kind === 'rail' ? 0.22 : bolt.kind === 'mine' ? 0.55 : 0.16;
+    const group = new THREE.Group();
+    const core = new THREE.Mesh(
+      bolt.kind === 'mine' ? new THREE.SphereGeometry(0.38, 8, 6) : new THREE.BoxGeometry(thick, thick, length),
+      new THREE.MeshBasicMaterial({ color }),
+    );
+    const glow = new THREE.Mesh(
+      new THREE.SphereGeometry(bolt.kind === 'torpedo' ? 0.9 : 0.42, 8, 6),
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.45,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    group.add(core);
+    group.add(glow);
+    scene.add(group);
+    return group;
   });
   for (const bolt of state.bolts) {
     const mesh = entities.get(bolt.id);
@@ -775,17 +994,88 @@ function frame(now) {
     const speed = Math.hypot(bolt.vx, bolt.vz) || 1;
     applyBasis(mesh, basisLooking([bolt.vx / speed, 0, bolt.vz / speed], [0, 1, 0]));
   }
-  syncGroup(state.pickups, 'pickup', () => {
-    const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.45, 0), pickupMat);
+  syncGroup(state.pickups, 'pickup', (pickup) => {
+    const color = pickup.kind === 'spike' ? 0xff4ad4 : pickup.kind === 'aegis' ? 0xc46bff : 0x7af6ff;
+    const mesh = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.5, 0),
+      new THREE.MeshBasicMaterial({ color, blending: THREE.AdditiveBlending }),
+    );
     scene.add(mesh);
     return mesh;
   });
-  syncGroup(state.blasts, 'blast', () => {
-    const mesh = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.45, 24), blastMat.clone());
-    mesh.rotation.x = -Math.PI / 2;
-    scene.add(mesh);
-    return mesh;
+  syncGroup(state.blasts, 'blast', (blast) => {
+    const color = blast.color || 0xffe08a;
+    const group = new THREE.Group();
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.25, 0.7, 28), new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.8,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }));
+    ring.rotation.x = -Math.PI / 2;
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 8), new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.4,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    }));
+    glow.userData.glow = true;
+    group.add(ring);
+    group.add(glow);
+    scene.add(group);
+    return group;
   });
+  const sparks = quality === 'low' ? state.sparks.slice(0, 36) : state.sparks;
+  for (let i = 0; i < sparkMax; i++) {
+    const spark = sparks[i];
+    const o = i * 3;
+    if (!spark) {
+      sparkPos[o + 1] = -80;
+      continue;
+    }
+    sparkPos[o] = spark.x;
+    sparkPos[o + 1] = 0.4;
+    sparkPos[o + 2] = spark.z;
+    const hex = spark.color || 0xfff1c4;
+    sparkCol[o] = ((hex >> 16) & 255) / 255;
+    sparkCol[o + 1] = ((hex >> 8) & 255) / 255;
+    sparkCol[o + 2] = (hex & 255) / 255;
+  }
+  sparkGeo.attributes.position.needsUpdate = true;
+  sparkGeo.attributes.color.needsUpdate = true;
+  sparkGeo.setDrawRange(0, Math.min(sparkMax, sparks.length));
+  arcPos.fill(0);
+  const arcs = state.arcs.slice(0, arcMax);
+  arcs.forEach((arc, i) => {
+    const o = i * 6;
+    arcPos[o] = arc.x;
+    arcPos[o + 1] = 0.6;
+    arcPos[o + 2] = arc.z;
+    arcPos[o + 3] = arc.x2;
+    arcPos[o + 4] = 0.6;
+    arcPos[o + 5] = arc.z2;
+  });
+  arcGeo.attributes.position.needsUpdate = true;
+  arcGeo.setDrawRange(0, arcs.length * 2);
+  const fast = Math.hypot(state.vel.x, state.vel.z);
+  const showLines = state.phase === 'run' && fast > 8;
+  speedLines.visible = showLines;
+  if (showLines) {
+    const dir = fast > 0.1 ? { x: state.vel.x / fast, z: state.vel.z / fast } : { x: 0, z: -1 };
+    const yaw = Math.atan2(dir.x, -dir.z);
+    speedLines.position.set(state.pos.x, 0.3, state.pos.z);
+    speedLines.rotation.set(0, -yaw, 0);
+    speedLines.children.forEach((line, i) => {
+      const side = (i - 3.5) * 0.55;
+      line.position.set(side, 0, -1.2 - (i % 3) * 0.8);
+      line.scale.z = 0.6 + Math.min(2.4, fast / 18);
+      line.material.opacity = Math.min(0.8, (fast - 8) / 28) * (state.brake > 0 ? 1 : 0.75);
+      line.material.color.setHex(state.brake > 0 ? 0xffb23a : state.boost > 0 ? 0xff4ad4 : 0x7af6ff);
+    });
+  }
   placeCamera(dt);
   placeStick(ui.stickL, pointerBySide('L'));
   placeStick(ui.stickR, pointerBySide('R'));

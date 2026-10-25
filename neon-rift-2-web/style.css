@@ -1,5 +1,5 @@
 :root {
-  --bg: #070b14;
+  --bg: #05030a;
   --teal: #7af0ff;
   --ink: #e7f6ff;
   --dim: #8eabbe;
@@ -47,7 +47,8 @@ body[data-phase="hangar"] #touch { display: block; }
   inset: 0;
   z-index: 3;
   pointer-events: none;
-  background: #ffd0c2;
+  background: #b7fbff;
+  mix-blend-mode: screen;
   opacity: 0;
 }
 #letterbox i {
@@ -62,7 +63,38 @@ body[data-phase="hangar"] #touch { display: block; }
 }
 #letterbox i.top { top: 0; }
 #letterbox i.bot { bottom: 0; }
-body.cinema #letterbox i { display: block; }
+body.cinema #letterbox i { display: block; height: 5.5vh; }
+#vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 38%, rgba(0, 0, 0, 0.78) 100%);
+}
+#grain {
+  position: fixed;
+  inset: -20px;
+  z-index: 3;
+  width: calc(100% + 40px);
+  height: calc(100% + 40px);
+  pointer-events: none;
+  opacity: 0.14;
+  mix-blend-mode: overlay;
+}
+body[data-quality="low"] #grain { display: none; }
+#streak {
+  position: fixed;
+  left: -10%;
+  right: -10%;
+  top: 46%;
+  height: 10px;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 43, 214, 0.15), rgba(180, 255, 255, 0.85), rgba(122, 75, 255, 0.2), transparent);
+  filter: blur(1.5px);
+  mix-blend-mode: screen;
+}
 body.cinema .stick,
 body.cinema #torpedo,
 body.cinema #nav { display: none !important; }
@@ -262,6 +294,34 @@ body[data-phase="run"] .stick { display: block; }
   line-height: 1.15;
 }
 body[data-phase="run"] #torpedo { display: block; }
+#weapon {
+  position: fixed;
+  z-index: 8;
+  right: calc(env(safe-area-inset-right) + 22px);
+  bottom: calc(env(safe-area-inset-bottom) + 252px);
+  width: 96px;
+  text-align: center;
+  pointer-events: none;
+  display: none;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  color: var(--amber);
+  text-shadow: 0 0 12px rgba(255, 43, 214, 0.45);
+}
+body[data-phase="run"] #weapon { display: block; }
+#charge {
+  display: block;
+  height: 4px;
+  margin: 5px auto 0;
+  width: 100%;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.12);
+  transform-origin: left center;
+  transform: scaleX(0);
+  box-shadow: 0 0 10px rgba(122, 246, 255, 0.8);
+  background: linear-gradient(90deg, #7af6ff, #ff4ad4);
+}
 #torpedo small { display: block; font-size: 9px; letter-spacing: 0.6px; color: var(--ink); }
 #torpedo.cool { color: rgba(255, 210, 122, 0.45); }
 #coach {
@@ -424,6 +484,7 @@ button.pri {
   background: #070b14;
 }
 @media (orientation: landscape) {
+  #weapon { bottom: calc(env(safe-area-inset-bottom) + 96px); right: calc(env(safe-area-inset-right) + 230px); }
   #torpedo {
     right: calc(env(safe-area-inset-right) + 150px);
     bottom: calc(env(safe-area-inset-bottom) + 18px);

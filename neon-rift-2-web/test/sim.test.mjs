@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   SAVE_KEY,
+  WEAPONS,
   createMatch,
   startRun,
   step,
@@ -136,6 +137,72 @@ test('bandits disable and haul, bogeys come apart', () => {
   }
   assert.equal(foe.alive, false);
   assert.equal(bogey.kills, 1);
+});
+
+test('a swipe changes guns and does not fire by itself', () => {
+  const state = flying();
+  const input = idleInput();
+  input.weapon = 1;
+  step(state, input, 0.05);
+  assert.equal(WEAPONS[state.weapon].id, 'spread');
+  assert.equal(state.bolts.length, 0);
+  assert.equal(state.roll, undefined);
+});
+
+test('the rail waits for the thumb to lift', () => {
+  const state = flying();
+  state.weapon = WEAPONS.findIndex((weapon) => weapon.id === 'rail');
+  const input = idleInput();
+  input.fire = true;
+  for (let i = 0; i < 6; i++) step(state, input, 0.05);
+  assert.equal(state.bolts.filter((bolt) => bolt.kind === 'rail').length, 0);
+  assert.ok(state.charge >= 0.34);
+  input.fire = false;
+  step(state, input, 0.05);
+  const rail = state.bolts.find((bolt) => bolt.kind === 'rail');
+  assert.ok(rail);
+  assert.equal(rail.pierce, true);
+  assert.equal(state.roll, undefined);
+});
+
+test('a dodge is a shove, not a roll', () => {
+  const state = flying();
+  const input = idleInput();
+  input.dodge = true;
+  input.dodgeX = 1;
+  step(state, input, 0.05);
+  assert.ok(Math.hypot(state.vel.x, state.vel.z) > 10);
+  assert.equal(state.roll, undefined);
+  assert.ok(state.dodge > 0);
+});
+
+test('braking sheds speed faster than coasting', () => {
+  const coast = flying();
+  coast.vel.z = -18;
+  step(coast, idleInput(), 0.2);
+  const brake = flying();
+  brake.vel.z = -18;
+  const input = idleInput();
+  input.moveY = -1;
+  step(brake, input, 0.2);
+  assert.ok(Math.abs(brake.vel.z) < Math.abs(coast.vel.z));
+});
+
+test('the torpedo shockwave reaches past a small blast', () => {
+  const state = flying();
+  const input = idleInput();
+  input.torpedo = true;
+  step(state, input, 0.05);
+  const torpedo = state.bolts.find((bolt) => bolt.kind === 'torpedo');
+  torpedo.x = 0;
+  torpedo.z = -10;
+  torpedo.vx = 0;
+  torpedo.vz = 0;
+  torpedo.life = 0.01;
+  const far = spawnEnemy(state, 'bogey', 9, -10);
+  far.hull = 20;
+  step(state, idleInput(), 0.05);
+  assert.ok(far.hull < 20);
 });
 
 test('the ship never banks while it yaws', () => {

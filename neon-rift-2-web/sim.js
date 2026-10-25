@@ -6,6 +6,14 @@
 export const SAVE_KEY = 'neonrift2web_flight';
 export const LIVERIES = ['factory', 'ion', 'ember', 'bone', 'venom', 'royal'];
 export const CAPTURE_GOAL = 2;
+export const WEAPONS = [
+  { id: 'pulse', name: 'PULSE' },
+  { id: 'spread', name: 'SPREAD' },
+  { id: 'arc', name: 'ARC' },
+  { id: 'rail', name: 'RAIL' },
+  { id: 'mine', name: 'MINES' },
+];
+export const SHIELDS = ['bubble', 'spike', 'aegis'];
 
 export function defaultSave() {
   return {
@@ -37,6 +45,18 @@ export function createMatch(save = {}, seed = 1) {
     fireCool: 0,
     torpedoCool: 0,
     boost: 0,
+    boostChain: 0,
+    boostGap: 0,
+    weapon: 0,
+    charge: 0,
+    wasFiring: false,
+    chargeCool: 0,
+    shieldKind: 'bubble',
+    shieldGlow: 0,
+    dodge: 0,
+    dodgeCool: 0,
+    brake: 0,
+    brakeCool: 0,
     bounty: 0,
     kills: 0,
     deliveries: 0,
@@ -55,6 +75,8 @@ export function createMatch(save = {}, seed = 1) {
     bolts: [],
     pickups: [],
     blasts: [],
+    sparks: [],
+    arcs: [],
     nextId: 1,
     spawned: 0,
     spawnTimer: 0.6,
@@ -112,8 +134,22 @@ export function step(state, input, dt) {
   state.flash = Math.max(0, state.flash - raw * 1.5);
   state.shake = Math.max(0, state.shake - raw * 1.6);
   state.sayT = Math.max(0, state.sayT - raw);
+  state.dodge = Math.max(0, state.dodge - raw);
+  state.brake = Math.max(0, state.brake - raw);
+  state.shieldGlow = Math.max(0, state.shieldGlow - raw);
+  state.dodgeCool = Math.max(0, state.dodgeCool - raw);
+  state.brakeCool = Math.max(0, state.brakeCool - raw);
+  state.chargeCool = Math.max(0, state.chargeCool - raw);
   for (const blast of state.blasts) blast.age += raw;
   state.blasts = state.blasts.filter((blast) => blast.age < blast.life);
+  for (const spark of state.sparks) {
+    spark.age += raw;
+    spark.x += spark.vx * raw;
+    spark.z += spark.vz * raw;
+  }
+  state.sparks = state.sparks.filter((spark) => spark.age < spark.life);
+  for (const arc of state.arcs) arc.age += raw;
+  state.arcs = state.arcs.filter((arc) => arc.age < arc.life);
   refreshNav(state);
   return state;
 }
@@ -127,6 +163,10 @@ export function idleInput() {
     torpedo: false,
     boost: false,
     skip: false,
+    weapon: 0,
+    dodge: false,
+    dodgeX: 0,
+    dodgeY: 0,
   };
 }
 
@@ -157,12 +197,46 @@ function fly(state, input, dt) {
   const mx = clamp(input.moveX || 0, -1, 1);
   const my = clamp(input.moveY || 0, -1, 1);
   const ax = clamp(input.aimX || 0, -1, 1);
+  const fwdNow = forward(state.yaw);
+  const rightNow = { x: fwdNow.z, z: -fwdNow.x };
   if (input.boost && state.boost <= 0 && state.phase === 'run' && !state.died) {
-    state.boost = 1.35;
-    state.buzz.push('dash');
-    state.fx.push({ text: 'BOOST', x: state.pos.x, z: state.pos.z });
+    state.boost = 1.05;
+    state.boostChain += 1;
+    const kick = 14 + Math.min(18, (state.boostChain - 1) * 6);
+    state.vel.x += fwdNow.x * kick;
+    state.vel.z += fwdNow.z * kick;
+    state.buzz.push(state.boostChain > 1 ? 'streak' : 'dash');
+    state.fx.push({
+      text: state.boostChain > 1 ? `STREAK ${state.boostChain}` : 'BOOST',
+      x: state.pos.x,
+      z: state.pos.z,
+    });
+    state.shake = Math.max(state.shake, 0.55);
+    state.flash = Math.max(state.flash, 0.28);
   }
-  if (state.boost > 0) state.boost -= dt;
+  if (state.boost > 0) {
+    state.boost -= dt;
+    state.boostGap = 0;
+  } else {
+    state.boostGap += dt;
+    if (state.boostGap > 1.35) state.boostChain = 0;
+  }
+  if (input.dodge && state.dodgeCool <= 0 && !state.died) {
+    const dx = input.dodgeX || 0;
+    const dy = input.dodgeY || 1;
+    const mag = Math.hypot(dx, dy) || 1;
+    state.vel.x += (rightNow.x * dx + fwdNow.x * dy) / mag * 26;
+    state.vel.z += (rightNow.z * dx + fwdNow.z * dy) / mag * 26;
+    state.dodge = 0.32;
+    state.dodgeCool = 0.8;
+    state.shieldGlow = Math.max(state.shieldGlow, 0.85);
+    state.hurt = Math.max(state.hurt, 0.28);
+    state.buzz.push('dodge');
+    state.shake = Math.max(state.shake, 0.7);
+    state.flash = Math.max(state.flash, 0.45);
+    state.fx.push({ text: 'DODGE', x: state.pos.x, z: state.pos.z });
+    addBlast(state, state.pos.x, state.pos.z, 2.2, false, 0x7af6ff);
+  }
   const yawFromLeft = mx * 0.4;
   let yawCmd = clamp(yawFromLeft + ax * 0.92, -1, 1);
   const shaped = yawCmd * (0.62 + 0.38 * Math.abs(yawCmd));
@@ -177,15 +251,30 @@ function fly(state, input, dt) {
   const fwd = forward(state.yaw);
   const right = { x: fwd.z, z: -fwd.x };
   const boosting = state.boost > 0;
-  const thrust = (my >= 0 ? my : my * 0.55) * (boosting ? 46 : 26) * (state.towedId ? 0.72 : 1);
-  const strafe = mx * 12;
+  const thrust = (my >= 0 ? my : my * 0.35) * (boosting ? 62 : 28) * (state.towedId ? 0.72 : 1);
+  const strafe = mx * 14;
   state.vel.x += (fwd.x * thrust + right.x * strafe) * dt;
   state.vel.z += (fwd.z * thrust + right.z * strafe) * dt;
+  if (my < -0.4) {
+    const sp = Math.hypot(state.vel.x, state.vel.z);
+    if (sp > 3) {
+      const cut = Math.min(sp, (42 + sp * 3.2) * dt);
+      state.vel.x -= (state.vel.x / sp) * cut;
+      state.vel.z -= (state.vel.z / sp) * cut;
+      state.brake = 0.22;
+      if (state.brakeCool <= 0 && sp > 9) {
+        state.brakeCool = 0.32;
+        state.buzz.push('brake');
+        state.shake = Math.max(state.shake, 0.4);
+        state.fx.push({ text: 'BRAKE', x: state.pos.x, z: state.pos.z });
+      }
+    }
+  }
   const idle = Math.hypot(mx, my) < 0.08 && Math.abs(ax) < 0.08;
-  const drag = idle ? 1.6 : 0.55;
+  const drag = my < -0.4 ? 0.2 : idle ? 1.15 : 0.42;
   state.vel.x -= state.vel.x * drag * dt;
   state.vel.z -= state.vel.z * drag * dt;
-  const cap = boosting ? 34 : state.towedId ? 16 : 22;
+  const cap = boosting ? 48 + Math.min(10, state.boostChain * 2) : state.towedId ? 16 : 24;
   const speed = Math.hypot(state.vel.x, state.vel.z);
   if (speed > cap) {
     state.vel.x *= cap / speed;
@@ -234,15 +323,44 @@ function fight(state, input, dt) {
     if (err < 0.22) state.lockId = locked.id;
   }
 
-  if (input.fire) {
+  if (input.weapon) {
+    const count = WEAPONS.length;
+    const stepBy = input.weapon > 0 ? 1 : count - 1;
+    state.weapon = (state.weapon + stepBy) % count;
+    state.charge = 0;
+    state.wasFiring = false;
+    state.say = WEAPONS[state.weapon].name;
+    state.sayT = 0.7;
+    state.buzz.push('switch');
+  }
+  const weapon = WEAPONS[state.weapon] ? WEAPONS[state.weapon].id : 'pulse';
+  if (weapon === 'rail') {
+    if (input.fire) {
+      state.charge = Math.min(1, state.charge + dt / 0.55);
+      if (state.charge > 0.18 && state.chargeCool <= 0) {
+        state.chargeCool = 0.16;
+        state.buzz.push('charge');
+      }
+    } else if (state.wasFiring && state.charge >= 0.34) {
+      launchRail(state, state.charge);
+      state.charge = 0;
+    } else {
+      state.charge = Math.max(0, state.charge - dt * 1.6);
+    }
+  } else if (input.fire) {
     state.fireCool -= dt;
+    const gap = weapon === 'spread' ? 0.2 : weapon === 'arc' ? 0.26 : weapon === 'mine' ? 0.46 : 0.14;
     if (state.fireCool <= 0) {
-      state.fireCool = 0.14;
-      launchPulse(state);
+      state.fireCool = gap;
+      if (weapon === 'spread') launchSpread(state);
+      else if (weapon === 'arc') launchArc(state);
+      else if (weapon === 'mine') launchMine(state);
+      else launchPulse(state);
     }
   } else {
     state.fireCool = Math.min(state.fireCool, 0.04);
   }
+  state.wasFiring = !!input.fire && weapon === 'rail';
   if (input.torpedo && state.torpedoCool <= 0) launchTorpedo(state);
 
   updateEnemies(state, dt);
@@ -271,10 +389,90 @@ function launchPulse(state) {
       radius: 0.32,
       blast: false,
       kind: 'pulse',
+      color: 0x7af6ff,
     });
   }
   state.buzz.push('pulse');
   state.flash = Math.max(state.flash, 0.08);
+}
+
+function launchSpread(state) {
+  for (const off of [-0.42, -0.2, 0, 0.2, 0.42]) {
+    const dir = forward(state.yaw + off);
+    spawnBolt(state, {
+      x: state.pos.x + dir.x * 1.3,
+      z: state.pos.z + dir.z * 1.3,
+      vx: dir.x * 42,
+      vz: dir.z * 42,
+      life: 0.7,
+      player: true,
+      damage: 7,
+      radius: 0.28,
+      blast: false,
+      kind: 'spread',
+      color: 0xff4ad4,
+    });
+  }
+  state.buzz.push('spread');
+  state.flash = Math.max(state.flash, 0.16);
+}
+
+function launchArc(state) {
+  const fwd = forward(state.yaw);
+  spawnBolt(state, {
+    x: state.pos.x + fwd.x * 1.3,
+    z: state.pos.z + fwd.z * 1.3,
+    vx: fwd.x * 46,
+    vz: fwd.z * 46,
+    life: 0.85,
+    player: true,
+    damage: 11,
+    radius: 0.36,
+    blast: false,
+    kind: 'arc',
+    color: 0xc46bff,
+  });
+  state.buzz.push('arc');
+  state.flash = Math.max(state.flash, 0.18);
+}
+
+function launchRail(state, charge) {
+  const fwd = forward(state.yaw);
+  spawnBolt(state, {
+    x: state.pos.x + fwd.x * 1.5,
+    z: state.pos.z + fwd.z * 1.5,
+    vx: fwd.x * 78,
+    vz: fwd.z * 78,
+    life: 0.55,
+    player: true,
+    damage: 18 + charge * 28,
+    radius: 0.42,
+    blast: false,
+    pierce: true,
+    kind: 'rail',
+    color: 0xf4fbff,
+  });
+  state.buzz.push('rail');
+  state.shake = Math.max(state.shake, 0.65);
+  state.flash = Math.max(state.flash, 0.55);
+}
+
+function launchMine(state) {
+  const fwd = forward(state.yaw);
+  spawnBolt(state, {
+    x: state.pos.x - fwd.x * 1.8,
+    z: state.pos.z - fwd.z * 1.8,
+    vx: 0,
+    vz: 0,
+    life: 1.35,
+    player: true,
+    damage: 16,
+    radius: 0.7,
+    blast: true,
+    kind: 'mine',
+    color: 0xffb23a,
+  });
+  state.buzz.push('mine');
 }
 
 function launchTorpedo(state) {
@@ -284,15 +482,17 @@ function launchTorpedo(state) {
     z: state.pos.z + fwd.z * 1.6,
     vx: fwd.x * 15,
     vz: fwd.z * 15,
-    life: 2.4,
+    life: 2.6,
     player: true,
-    damage: 36,
-    radius: 0.6,
+    damage: 52,
+    radius: 0.85,
     blast: true,
     kind: 'torpedo',
+    color: 0xffe08a,
   });
-  state.torpedoCool = 2.4;
+  state.torpedoCool = 2.2;
   state.buzz.push('torpedo');
+  state.shake = Math.max(state.shake, 0.35);
   requestCam(state, state.pos, {
     x: state.pos.x + fwd.x * 16,
     z: state.pos.z + fwd.z * 16,
@@ -334,6 +534,19 @@ function collide(state) {
     const x0 = bolt.px ?? bolt.x;
     const z0 = bolt.pz ?? bolt.z;
     if (bolt.player) {
+      if (bolt.pierce) {
+        for (const enemy of state.enemies) {
+          if (!enemy.alive || enemy.disabled || enemy.id === state.towedId) continue;
+          if (bolt.hit && bolt.hit[enemy.id]) continue;
+          const point = closestOnSegment(x0, z0, bolt.x, bolt.z, enemy.x, enemy.z);
+          if (point.dist >= bolt.radius + enemy.radius) continue;
+          bolt.hit = bolt.hit || {};
+          bolt.hit[enemy.id] = true;
+          hurtEnemy(state, enemy, bolt.damage, false);
+          addSparks(state, enemy.x, enemy.z, 0xf4fbff, 8, 7);
+        }
+        continue;
+      }
       let hit = null;
       for (const enemy of state.enemies) {
         if (!enemy.alive || enemy.disabled || enemy.id === state.towedId) continue;
@@ -347,6 +560,8 @@ function collide(state) {
       if (bolt.blast) detonate(state, bolt, hit.enemy);
       else {
         hurtEnemy(state, hit.enemy, bolt.damage, false);
+        if (bolt.kind === 'arc') chainFrom(state, hit.enemy);
+        addSparks(state, hit.point.x, hit.point.z, bolt.color || 0x7af6ff, 6, 6);
         bolt.dead = true;
       }
     } else {
@@ -407,7 +622,9 @@ function hurtEnemy(state, enemy, damage, fromBlast) {
   state.fx.push({ text: warden ? 'WARDEN DOWN' : 'BOGEY DOWN', x: enemy.x, z: enemy.z });
   state.buzz.push(fromBlast ? 'blast' : 'impact');
   state.shake = Math.max(state.shake, warden ? 1 : 0.7);
-  addBlast(state, enemy.x, enemy.z, warden ? 6 : 2.4, true);
+  const boom = warden ? 0xc46bff : 0xff3a6a;
+  addBlast(state, enemy.x, enemy.z, warden ? 6.5 : 3.1, true, boom);
+  addSparks(state, enemy.x, enemy.z, boom, warden ? 18 : 10, warden ? 9 : 7);
   if (!fromBlast) dropPickup(state, enemy.x - 2, enemy.z + 1.5, 'shield');
   requestCam(state, state.pos, enemy, 'kill', 0);
   if (warden) {
@@ -418,55 +635,134 @@ function hurtEnemy(state, enemy, damage, fromBlast) {
   return 'killed';
 }
 
+function chainFrom(state, enemy) {
+  let jumps = 0;
+  for (const other of state.enemies) {
+    if (jumps >= 2) break;
+    if (!other.alive || other.disabled || other === enemy || other.id === state.towedId) continue;
+    const dist = Math.hypot(other.x - enemy.x, other.z - enemy.z);
+    if (dist > 9) continue;
+    state.arcs.push({
+      id: state.nextId++,
+      x: enemy.x,
+      z: enemy.z,
+      x2: other.x,
+      z2: other.z,
+      age: 0,
+      life: 0.2,
+    });
+    hurtEnemy(state, other, 8, false);
+    addSparks(state, other.x, other.z, 0xc46bff, 5, 5);
+    jumps += 1;
+  }
+}
+
 function detonate(state, bolt, direct) {
   if (bolt.dead) return;
   bolt.dead = true;
-  const radius = 5.4;
+  const torpedo = bolt.kind === 'torpedo';
+  const radius = torpedo ? 11 : bolt.kind === 'mine' ? 6.8 : 5.4;
   let announced = false;
   for (const enemy of state.enemies) {
     if (!enemy.alive || enemy.disabled) continue;
     const dist = Math.hypot(bolt.x - enemy.x, bolt.z - enemy.z);
     const touch = direct && enemy === direct;
     if (touch || dist < radius) {
-      const falloff = touch ? 1 : Math.max(0.4, 1 - dist / radius);
-      const killed = hurtEnemy(state, enemy, (bolt.damage + 22) * falloff, true);
+      const falloff = touch ? 1 : Math.max(0.45, 1 - dist / radius);
+      const killed = hurtEnemy(state, enemy, (bolt.damage + (torpedo ? 34 : 22)) * falloff, true);
       if (killed === 'killed' && !announced && enemy.role !== 'warden') {
         announced = true;
-        state.fx.push({ text: 'SLOW KILL', x: bolt.x, z: bolt.z });
+        state.fx.push({ text: torpedo ? 'SLOW KILL' : 'BLAST', x: bolt.x, z: bolt.z });
       }
     }
   }
   for (const other of state.bolts) {
-    if (other.player || other.dead) continue;
+    if (other.player || other.dead || other === bolt) continue;
     if (Math.hypot(other.x - bolt.x, other.z - bolt.z) <= radius) other.dead = true;
   }
-  addBlast(state, bolt.x, bolt.z, radius, true);
-  state.shake = 1;
-  state.flash = Math.max(state.flash, 0.65);
-  state.buzz.push('blast');
+  const color = torpedo ? 0xffe08a : bolt.color || 0xffb23a;
+  addBlast(state, bolt.x, bolt.z, radius, true, color);
+  if (torpedo) {
+    addBlast(state, bolt.x, bolt.z, radius * 0.62, true, 0xff4ad4);
+    addBlast(state, bolt.x, bolt.z, radius * 1.15, false, 0x7af6ff);
+    addSparks(state, bolt.x, bolt.z, 0xff4ad4, 16, 11);
+    addSparks(state, bolt.x, bolt.z, 0x7af6ff, 12, 8);
+    state.shake = 1.7;
+    state.flash = Math.max(state.flash, 1);
+    state.buzz.push('shock');
+  } else {
+    addSparks(state, bolt.x, bolt.z, color, 10, 7);
+    state.shake = Math.max(state.shake, 0.9);
+    state.flash = Math.max(state.flash, 0.55);
+    state.buzz.push('blast');
+  }
   if (state.cam && state.cam.boltId === bolt.id) {
     state.cam.left = Math.max(0.28, Math.min(state.cam.left, 0.4));
     state.cam.to = { x: bolt.x, z: bolt.z };
   }
 }
 
-function addBlast(state, x, z, radius, heavy) {
+function addBlast(state, x, z, radius, heavy, color) {
   state.blasts.push({
     id: state.nextId++,
     x,
     z,
     age: 0,
-    life: heavy ? 0.46 : 0.28,
+    life: heavy ? 0.62 : 0.34,
     radius,
     heavy: !!heavy,
+    color: color || 0xffe08a,
   });
+  if (state.blasts.length > 16) state.blasts.splice(0, state.blasts.length - 16);
+}
+
+function addSparks(state, x, z, color, count, speed) {
+  const n = Math.min(count, 18);
+  for (let i = 0; i < n; i++) {
+    const a = (Math.PI * 2 * i) / n + state.time;
+    const sp = speed * (0.45 + (i % 3) * 0.25);
+    state.sparks.push({
+      id: state.nextId++,
+      x,
+      z,
+      vx: Math.cos(a) * sp,
+      vz: Math.sin(a) * sp,
+      age: 0,
+      life: 0.28 + (i % 4) * 0.05,
+      color: color || 0xfff1c4,
+    });
+  }
+  if (state.sparks.length > 96) state.sparks.splice(0, state.sparks.length - 96);
 }
 
 function hurtPlayer(state, amount) {
   if (state.god || state.hurt > 0 || state.died || state.phase !== 'run') return;
+  if (state.shieldKind === 'spike' && state.shield > 20) {
+    state.shieldKind = 'bubble';
+    state.shieldGlow = 0.6;
+    state.buzz.push('spike');
+    state.shake = Math.max(state.shake, 0.45);
+    state.fx.push({ text: 'SPIKE', x: state.pos.x, z: state.pos.z });
+    const fwd = forward(state.yaw);
+    spawnBolt(state, {
+      x: state.pos.x + fwd.x * 1.4,
+      z: state.pos.z + fwd.z * 1.4,
+      vx: fwd.x * 36,
+      vz: fwd.z * 36,
+      life: 0.6,
+      player: true,
+      damage: 14,
+      radius: 0.3,
+      blast: false,
+      kind: 'spread',
+      color: 0xff4ad4,
+    });
+    return;
+  }
   state.hurt = 0.7;
   state.regenWait = 2.1;
   let left = amount;
+  if (state.shieldKind === 'aegis' && state.shieldGlow > 0) left *= 0.35;
   if (state.shield > 0) {
     const used = Math.min(state.shield, left);
     state.shield -= used;
@@ -631,7 +927,8 @@ function spawnWave(state, dt) {
   state.spawned += 1;
 }
 
-function dropPickup(state, x, z, kind) {
+function dropPickup(state, x, z) {
+  const kind = SHIELDS[state.nextId % SHIELDS.length];
   state.pickups.push({ id: state.nextId++, kind, x, z, alive: true });
   if (state.pickups.length > 5) state.pickups.shift();
 }
@@ -648,9 +945,12 @@ function updatePickups(state, dt) {
       pickup.z += (dz / reach) * pull;
     }
     if (reach < 2.1) {
+      state.shieldKind = SHIELDS.includes(pickup.kind) ? pickup.kind : 'bubble';
       state.shield = state.shieldMax;
-      state.fx.push({ text: 'SHIELD', x: state.pos.x, z: state.pos.z });
-      state.buzz.push('card');
+      state.shieldGlow = state.shieldKind === 'aegis' ? 2.4 : 0.9;
+      const label = state.shieldKind === 'spike' ? 'SPIKE SHIELD' : state.shieldKind === 'aegis' ? 'AEGIS' : 'BUBBLE';
+      state.fx.push({ text: label, x: state.pos.x, z: state.pos.z });
+      state.buzz.push('shield');
     } else keep.push(pickup);
   }
   state.pickups = keep;
