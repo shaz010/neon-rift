@@ -1,25 +1,67 @@
 name: TestFlight
 
-# Push to neon-rift-2 builds Neon Rift 2 and uploads the next TestFlight
-# build. This token cannot dispatch the workflow, so the push is the trigger.
-# shaz010/SHAHZAD_2 was not readable here; signing follows
-# xcodebuild -allowProvisioningUpdates with the App Store Connect API key.
+# New gameplay is tested on the web first and is not uploaded until Shahbaz approves it.
+# Push to neon-rift-2-3d uploads the next TestFlight build of the same
+# Neon Rift 2 app when the commit message contains [upload]. The simulator
+# reel does not run, and the archive does not wait on it. Recording runs
+# only when a commit subject starts with the word record-reel, or a manual
+# dispatch sets record to true. The web game on neon-rift-2 is not part of this trigger.
 on:
   push:
     branches:
-      - neon-rift-2
+      - neon-rift-2-3d
   workflow_dispatch:
+    inputs:
+      record:
+        description: Record the simulator reel
+        type: boolean
+        default: false
 
 concurrency:
-  group: testflight-neon-rift-2
-  cancel-in-progress: false
+  group: testflight-neon-rift-2-3d
+  cancel-in-progress: true
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
+  record:
+    name: Record simulator reel
+    if: startsWith(github.event.head_commit.message, 'record-reel') || github.event.inputs.record == 'true'
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - name: Check out neon-rift-2-3d
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: |
+          set -euo pipefail
+          latest=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
+          if [ -z "${latest}" ]; then
+            latest=$(ls -d /Applications/Xcode_*.app /Applications/Xcode.app 2>/dev/null | sort -V | tail -1)
+          fi
+          echo "Selecting ${latest}"
+          sudo xcode-select -s "${latest}"
+          xcodebuild -version
+
+      - name: Play the test flight and record it
+        run: bash tools/record-3d.sh "${RUNNER_TEMP}/reel"
+
+      - name: Upload the reel
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-rift-2-3d-reel
+          path: ${{ runner.temp }}/reel
+          if-no-files-found: warn
+
   testflight:
     name: Archive and upload
+    # Upload runs on a manual dispatch, or when the commit message contains [upload].
+    # It does not wait for a reel.
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[upload]')
     runs-on: macos-26
     timeout-minutes: 45
     env:
@@ -143,7 +185,7 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.neonrift2\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Changelog: fullscreen portrait WKWebView of the Graze Glyphs prototype. Circle seals, triangle novas, line lances. Audio uses the Playback session so the silent switch does not mute it. Separate from the original Neon Rift."
+            echo "- Changelog: same in-engine fighter. Hangar tumble on every axis, swappable paint, loops and barrel rolls, a lock reticle with aim assist, magnet pickups, and medals with combo streaks. Right thumb aims and fires, left thumb drives. Cockpit gauges, quieter HUD, hangar and pause, a compass, a tow beam that stays locked, and sunlit planets. Full screen on iPhone and iPad. Same Neon Rift 2 app."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Remove the API key

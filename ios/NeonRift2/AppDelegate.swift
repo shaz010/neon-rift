@@ -1,28 +1,17 @@
 import AVFoundation
+import Darwin
 import UIKit
-import WebKit
 
-/// Holds the shared audio session in Playback so Web Audio ignores the silent switch.
+/// Holds the shared audio session in Playback so the score ignores the silent switch.
 enum AudioSession {
-    private static var player: AVAudioPlayer?
-
     static func engage() {
         let session = AVAudioSession.sharedInstance()
         do {
-            // Playback ignores the ring/silent switch. mixWithOthers would
-            // let the switch mute WebKit audio again on recent iOS versions.
             try session.setCategory(.playback, mode: .default, options: [])
             try session.setActive(true)
         } catch {
             NSLog("Neon Rift 2 audio session: \(error.localizedDescription)")
         }
-        if player == nil, let url = Bundle.main.url(forResource: "silence", withExtension: "wav") {
-            player = try? AVAudioPlayer(contentsOf: url)
-            player?.numberOfLoops = -1
-            player?.volume = 0.01
-            player?.prepareToPlay()
-        }
-        player?.play()
     }
 }
 
@@ -32,6 +21,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        setbuf(stdout, nil)
+        NSLog("NR2 boot")
+        print("NR2 boot")
+        fflush(stdout)
         AudioSession.engage()
         return true
     }
@@ -54,7 +47,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         supportedInterfaceOrientationsFor window: UIWindow?
     ) -> UIInterfaceOrientationMask {
-        .portrait
+        UIDevice.current.userInterfaceIdiom == .pad ? .all : .portrait
     }
 }
 
@@ -68,108 +61,31 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     ) {
         guard let windowScene = scene as? UIWindowScene else { return }
         AudioSession.engage()
-        if #available(iOS 16.0, *) {
+        if #available(iOS 16.0, *), UIDevice.current.userInterfaceIdiom != .pad {
             windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
         }
         let window = UIWindow(windowScene: windowScene)
-        window.backgroundColor = GameViewController.background
-        window.rootViewController = GameViewController()
+        window.backgroundColor = .black
+        window.rootViewController = rootController()
         window.makeKeyAndVisible()
         self.window = window
     }
 
+    /// The reel passes -showcase and must open straight into the flight.
+    /// A normal launch stops in the hangar. -showroom opens the inspection pad.
+    private func rootController() -> UIViewController {
+        let args = ProcessInfo.processInfo.arguments
+        let env = ProcessInfo.processInfo.environment
+        if args.contains("-showcase") || env["NR2_SHOWCASE"] == "1" {
+            return FlightViewController()
+        }
+        if args.contains("-showroom") || env["NR2_SHOWROOM"] == "1" {
+            return ShipShowroomViewController(mode: .inspect, announce: true)
+        }
+        return ShipShowroomViewController(mode: .menu)
+    }
+
     func sceneDidBecomeActive(_ scene: UIScene) {
-        AudioSession.engage()
-    }
-}
-
-/// Maps a duration from the page onto UIImpactFeedbackGenerator. Retained by the controller.
-final class HapticBridge: NSObject, WKScriptMessageHandler {
-    private let light = UIImpactFeedbackGenerator(style: .light)
-    private let medium = UIImpactFeedbackGenerator(style: .medium)
-    private let heavy = UIImpactFeedbackGenerator(style: .heavy)
-
-    override init() {
-        super.init()
-        light.prepare()
-        medium.prepare()
-        heavy.prepare()
-    }
-
-    func userContentController(
-        _ userContentController: WKUserContentController,
-        didReceive message: WKScriptMessage
-    ) {
-        let n = (message.body as? NSNumber)?.intValue ?? 8
-        let gen: UIImpactFeedbackGenerator = n >= 40 ? heavy : (n >= 16 ? medium : light)
-        gen.impactOccurred()
-        gen.prepare()
-    }
-}
-
-final class GameViewController: UIViewController, WKNavigationDelegate {
-    static let background = UIColor(red: 22.0 / 255.0, green: 36.0 / 255.0, blue: 58.0 / 255.0, alpha: 1)
-
-    private let haptics = HapticBridge()
-    private var webView: WKWebView?
-
-    override var prefersStatusBarHidden: Bool { true }
-    override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
-    override var prefersHomeIndicatorAutoHidden: Bool { true }
-    override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .bottom }
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .portrait }
-    override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation { .portrait }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = Self.background
-        AudioSession.engage()
-
-        let config = WKWebViewConfiguration()
-        config.userContentController.add(haptics, name: "haptic")
-        config.allowsInlineMediaPlayback = true
-        config.mediaTypesRequiringUserActionForPlayback = []
-        let prefs = WKWebpagePreferences()
-        prefs.allowsContentJavaScript = true
-        config.defaultWebpagePreferences = prefs
-
-        let webView = WKWebView(frame: view.bounds, configuration: config)
-        webView.isOpaque = true
-        webView.backgroundColor = Self.background
-        webView.scrollView.backgroundColor = Self.background
-        webView.scrollView.isScrollEnabled = false
-        webView.scrollView.bounces = false
-        webView.scrollView.contentInsetAdjustmentBehavior = .never
-        webView.scrollView.delaysContentTouches = false
-        webView.scrollView.pinchGestureRecognizer?.isEnabled = false
-        webView.allowsBackForwardNavigationGestures = false
-        webView.allowsLinkPreview = false
-        webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        webView.navigationDelegate = self
-        #if DEBUG
-        if #available(iOS 16.4, *) {
-            webView.isInspectable = true
-        }
-        #endif
-        view.addSubview(webView)
-        self.webView = webView
-
-        if let url = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "site/neon-rift-2") {
-            let site = url.deletingLastPathComponent().deletingLastPathComponent()
-            webView.loadFileURL(url, allowingReadAccessTo: site)
-        } else {
-            let label = UILabel()
-            label.text = "Neon Rift 2 is missing from the app bundle."
-            label.textColor = .white
-            label.numberOfLines = 0
-            label.textAlignment = .center
-            label.frame = view.bounds.insetBy(dx: 24, dy: 24)
-            label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            view.addSubview(label)
-        }
-    }
-
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         AudioSession.engage()
     }
 }

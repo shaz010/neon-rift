@@ -30,12 +30,22 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "One finger. The ship sits above your thumb, with a white dot where you "
-    "touch. Graze the red rocks to fill the charge, then tap to unleash. "
-    "The screen says GRAZE TO CHARGE and TAP TO UNLEASH. You start with a "
-    "shield and 3 lives, and the first minute is slow. Brighter full-screen "
-    "color, a 7 second intro you can skip, and tap to restart. Audio plays "
-    "with the silent switch on. This app is separate from the original Neon Rift."
+    "Same in-engine fighter. The left thumb drives and strafes. The right thumb "
+    "aims and fires, so both hands share the turn. Swipe, or tap LOOP and ROLL, "
+    "for a somersault or a barrel roll. Guns have a low thump and a short zap. "
+    "A lock reticle names the target, and aim assist helps the shot. Pickups "
+    "pull in from farther away.\n\n"
+    "In the hangar, drag to tumble the ship all the way around, pinch to zoom, "
+    "and swap paint schemes. Medals, combo streaks, and rank stay on the hangar "
+    "card.\n\n"
+    "HANGAR and PAUSE stay on screen. A compass points at the job: the bandit, "
+    "then the freighter. The chase view keeps one crosshair, the locked target, "
+    "and a short objective. COCKPIT opens a canopy with speed, shields, hull, "
+    "weapons, a radar, and the target.\n\n"
+    "Disable a bandit and the prompt says DISABLED - BEAM NOW. The tow beam "
+    "stays locked until you deliver. One sun lights the ship and the planets. "
+    "Saturn, Earth, Mars, and the Moon use Solar System Scope maps (CC BY 4.0). "
+    "Full screen on iPhone and iPad. Same Neon Rift 2 app."
 )
 
 

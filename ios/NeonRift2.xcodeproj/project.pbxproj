@@ -8,6 +8,24 @@
 
 /* Begin PBXBuildFile section */
 		111111111111111111111201 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111104 /* AppDelegate.swift */; };
+		F3D2A1000000000000000011 /* FlightViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000001 /* FlightViewController.swift */; };
+		F3D2A1000000000000000012 /* FlightWorld.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000002 /* FlightWorld.swift */; };
+		F3D2A1000000000000000013 /* ProceduralArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000003 /* ProceduralArt.swift */; };
+		F3D2A1000000000000000014 /* FlightAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000004 /* FlightAudio.swift */; };
+		F3D2A1000000000000000015 /* Meshes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000005 /* Meshes.swift */; };
+		F3D2A1000000000000000016 /* ShipCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000006 /* ShipCatalog.swift */; };
+		F3D2A1000000000000000017 /* ShipShowroomViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000007 /* ShipShowroomViewController.swift */; };
+		F3D2A1000000000000000019 /* fighter-hotspots.json in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000009 /* fighter-hotspots.json */; };
+		F3D2A1000000000000000031 /* earth-day.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000021 /* earth-day.jpg */; };
+		F3D2A1000000000000000032 /* earth-clouds.png in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000022 /* earth-clouds.png */; };
+		F3D2A1000000000000000033 /* earth-normal.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000023 /* earth-normal.jpg */; };
+		F3D2A1000000000000000034 /* mars.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000024 /* mars.jpg */; };
+		F3D2A1000000000000000035 /* mars-normal.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000025 /* mars-normal.jpg */; };
+		F3D2A1000000000000000036 /* moon.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000026 /* moon.jpg */; };
+		F3D2A1000000000000000037 /* moon-normal.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000027 /* moon-normal.jpg */; };
+		F3D2A1000000000000000038 /* saturn.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000028 /* saturn.jpg */; };
+		F3D2A1000000000000000039 /* saturn-normal.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000029 /* saturn-normal.jpg */; };
+		F3D2A100000000000000003A /* stars.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A100000000000000002A /* stars.jpg */; };
 		111111111111111111111202 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111106 /* Assets.xcassets */; };
 		111111111111111111111204 /* silence.wav in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111108 /* silence.wav */; };
 /* End PBXBuildFile section */
@@ -15,6 +33,24 @@
 /* Begin PBXFileReference section */
 		111111111111111111111103 /* NeonRift2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NeonRift2.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		111111111111111111111104 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000001 /* FlightViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightViewController.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000002 /* FlightWorld.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightWorld.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000003 /* ProceduralArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProceduralArt.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000004 /* FlightAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightAudio.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000005 /* Meshes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Meshes.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000006 /* ShipCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShipCatalog.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000007 /* ShipShowroomViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShipShowroomViewController.swift; sourceTree = "<group>"; };
+		F3D2A1000000000000000009 /* fighter-hotspots.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Ship/fighter-hotspots.json; sourceTree = "<group>"; };
+		F3D2A1000000000000000021 /* earth-day.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Sky/earth-day.jpg"; sourceTree = "<group>"; };
+		F3D2A1000000000000000022 /* earth-clouds.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Sky/earth-clouds.png"; sourceTree = "<group>"; };
+		F3D2A1000000000000000023 /* earth-normal.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Sky/earth-normal.jpg"; sourceTree = "<group>"; };
+		F3D2A1000000000000000024 /* mars.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Sky/mars.jpg"; sourceTree = "<group>"; };
+		F3D2A1000000000000000025 /* mars-normal.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Sky/mars-normal.jpg"; sourceTree = "<group>"; };
+		F3D2A1000000000000000026 /* moon.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Sky/moon.jpg"; sourceTree = "<group>"; };
+		F3D2A1000000000000000027 /* moon-normal.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Sky/moon-normal.jpg"; sourceTree = "<group>"; };
+		F3D2A1000000000000000028 /* saturn.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Sky/saturn.jpg"; sourceTree = "<group>"; };
+		F3D2A1000000000000000029 /* saturn-normal.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Sky/saturn-normal.jpg"; sourceTree = "<group>"; };
+		F3D2A100000000000000002A /* stars.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Sky/stars.jpg"; sourceTree = "<group>"; };
 		111111111111111111111105 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		111111111111111111111106 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		111111111111111111111108 /* silence.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = silence.wav; sourceTree = "<group>"; };
@@ -51,6 +87,24 @@
 			isa = PBXGroup;
 			children = (
 				111111111111111111111104 /* AppDelegate.swift */,
+				F3D2A1000000000000000001 /* FlightViewController.swift */,
+				F3D2A1000000000000000002 /* FlightWorld.swift */,
+				F3D2A1000000000000000003 /* ProceduralArt.swift */,
+				F3D2A1000000000000000004 /* FlightAudio.swift */,
+				F3D2A1000000000000000005 /* Meshes.swift */,
+				F3D2A1000000000000000006 /* ShipCatalog.swift */,
+				F3D2A1000000000000000007 /* ShipShowroomViewController.swift */,
+				F3D2A1000000000000000009 /* fighter-hotspots.json */,
+				F3D2A1000000000000000021 /* earth-day.jpg */,
+				F3D2A1000000000000000022 /* earth-clouds.png */,
+				F3D2A1000000000000000023 /* earth-normal.jpg */,
+				F3D2A1000000000000000024 /* mars.jpg */,
+				F3D2A1000000000000000025 /* mars-normal.jpg */,
+				F3D2A1000000000000000026 /* moon.jpg */,
+				F3D2A1000000000000000027 /* moon-normal.jpg */,
+				F3D2A1000000000000000028 /* saturn.jpg */,
+				F3D2A1000000000000000029 /* saturn-normal.jpg */,
+				F3D2A100000000000000002A /* stars.jpg */,
 				111111111111111111111105 /* Info.plist */,
 				111111111111111111111106 /* Assets.xcassets */,
 				111111111111111111111108 /* silence.wav */,
@@ -119,6 +173,17 @@
 			files = (
 				111111111111111111111202 /* Assets.xcassets in Resources */,
 				111111111111111111111204 /* silence.wav in Resources */,
+				F3D2A1000000000000000019 /* fighter-hotspots.json in Resources */,
+				F3D2A1000000000000000031 /* earth-day.jpg in Resources */,
+				F3D2A1000000000000000032 /* earth-clouds.png in Resources */,
+				F3D2A1000000000000000033 /* earth-normal.jpg in Resources */,
+				F3D2A1000000000000000034 /* mars.jpg in Resources */,
+				F3D2A1000000000000000035 /* mars-normal.jpg in Resources */,
+				F3D2A1000000000000000036 /* moon.jpg in Resources */,
+				F3D2A1000000000000000037 /* moon-normal.jpg in Resources */,
+				F3D2A1000000000000000038 /* saturn.jpg in Resources */,
+				F3D2A1000000000000000039 /* saturn-normal.jpg in Resources */,
+				F3D2A100000000000000003A /* stars.jpg in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -151,6 +216,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				111111111111111111111201 /* AppDelegate.swift in Sources */,
+				F3D2A1000000000000000011 /* FlightViewController.swift in Sources */,
+				F3D2A1000000000000000012 /* FlightWorld.swift in Sources */,
+				F3D2A1000000000000000013 /* ProceduralArt.swift in Sources */,
+				F3D2A1000000000000000014 /* FlightAudio.swift in Sources */,
+				F3D2A1000000000000000015 /* Meshes.swift in Sources */,
+				F3D2A1000000000000000016 /* ShipCatalog.swift in Sources */,
+				F3D2A1000000000000000017 /* ShipShowroomViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -228,7 +300,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -256,7 +328,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};

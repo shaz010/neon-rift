@@ -1,0 +1,84 @@
+{
+  "name": "Lane Fighter",
+  "scale": 1,
+  "focus": [0, 0.45, 0],
+  "cameraDistance": 15,
+  "hotspots": [
+    {
+      "id": "engines",
+      "title": "TWIN NACELLES",
+      "summary": "Twin plasma nacelles. Flight assist holds your speed and damps the drift when you let go of the stick.",
+      "position": [0, 0.72, 3.35],
+      "stats": [
+        ["Mass", "8,500 kg"],
+        ["Thrust", "357 kN"],
+        ["Cruise", "118 m/s"],
+        ["Boost", "158 m/s, 1.55 s"]
+      ]
+    },
+    {
+      "id": "cannons",
+      "title": "CANNONS",
+      "summary": "Paired cheek cannons along the nose. A spread pickup adds a second barrel on each side.",
+      "position": [2.15, 0.28, -2.9],
+      "stats": [
+        ["Mounts", "Port and starboard"],
+        ["Bite", "18–30 hull"],
+        ["Spread", "Locked until fitted"],
+        ["Assist", "Soft aim inside the bracket"]
+      ],
+      "upgrade": "spread"
+    },
+    {
+      "id": "missiles",
+      "title": "MISSILE RACKS",
+      "summary": "Underwing racks. They stay dark until a missile pickup arms them, then the tubes and seeker tips show on the hull.",
+      "position": [2.9, 0.42, -0.35],
+      "stats": [
+        ["Tubes", "3 per wing"],
+        ["Seeker", "Homing"],
+        ["Bite", "40–48 hull"],
+        ["Cycle", "1.35 s"]
+      ],
+      "upgrade": "missiles"
+    },
+    {
+      "id": "shields",
+      "title": "SHIELD EMITTERS",
+      "summary": "Wing-root dishes project the forward barrier. A shield pickup restores the barrier and lights the dishes.",
+      "position": [1.75, 0.72, -0.15],
+      "stats": [
+        ["Barrier", "100"],
+        ["Recharge", "18 / s out of the fire"],
+        ["Emitters", "Two, wing root"],
+        ["Pickup", "Full restore"]
+      ],
+      "upgrade": "shields"
+    },
+    {
+      "id": "reactor",
+      "title": "REACTOR",
+      "summary": "Dorsal core for the guns, the barrier, and the tractor. A hull-repair pickup seats the core and patches 40 hull.",
+      "position": [0, 1.05, 0.25],
+      "stats": [
+        ["Hull", "100"],
+        ["Repair", "+40"],
+        ["Mount", "Dorsal spine"],
+        ["Feed", "Guns, barrier, beam"]
+      ],
+      "upgrade": "reactor"
+    },
+    {
+      "id": "cockpit",
+      "title": "COCKPIT",
+      "summary": "Single-seat canopy. In the lane, COCKPIT puts you behind the glass with the stick and the instrument glow.",
+      "position": [0, 1.15, -2.15],
+      "stats": [
+        ["Crew", "1"],
+        ["View", "Chase or canopy"],
+        ["Controls", "Drag left, fire right"],
+        ["Glass", "Framed canopy"]
+      ]
+    }
+  ]
+}
