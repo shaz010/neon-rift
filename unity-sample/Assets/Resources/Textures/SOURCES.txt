@@ -1,0 +1,11 @@
+earth.jpg
+  NASA Visible Earth, Blue Marble Next Generation with topography and bathymetry,
+  December 2004. Image record 73909. Public domain (U.S. government work).
+  Resized from the 5400×2700 original to 4096×2048.
+
+clouds.png
+  NASA Visible Earth combined cloud map, image record 57747.
+  Public domain. Alpha derived from luminance so clear air drops out.
+
+stars.png
+  Original equirectangular starfield generated for this slice. Not a third-party asset.

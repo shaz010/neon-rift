@@ -1,0 +1,25 @@
+# Unity
+unity-sample/[Ll]ibrary/
+unity-sample/[Tt]emp/
+unity-sample/[Oo]bj/
+unity-sample/[Bb]uild/
+unity-sample/[Bb]uilds/
+unity-sample/[Ll]ogs/
+unity-sample/[Uu]ser[Ss]ettings/
+unity-sample/[Mm]emoryCaptures/
+unity-sample/*.csproj
+unity-sample/*.sln
+unity-sample/.vs/
+unity-sample/Assets/AssetStoreTools*
+
+# Unreal
+ue5-sample/**/Binaries/
+ue5-sample/**/DerivedDataCache/
+ue5-sample/**/Intermediate/
+ue5-sample/**/Saved/
+ue5-sample/**/.vs/
+ue5-sample/**/*.sln
+ue5-sample/**/*.code-workspace
+
+# Local captures while a render is in progress
+captures/tmp/
