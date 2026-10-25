@@ -4,10 +4,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Neon Rift LAB">
-<meta name="theme-color" content="#16243a">
-<link rel="icon" id="ico" href="data:,"><link rel="apple-touch-icon" id="aticon" href="data:,">
-<title>Neon Rift LAB</title>
+<meta name="apple-mobile-web-app-title" content="nrl1">
+<meta name="theme-color" content="#c2185b">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<link rel="icon" href="apple-touch-icon.png?v=nrl1-1">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=nrl1-1" sizes="180x180">
+<link rel="manifest" href="manifest.json?v=nrl1-1">
+<title>nrl1</title>
 <style>
 :root{--bg:#16243a;--teal:#5ef2d6;--mint:#9ff0c0;--sky:#8ec5ff;--lav:#c9a0ff;--coral:#ff9e8a;--amber:#ffd27a;--ink:#e6f4ff;--dim:#8fb3c9}
 html,body{margin:0;height:100%;background:#16243a;overflow:hidden;touch-action:none;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;position:fixed;width:100%;color:var(--ink);-webkit-tap-highlight-color:transparent}
@@ -867,10 +870,7 @@ sCtl.onclick=()=>{SV.set.two=!SV.set.two;save();sfx.ui();syncSet();if(G.screen==
 if(matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches&&!localStorage.getItem('neonrift_lab_save'))SV.set.rm=true;
 syncSet();
 (function(){const d=document.createElement('div');d.style.cssText='position:fixed;top:env(safe-area-inset-top);visibility:hidden';document.body.appendChild(d);document.documentElement.style.setProperty('--sat',d.getBoundingClientRect().top+'px');d.remove();})();
-(function(){try{const c=document.createElement('canvas');c.width=c.height=180;const g=c.getContext('2d');g.fillStyle='#16243a';g.fillRect(0,0,180,180);g.translate(90,96);g.strokeStyle='#fff';g.lineWidth=8;g.strokeStyle='#5ef2d6';g.lineWidth=4;g.beginPath();g.moveTo(0,-18);g.lineTo(13,14);g.lineTo(0,7);g.lineTo(-13,14);g.closePath();g.stroke();g.fillStyle='#fff';g.beginPath();g.arc(0,0,3,0,TAU);g.fill();
-  const url=c.toDataURL('image/png');$('aticon').href=url;$('ico').href=url;
-  const man={name:'Neon Rift LAB',short_name:'Neon Rift LAB',display:'fullscreen',orientation:'portrait',background_color:'#16243a',theme_color:'#16243a',start_url:location.href.split('#')[0],icons:[{src:url,sizes:'180x180',type:'image/png'}]};
-  const l=document.createElement('link');l.rel='manifest';l.href='data:application/manifest+json,'+encodeURIComponent(JSON.stringify(man));document.head.appendChild(l);}catch(e){}})();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js?v=nrl1-1',{scope:'./'}).catch(()=>{});}
 
 let last=performance.now();reset();refreshMenu();
 function loop(now){let rdt=clamp((now-last)/1000,0,.05);last=now;if(!G.paused)update(rdt);render(G.paused?0:rdt);musicTick();requestAnimationFrame(loop);}
