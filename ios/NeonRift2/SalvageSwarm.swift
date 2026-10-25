@@ -73,7 +73,7 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
     let cameraNode = SCNNode()
     let shotNode = SCNNode()
     let pipNode = SCNNode()
-    var onSnap: ((SwarmSnap) -> Void)?
+    fileprivate var onSnap: ((SwarmSnap) -> Void)?
 
     private let audio: FlightAudio
     private let showcase: Bool
@@ -164,7 +164,7 @@ final class SalvageWorld: NSObject, SCNSceneRendererDelegate {
         buildScene()
     }
 
-    func updatePad(_ body: (inout SwarmPad) -> Void) {
+    fileprivate func updatePad(_ body: (inout SwarmPad) -> Void) {
         lock.lock()
         body(&pad)
         lock.unlock()
