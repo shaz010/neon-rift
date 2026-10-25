@@ -114,7 +114,7 @@ func encode(maxWidth: CGFloat, to url: URL) -> Bool {
             AVLinearPCMBitDepthKey: 16,
             AVLinearPCMIsFloatKey: false,
             AVLinearPCMIsBigEndianKey: false,
-            AVLinearPCMIsNonInterleavedKey: false,
+            AVLinearPCMIsNonInterleaved: false,
         ])
         if writer.canAdd(candidate), reader.canAdd(readerOutput) {
             writer.add(candidate)
