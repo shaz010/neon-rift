@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Neon Rift 2">
+<meta name="theme-color" content="#1a314c">
+<title>Neon Rift 2</title>
+<link rel="stylesheet" href="style.css?v=20261025e">
+</head>
+<body data-phase="hangar">
+<canvas id="view"></canvas>
+<div id="touch"></div>
+<div id="flash"></div>
+<div id="letterbox"><i class="top"></i><i class="bot"></i></div>
+<div id="hud">
+  <div class="meters">
+    <div id="speed">000</div>
+    <div id="objective">DISABLE BANDITS  0/2</div>
+    <div class="bars"><i id="shield"><i></i></i><i id="hull"><i></i></i></div>
+  </div>
+  <button id="viewBtn" type="button">
+    <b id="viewName">COMMAND CENTER</b>
+    <small>TAP TO SWITCH</small>
+  </button>
+</div>
+<div id="outsideTag">OUTSIDE</div>
+<button id="skip" type="button">SKIP</button>
+<div id="banner"></div>
+<div id="nav"><i></i><b></b></div>
+<div id="stickL" class="stick left"><div class="knob"></div><span>FLY</span></div>
+<div id="stickR" class="stick right"><div class="knob"></div><span>FIRE</span></div>
+<button id="torpedo" type="button">TORPEDO<small>SLOW KILL</small></button>
+<div id="coach">Hold the right thumb to fire along the nose. Disable an amber bandit, fly into it, and haul it to the freighter.</div>
+<div id="popups"></div>
+<div class="panel-wrap on" id="hangar">
+  <div class="panel hangar-card">
+    <p class="kicker">HANGAR</p>
+    <h1>NEON RIFT 2</h1>
+    <p class="lead">Drag the hull. It tumbles on every axis. Pinch to come closer. The horizon stays level once you launch.</p>
+    <p class="scar" id="paintName">FACTORY</p>
+    <div id="paints" class="paints"></div>
+    <p class="lead" id="bestLine"></p>
+    <button class="pri" id="launch" type="button">LAUNCH</button>
+  </div>
+</div>
+<div class="panel-wrap" id="results">
+  <div class="panel">
+    <p class="kicker">SORTIE</p>
+    <h1 id="resultTitle" style="font-size:34px">WARDEN DOWN</h1>
+    <div class="stats" id="resultStats"></div>
+    <p class="scar" id="resultScar"></p>
+    <button class="pri" id="again" type="button">HANGAR</button>
+  </div>
+</div>
+<div id="fatal"><p>This browser could not start the 3D view.</p></div>
+<div id="debug" style="display:none;position:fixed;z-index:12;left:8px;bottom:8px;font:12px monospace;color:#9ff"></div>
+<div id="lock"></div>
+<script type="module" src="main.js?v=20261025g"></script>
+</body>
+</html>
