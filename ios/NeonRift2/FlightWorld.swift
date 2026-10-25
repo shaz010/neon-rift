@@ -577,12 +577,12 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 let cross = yawError(toward: target.position)
                 stick.x = CGFloat(max(-1, min(1, cross * 2.8)))
                 let dist = simd_distance(target.position, position)
-                if dist < 34 {
-                    stick.y = 0.2
+                if dist < 42 {
+                    stick.y = 0
                 } else if dist < 70 {
-                    stick.y = 0.55
+                    stick.y = 0.35
                 } else {
-                    stick.y = 0.9
+                    stick.y = 0.8
                 }
                 let to = safeNorm(target.position - position)
                 fire = simd_dot(forward(), to) > 0.78
@@ -704,6 +704,13 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         } else {
             if position.y < -8 { force.y += (-8 - position.y) * mass * 2 }
             if position.y > 46 { force.y -= (position.y - 46) * mass * 2 }
+        }
+        if auto, let quarry = nearestHostile() {
+            let dist = simd_distance(quarry.position, position)
+            let closing = simd_dot(velocity, fwd)
+            if dist < 58 && closing > 14 {
+                force -= fwd * mass * (closing - 8) * 6
+            }
         }
         if phase == .combat {
             let flat = simd_float3(position.x - fightCenter.x, 0, position.z - fightCenter.z)
@@ -1381,6 +1388,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
     private func beginRaid() {
         fightCenter = position
+        let entry = simd_length(velocity)
+        if entry > 22 { velocity *= 22 / entry }
         raidWave = 1
         lessonSpawned = 0
         lessonKills = 0
@@ -1388,9 +1397,9 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         bossDead = false
         victoryLeft = -1
         if showcase {
-            spawnWave(count: 3, distance: 36)
+            spawnWave(count: 3, distance: 32)
         } else {
-            spawnRaider(distance: 42, lateral: 0, boss: false)
+            spawnRaider(distance: 38, lateral: 0, boss: false)
         }
     }
 
@@ -1418,7 +1427,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 if lessonKills >= lessonGoal && alive.isEmpty {
                     if raidWave < 2 {
                         raidWave = 2
-                        spawnWave(count: 3, distance: 34)
+                        spawnWave(count: 3, distance: 30)
                     } else {
                         spawnBoss()
                     }
@@ -1459,10 +1468,10 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let hull: Float
         let scale: Float
         if boss {
-            hull = showcase ? 1400 : 480
+            hull = showcase ? 420 : 480
             scale = 2.15
         } else {
-            hull = showcase ? 260 : 96
+            hull = showcase ? 200 : 96
             scale = 1
         }
         spawnEnemy(at: point, role: .bogey, hullOverride: hull, scale: scale, boss: boss)
@@ -1489,11 +1498,11 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         guideColumn.isHidden = false
         guideLight.isHidden = false
         let base = hostile.position
-        guideColumn.simdPosition = simd_float3(base.x, base.y + 22, base.z)
-        guideLight.simdPosition = base + simd_float3(0, 4, 0)
+        guideColumn.simdPosition = simd_float3(base.x, base.y + 7.5, base.z)
+        guideLight.simdPosition = base + simd_float3(0, 3, 0)
         let pulse = 0.45 + 0.55 * abs(sin(missionTime * 5))
-        guideColumn.opacity = CGFloat(0.4 + 0.6 * pulse)
-        guideLight.light?.intensity = CGFloat(800 + 1400 * pulse)
+        guideColumn.opacity = CGFloat(0.55 + 0.35 * pulse)
+        guideLight.light?.intensity = CGFloat(280 + 320 * pulse)
     }
 
     private func spawnEnemy(at point: simd_float3, role: ShipRole, hullOverride: Float? = nil, scale: Float = 1, boss: Bool = false) {
@@ -2292,12 +2301,12 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         beaconMat.lightingModel = .constant
         beaconMat.diffuse.contents = UIColor(red: 1, green: 0.92, blue: 0.35, alpha: 1)
         beaconMat.emission.contents = UIColor(red: 1, green: 0.92, blue: 0.35, alpha: 1)
-        beaconMat.emission.intensity = 2.4
+        beaconMat.emission.intensity = 1.1
         beaconMat.transparency = 0.85
         beaconMat.blendMode = .add
         beaconMat.writesToDepthBuffer = false
         beaconMat.isDoubleSided = true
-        let column = SCNCylinder(radius: 0.55, height: 40)
+        let column = SCNCylinder(radius: 0.16, height: 8)
         column.materials = [beaconMat]
         guideColumn.geometry = column
         guideColumn.isHidden = true
@@ -2305,8 +2314,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         guideLight.light = SCNLight()
         guideLight.light?.type = .omni
         guideLight.light?.color = UIColor(red: 1, green: 0.9, blue: 0.4, alpha: 1)
-        guideLight.light?.intensity = 1600
-        guideLight.light?.attenuationEndDistance = 90
+        guideLight.light?.intensity = 420
+        guideLight.light?.attenuationEndDistance = 36
         guideLight.isHidden = true
         scene.rootNode.addChildNode(guideLight)
         let freighter = Meshes.freighter(art: art)
