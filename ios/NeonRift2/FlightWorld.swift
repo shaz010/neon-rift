@@ -1480,14 +1480,14 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let fwd = forward()
         let right = safeNorm(simd_cross(fwd, simd_float3(0, 1, 0)))
         let up = simd_float3(0, 1, 0)
-        dropoff = position + right * 36 + fwd * 8 + up * 4
+        let beside = (right * Float(36)) + (fwd * Float(8)) + (up * Float(4))
+        dropoff = position + beside
         convoyNode.simdPosition = dropoff
         convoyNode.simdOrientation = lookOrientation(forward: fwd, up: up, roll: 0)
-        let mateOffsets = [
-            right * 54 + fwd * -8 + up * 3,
-            right * 28 + fwd * 30 + up * 5,
-        ]
-        for (mate, offset) in zip(convoyMates, mateOffsets) {
+        let mateA = (right * Float(54)) + (fwd * Float(-8)) + (up * Float(3))
+        let mateB = (right * Float(28)) + (fwd * Float(30)) + (up * Float(5))
+        let offsets = [mateA, mateB]
+        for (mate, offset) in zip(convoyMates, offsets) {
             mate.simdPosition = position + offset
             mate.simdOrientation = lookOrientation(forward: fwd, up: up, roll: 0)
         }

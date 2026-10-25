@@ -1,5 +1,25 @@
 # Neon Rift 2 — Mission Concept
 
+## THE BIBLE
+
+Neon Rift 2 must be unique. It has to feel completely different from every game out there. A generic space shooter is a failure even if the pictures are pretty. It also has to be absolutely fun and addictive, the kind of game a player loses sleep wanting to play. Every decision, in this build and the next, is judged against both halves of that rule.
+
+This upload does not invent new verbs. It finishes the convoy mission below so the story and the fight are on TestFlight. The hooks after that are the next iteration. Unity and Unreal rebuild the mission in the sections under this one. They use the hooks when they build the pass after this upload.
+
+### Signature hooks
+
+These are the mechanics nobody else has. They replace "fly around and shoot waves."
+
+1. **The wake is the gun.** The freighters leave a ribbon of rift-light. Cannons only fire inside that ribbon. The fight is the ribbon, not an arena. Drift out of it and the guns go dark and the rift drags the ship back. Where you fly is the weapon.
+2. **A loop is a capture.** The swipe-loop is how you take the leader. Close a loop around them and they are stitched to your wake. Their lamp joins the convoy. You grow the lane by what you catch. The trick is the verb.
+3. **The rift keeps your scar.** One crossing is one short session. A clean phase brands a bright scar on the rift. The next run can ride that scar for a faster line. A sloppy scar makes the warden meaner. Mastery is in the sky before the score card.
+
+### Addiction loop
+
+One convoy crossing is a few minutes, the same three beats, so a player can learn them cold. Mastery is the scar: you can see last run's line and beat it. Rewards land at each phase, then stay as the scar and the rank. "One more run" is the scar that is almost straight, or the warden that was one pass from dying. You launch again before you sleep.
+
+---
+
 One sortie. The same mission should be rebuildable in Unity and in Unreal Engine 5 from this page.
 
 ## Story
