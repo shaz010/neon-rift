@@ -109,6 +109,7 @@ struct HudModel {
     var gunName = "PULSE"
     var underFire = false
     var lockAttacking = false
+    var lessonDone = false
 }
 
 struct HudThreat {
@@ -211,8 +212,6 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     private var effects: [Effect] = []
     private var popups: [Popup] = []
     private var spawned = 0
-    private let waveTimes: [Float]
-    private let waveCount: Int
 
     private var camPos = simd_float3.zero
     private var camLook = simd_float3.zero
@@ -257,7 +256,17 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     private var pendingBooms: [(simd_float3, Float, Float)] = []
     private let dropoff = simd_float3(62, 11, -230)
     private let beamNode = SCNNode()
+    private let guideColumn = SCNNode()
+    private let guideLight = SCNNode()
     private let captureGoal: Int
+    private let lessonGoal = 3
+    private var fightCenter = simd_float3.zero
+    private var raidWave = 0
+    private var lessonSpawned = 0
+    private var lessonKills = 0
+    private var bossSpawned = false
+    private var bossDead = false
+    private var victoryLeft: Float = -1
     private var degraded = false
     private var fpsWindow: Float = 0
     private var fpsFrames = 0
@@ -274,14 +283,10 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         self.showcase = showcase
         self.profile = profile
         if showcase {
-            waveTimes = [0.4, 1.1, 2.4]
-            waveCount = 3
             captureGoal = 1
             hull = 240
             shield = 200
         } else {
-            waveTimes = [2, 5, 9, 14, 22, 30, 42, 54]
-            waveCount = 8
             captureGoal = 3
         }
         super.init()
@@ -380,15 +385,13 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             if died {
                 deathClock += raw
                 if deathClock > 1.7 { enter(.results) }
-            } else if deliveries >= captureGoal && phaseTime > 3 {
-                enter(.warden)
-            } else if phaseTime > (showcase ? 28 : 170) {
+            } else if phaseTime > (showcase ? 42 : 170) {
                 enter(.warden)
             }
         case .warden:
             stepFlight(sim * 0.35)
             stepWarden(raw)
-            if phaseTime > 12.5 { enter(.results) }
+            if phaseTime > 6.2 { enter(.results) }
         case .results:
             creditScroll += raw
         }
@@ -561,7 +564,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         } else {
             cycled = list[0]
         }
-        let name = cycled?.role == .bandit ? "BANDIT" : "BOGEY"
+        let name = cycled?.boss == true ? "WARDEN" : (cycled?.role == .bandit ? "BANDIT" : "RAIDER")
         say("TARGET \(name)")
     }
 
@@ -570,7 +573,20 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         var stick = inputStick
         var fire = inputFire
         if auto {
-            if let towed {
+            if let target = nearestHostile() {
+                let cross = yawError(toward: target.position)
+                stick.x = CGFloat(max(-1, min(1, cross * 2.8)))
+                let dist = simd_distance(target.position, position)
+                if dist < 34 {
+                    stick.y = 0.2
+                } else if dist < 70 {
+                    stick.y = 0.55
+                } else {
+                    stick.y = 0.9
+                }
+                let to = safeNorm(target.position - position)
+                fire = simd_dot(forward(), to) > 0.78
+            } else if let towed {
                 let cross = yawError(toward: dropoff)
                 stick.x = CGFloat(max(-1, min(1, cross * 2.6)))
                 stick.y = 0.95
@@ -582,14 +598,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 stick.y = simd_distance(drifting.position, position) < 30 ? 0.25 : 0.8
                 fire = false
                 if simd_distance(drifting.position, position) < 26 { towed = drifting }
-            } else if let target = nearestHostile() {
-                let cross = yawError(toward: target.position)
-                stick.x = CGFloat(max(-1, min(1, cross * 2.6)))
-                stick.y = 0.82
-                let to = safeNorm(target.position - position)
-                fire = simd_dot(forward(), to) > 0.88
             } else {
-                stick = CGPoint(x: 0, y: 0.5)
+                stick = CGPoint(x: 0, y: 0.35)
                 fire = false
             }
         }
@@ -653,6 +663,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 let climb = target.position.y - position.y
                 let dist = max(12, simd_distance(target.position, position))
                 targetPitch = max(-0.36, min(0.36, climb / dist))
+            } else if abs(aimY) < 0.08 {
+                targetPitch = 0.03
             }
             pitch += (targetPitch - pitch) * min(1, 14 * dt)
             pitch = max(-0.55, min(0.55, pitch))
@@ -681,11 +693,28 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             force += -fwd * forwardSpeed * 0.2 * mass
         }
         if trick == nil {
-            if position.y < 2 { force.y += (2 - position.y) * mass * 4 }
-            if position.y > 28 { force.y -= (position.y - 28) * mass * 3 }
+            if phase == .combat {
+                force.y += (8 - position.y) * mass * 3.2
+                if position.y < 3 { force.y += (3 - position.y) * mass * 6 }
+                if position.y > 16 { force.y -= (position.y - 16) * mass * 5 }
+            } else {
+                if position.y < 2 { force.y += (2 - position.y) * mass * 4 }
+                if position.y > 28 { force.y -= (position.y - 28) * mass * 3 }
+            }
         } else {
             if position.y < -8 { force.y += (-8 - position.y) * mass * 2 }
             if position.y > 46 { force.y -= (position.y - 46) * mass * 2 }
+        }
+        if phase == .combat {
+            let flat = simd_float3(position.x - fightCenter.x, 0, position.z - fightCenter.z)
+            let radius = simd_length(flat)
+            let limit: Float = 130
+            if radius > limit && radius > 0.001 {
+                let inward = simd_float3(-flat.x, 0, -flat.z) / radius
+                force += inward * (radius - limit) * mass * 8
+                let err = yawError(toward: fightCenter)
+                yaw += max(-2.2 * dt, min(2.2 * dt, err * 1.4))
+            }
         }
         if abs(position.x) > 280 {
             force.x -= (position.x - copysign(280, position.x)) * mass * 1.4
@@ -757,29 +786,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 paintCage(enemy, attacking: false)
             }
         }
-        if showcase && phaseTime > 9 && deliveries == 0 && nearestDisabled(maxDistance: 800) == nil {
-            if let bandit = enemies.first(where: { $0.role == .bandit && $0.alive && !$0.disabled }) {
-                disable(bandit)
-            }
-        }
-        if showcase && phaseTime > 18 && deliveries == 0 {
-            if towed == nil, let drifting = nearestDisabled(maxDistance: 800) {
-                towed = drifting
-            }
-            if towed != nil {
-                position = dropoff + simd_float3(0, 2, 28)
-                velocity = simd_float3(0, 0, -20)
-                tryDeliver()
-            }
-        }
-        while spawned < waveCount && phaseTime >= waveTimes[spawned] {
-            let side: Float = spawned % 2 == 0 ? -1 : 1
-            let spread = side * (40 + Float(spawned % 3) * 16)
-            let ahead: Float = showcase ? 72 : 150
-            let role: ShipRole = spawned % 3 == 2 ? .bogey : .bandit
-            spawnEnemy(at: simd_float3(position.x + spread, 8 + Float(spawned % 4), position.z - ahead), role: role)
-            spawned += 1
-        }
+        stepRaid(dt)
         for enemy in enemies where enemy.alive {
             steer(enemy, dt)
         }
@@ -841,28 +848,37 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let dist = simd_length(to)
         let dir = dist > 0.001 ? to / dist : simd_float3(0, 0, -1)
         var accel = simd_float3.zero
-        if dist > 110 { accel += dir * 36 }
-        else if dist < 46 { accel -= dir * 28 }
+        if dist > 42 { accel += dir * (enemy.boss ? 54 : 78) }
+        else if dist < 22 { accel -= dir * 42 }
+        else { accel += dir * 10 }
         let side = safeNorm(simd_cross(dir, simd_float3(0, 1, 0)))
-        accel += side * enemy.strafe * 16
-        if enemy.age > 3.2 {
+        accel += side * enemy.strafe * (enemy.boss ? 10 : 22)
+        if enemy.age > (enemy.boss ? 2.4 : 1.6) {
             enemy.age = 0
             enemy.strafe = -enemy.strafe
         }
-        let wantY: Float = 8 + sin(enemy.seed + missionTime * 0.6) * 4
-        accel.y += (wantY - enemy.position.y) * 2.2
+        let wantY: Float = 8 + sin(enemy.seed + missionTime * 0.8) * 1.6
+        accel.y += (wantY - enemy.position.y) * 3.5
         enemy.velocity += accel * dt
+        let cap: Float = enemy.boss ? 48 : 72
         let sp = simd_length(enemy.velocity)
-        if sp > 54 { enemy.velocity *= 54 / sp }
+        if sp > cap { enemy.velocity *= cap / sp }
         enemy.position += enemy.velocity * dt
         let face = safeNorm(enemy.velocity + dir * 8)
         enemy.node.simdOrientation = lookOrientation(forward: face, up: simd_float3(0, 1, 0), roll: enemy.strafe * 0.4)
         enemy.node.simdPosition = enemy.position
+        if let chip = enemy.node.childNode(withName: "chip", recursively: false) {
+            chip.eulerAngles.x += dt * 4
+            chip.eulerAngles.y += dt * 3
+        }
+        if let smoke = enemy.node.childNode(withName: "smoke", recursively: false) {
+            smoke.opacity = CGFloat(0.55 + 0.35 * abs(sin(missionTime * 6 + enemy.seed)))
+        }
 
         enemy.cooldown -= dt
-        let aim = position + velocity * min(dist / 150, 0.65) - enemy.position
-        if dist < 210 && enemy.cooldown <= 0 && simd_dot(face, safeNorm(aim)) > 0.86 && !died {
-            enemy.cooldown = showcase ? 2.4 : 1.65
+        let aim = position + velocity * min(dist / 150, 0.45) - enemy.position
+        if dist < 96 && enemy.cooldown <= 0 && simd_dot(face, safeNorm(aim)) > 0.8 && !died {
+            enemy.cooldown = enemy.boss ? 1.15 : (showcase ? 1.7 : 1.15)
             shootEnemy(enemy, toward: safeNorm(aim))
         }
         if dist < 8 && hurt <= 0 && !died {
@@ -873,7 +889,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
     private func stepWarden(_ raw: Float) {
         guard let ship = dreadnought else { return }
-        let u = smoothstep(0.4, 11.5, phaseTime)
+        let u = smoothstep(0.3, 5.2, phaseTime)
         let z = mix(-1120, -700, 1 - (1 - u) * (1 - u))
         ship.simdPosition = simd_float3(0, 8, z)
         rift.eulerAngles.y += raw * 0.05
@@ -895,7 +911,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             let next = bolt.position + bolt.direction * bolt.speed * dt
             if bolt.fromPlayer {
                 for enemy in enemies where enemy.alive && !enemy.disabled {
-                    if segmentHits(bolt.position, next, enemy.position, radius: 3.6) {
+                    let radius: Float = enemy.boss ? 7.2 : 3.8
+                    if segmentHits(bolt.position, next, enemy.position, radius: radius) {
                         bolt.alive = false
                         let amount = bolt.damage ?? (bolt.missile ? (showcase ? 48 : 40) : (showcase ? 30 : 18))
                         bite(enemy, amount)
@@ -1043,8 +1060,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
     private func updateCamera(_ raw: Float) {
         let fwd = forward()
-        let chasePos = position - fwd * 15.5 + simd_float3(0, 3.7, 0)
-        let chaseLook = position + fwd * 24 + simd_float3(0, 0.4, 0)
+        let chasePos = position - fwd * 13.5 + simd_float3(0, 2.2, 0)
+        let chaseLook = position + fwd * 28 + simd_float3(0, 1.8, 0)
         var desired = chasePos
         var look = chaseLook
         var rollCam = roll * 0.38
@@ -1191,7 +1208,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                     let to = safeNorm(hard.position - origin)
                     dir = safeNorm(dir * 0.32 + to * 0.68)
                 }
-                spawnBolt(origin: origin, direction: dir, speed: 250, life: 1.15, player: true, home: hard, mat: art.boltPlayer, missile: false)
+                spawnBolt(origin: origin, direction: dir, speed: 250, life: 1.15, player: true, home: hard, mat: art.boltPlayer, missile: false, damage: showcase ? 20 : nil)
             }
         }
     }
@@ -1358,9 +1375,131 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         bolts.append(bolt)
     }
 
-    private func spawnEnemy(at point: simd_float3, role: ShipRole) {
+    private func livingRaiders() -> [Enemy] {
+        enemies.filter { $0.alive && !$0.disabled && !$0.boss }
+    }
+
+    private func beginRaid() {
+        fightCenter = position
+        raidWave = 1
+        lessonSpawned = 0
+        lessonKills = 0
+        bossSpawned = false
+        bossDead = false
+        victoryLeft = -1
+        if showcase {
+            spawnWave(count: 3, distance: 36)
+        } else {
+            spawnRaider(distance: 42, lateral: 0, boss: false)
+        }
+    }
+
+    private func stepRaid(_ dt: Float) {
+        if bossDead {
+            if victoryLeft < 0 { victoryLeft = 0.85 }
+            victoryLeft -= dt
+            if victoryLeft <= 0 { enter(.warden) }
+            updateGuideColumn()
+            return
+        }
+        let alive = livingRaiders()
+        if showcase && phaseTime > 14 && kills < 1, let first = alive.first {
+            bite(first, 800)
+        }
+        if showcase && phaseTime > 24 && !bossSpawned {
+            for enemy in alive { destroy(enemy) }
+            spawnBoss()
+        }
+        if showcase && phaseTime > 34, let boss = enemies.first(where: { $0.boss && $0.alive }) {
+            destroy(boss)
+        }
+        if !bossSpawned && !bossDead {
+            if showcase {
+                if lessonKills >= lessonGoal && alive.isEmpty {
+                    if raidWave < 2 {
+                        raidWave = 2
+                        spawnWave(count: 3, distance: 34)
+                    } else {
+                        spawnBoss()
+                    }
+                }
+            } else if lessonKills < lessonGoal {
+                if alive.isEmpty && lessonSpawned < lessonGoal {
+                    let side: Float = lessonSpawned % 2 == 0 ? -4 : 5
+                    spawnRaider(distance: 40, lateral: side, boss: false)
+                }
+            } else if alive.isEmpty {
+                if raidWave < 3 {
+                    raidWave += 1
+                    spawnWave(count: raidWave == 2 ? 4 : 5, distance: 40)
+                } else {
+                    spawnBoss()
+                }
+            }
+        }
+        updateGuideColumn()
+    }
+
+    private func spawnWave(count: Int, distance: Float) {
+        guard count > 0 else { return }
+        let span = Float(count - 1)
+        let gap: Float = showcase ? 5.5 : 12
+        for index in 0..<count {
+            let lateral = (Float(index) - span * 0.5) * gap
+            let dist = distance + Float(index % 2) * 4
+            spawnRaider(distance: dist, lateral: lateral, boss: false)
+        }
+    }
+
+    private func spawnRaider(distance: Float, lateral: Float, boss: Bool) {
+        let fwd = forward()
+        let right = safeNorm(simd_cross(fwd, simd_float3(0, 1, 0)))
+        let lift: Float = boss ? 1.4 : Float(lessonSpawned % 3) * 0.35
+        let point = position + fwd * distance + right * lateral + simd_float3(0, lift, 0)
+        let hull: Float
+        let scale: Float
+        if boss {
+            hull = showcase ? 1400 : 480
+            scale = 2.15
+        } else {
+            hull = showcase ? 260 : 96
+            scale = 1
+        }
+        spawnEnemy(at: point, role: .bogey, hullOverride: hull, scale: scale, boss: boss)
+        if !boss { lessonSpawned += 1 }
+    }
+
+    private func spawnBoss() {
+        guard !bossSpawned else { return }
+        bossSpawned = true
+        raidWave = 4
+        spawnRaider(distance: showcase ? 40 : 48, lateral: 0, boss: true)
+        say("WARDEN")
+    }
+
+    private func updateGuideColumn() {
+        let hostile = enemies.filter { $0.alive && !$0.disabled }.min {
+            simd_distance($0.position, position) < simd_distance($1.position, position)
+        }
+        guard phase == .combat, let hostile else {
+            guideColumn.isHidden = true
+            guideLight.isHidden = true
+            return
+        }
+        guideColumn.isHidden = false
+        guideLight.isHidden = false
+        let base = hostile.position
+        guideColumn.simdPosition = simd_float3(base.x, base.y + 22, base.z)
+        guideLight.simdPosition = base + simd_float3(0, 4, 0)
+        let pulse = 0.45 + 0.55 * abs(sin(missionTime * 5))
+        guideColumn.opacity = CGFloat(0.4 + 0.6 * pulse)
+        guideLight.light?.intensity = CGFloat(800 + 1400 * pulse)
+    }
+
+    private func spawnEnemy(at point: simd_float3, role: ShipRole, hullOverride: Float? = nil, scale: Float = 1, boss: Bool = false) {
         let node = Meshes.interceptor(art: art)
         node.simdPosition = point
+        if scale != 1 { node.simdScale = simd_float3(repeating: scale) }
         let cage = SCNBox(width: 8.4, height: 3.6, length: 9.2, chamferRadius: 0.05)
         let wire = SCNMaterial()
         wire.fillMode = .lines
@@ -1376,10 +1515,12 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         outline.renderingOrder = 40
         node.addChildNode(outline)
         scene.rootNode.addChildNode(node)
-        let hull: Float = showcase ? (role == .bandit ? 42 : 50) : (role == .bandit ? 78 : 96)
-        let enemy = Enemy(node: node, position: point, hull: hull, cooldown: showcase ? 2.6 : 1.3 + Float(spawned % 3) * 0.25, role: role)
+        let hull = hullOverride ?? (showcase ? (role == .bandit ? 42 : 50) : (role == .bandit ? 78 : 96))
+        let enemy = Enemy(node: node, position: point, hull: hull, cooldown: showcase ? 1.4 : 0.8 + Float(spawned % 3) * 0.2, role: role)
         enemy.hullMax = hull
+        enemy.boss = boss
         enemies.append(enemy)
+        spawned += 1
     }
 
     private func disable(_ enemy: Enemy) {
@@ -1403,28 +1544,85 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         enemy.alive = false
         if towed === enemy { towed = nil }
         if cycled === enemy { cycled = nil }
+        let bossKill = enemy.boss
+        let at = enemy.position
         enemy.node.removeFromParentNode()
         kills += 1
         if firstKill < 0 { firstKill = phaseTime }
-        addBounty(280, text: "BOGEY DOWN", at: enemy.position)
         streak += 1
         bestStreak = max(bestStreak, streak)
         streakLeft = 4.5
-        if streak >= 2 { say("\(streak)x STREAK") }
-        explode(at: enemy.position, power: 1.15, chain: true)
-        let dist = simd_distance(enemy.position, position)
-        if dist < 120 {
-            slowmo = max(slowmo, 0.42)
-            shake = min(1.8, shake + 1.15)
+        multiplier = min(8, max(1, streak))
+        if !bossKill { lessonKills += 1 }
+        addBounty(bossKill ? 900 : 280, text: bossKill ? "WARDEN DOWN" : "RAIDER DOWN", at: at)
+        if streak >= 2 {
+            say("\(streak)x COMBO")
+        } else if bossKill {
+            say("WARDEN DOWN")
         }
-        dropPrize(at: enemy.position + simd_float3(-5, 2, 3))
+        let dist = simd_distance(at, position)
+        if bossKill {
+            bossDead = true
+            explode(at: at, power: 1.8, chain: true)
+            slowmo = max(slowmo, 0.7)
+            shake = min(1.8, shake + 1.6)
+        } else {
+            explode(at: at, power: dist < 80 ? 1.25 : 1.05, chain: true)
+            if dist < 140 {
+                shake = min(1.8, shake + (streak >= 2 ? 1.05 : 0.75))
+                if streak >= 2 { slowmo = max(slowmo, streak >= 4 ? 0.5 : 0.22) }
+            }
+        }
+        dropPrize(at: at + simd_float3(-5, 2, 3))
     }
 
     private func bite(_ enemy: Enemy, _ amount: Float) {
         guard enemy.alive, !enemy.disabled else { return }
         enemy.hull -= amount
-        if enemy.hull <= 0 {
-            if enemy.role == .bandit { disable(enemy) } else { destroy(enemy) }
+        if enemy.hull > 0 {
+            popups.append(Popup(position: enemy.position + simd_float3(0, 2.2, 0), text: "HIT", age: 0))
+            sparkHit(at: enemy.position)
+            if shake < 0.35 { shake = min(0.35, shake + 0.08) }
+            haptics.hit()
+            scorch(enemy)
+            return
+        }
+        if enemy.role == .bandit && !enemy.boss { disable(enemy) } else { destroy(enemy) }
+    }
+
+    private func sparkHit(at point: simd_float3) {
+        let count = min(6, max(3, profile.sparks / 2))
+        for _ in 0..<count {
+            let spark = SCNSphere(radius: 0.1)
+            spark.segmentCount = 5
+            spark.materials = [art.orangeGlow]
+            let node = SCNNode(geometry: spark)
+            node.simdPosition = point
+            scene.rootNode.addChildNode(node)
+            let dir = simd_normalize(simd_float3(Float.random(in: -1...1), Float.random(in: 0...1), Float.random(in: -1...1)))
+            effects.append(Effect(node: node, life: 0.22, start: 1, end: 0.15, spark: true, velocity: dir * Float.random(in: 16...36)))
+        }
+    }
+
+    private func scorch(_ enemy: Enemy) {
+        let frac = enemy.hull / max(1, enemy.hullMax)
+        if frac < 0.55, enemy.node.childNode(withName: "smoke", recursively: false) == nil {
+            let plane = SCNPlane(width: 3.4, height: 3.4)
+            plane.materials = [art.smoke]
+            let node = SCNNode(geometry: plane)
+            node.name = "smoke"
+            node.simdPosition = simd_float3(0, 1.1, 0)
+            node.opacity = 0.8
+            node.constraints = [SCNBillboardConstraint()]
+            enemy.node.addChildNode(node)
+        }
+        if frac < 0.32, enemy.node.childNode(withName: "chip", recursively: false) == nil {
+            let box = SCNBox(width: 0.8, height: 0.36, length: 1.2, chamferRadius: 0.02)
+            box.materials = [art.debris]
+            let node = SCNNode(geometry: box)
+            node.name = "chip"
+            node.simdPosition = simd_float3(1.8, 0.15, -0.5)
+            enemy.node.addChildNode(node)
         }
     }
 
@@ -1460,7 +1658,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         flashLight.simdPosition = point
         flashLight.light?.attenuationEndDistance = CGFloat(70 + 80 * power)
         shake = min(1.8, shake + 0.88 * power)
-        if power > 0.9 { slowmo = max(slowmo, 0.28) }
+        if power > 1.4 { slowmo = max(slowmo, 0.35) }
         billboard(art.fire, at: point, life: 0.22, start: 0.3, end: 2.2 * power)
         billboard(art.fire, at: point, life: 0.7, start: 0.8, end: 5.5 * power)
         billboard(art.smoke, at: point + simd_float3(0, 0.6, 0), life: 1.6, start: 1.1, end: 7 * power)
@@ -1721,23 +1919,34 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
     private func objectiveLine() -> String {
         if phase != .combat { return "LEFT DRIVES  ·  RIGHT AIMS" }
+        if bossDead { return "LANE CLEAR" }
         if towed != nil { return "TOW TO FREIGHTER" }
-        if nearestDisabled(maxDistance: 800) != nil { return "DISABLED - BEAM NOW" }
-        if enemies.contains(where: { $0.alive && $0.role == .bandit && !$0.disabled }) {
-            return "DISABLE BANDITS  \(deliveries)/\(captureGoal)"
+        if nearestDisabled(maxDistance: 800) != nil && lessonKills >= lessonGoal {
+            return "DISABLED - BEAM NOW"
         }
-        return "FIGHT THE BOGEYS"
+        if bossSpawned && enemies.contains(where: { $0.boss && $0.alive }) {
+            return "DESTROY THE WARDEN"
+        }
+        if lessonKills < lessonGoal {
+            return "DESTROY \(lessonGoal) RAIDERS\n\(lessonKills)/\(lessonGoal)"
+        }
+        if raidWave >= 2 && raidWave <= 3 {
+            return "WAVE \(raidWave)"
+        }
+        return "DESTROY THE RAIDERS"
     }
 
     private func guidePoint() -> (simd_float3, String) {
         if towed != nil { return (dropoff, "FREIGHTER") }
-        if let wreck = nearestDisabled(maxDistance: 1400) { return (wreck.position, "BANDIT") }
-        if let bandit = enemies.filter({ $0.alive && !$0.disabled && $0.role == .bandit })
-            .min(by: { simd_distance($0.position, position) < simd_distance($1.position, position) }) {
-            return (bandit.position, "BANDIT")
+        if lessonKills >= lessonGoal, let wreck = nearestDisabled(maxDistance: 1400) {
+            return (wreck.position, "BANDIT")
         }
-        if let hostile = nearestHostile() { return (hostile.position, "BOGEY") }
-        return (dropoff, "FREIGHTER")
+        if let hostile = enemies.filter({ $0.alive && !$0.disabled }).min(by: {
+            simd_distance($0.position, position) < simd_distance($1.position, position)
+        }) {
+            return (hostile.position, hostile.boss ? "WARDEN" : "RAIDER")
+        }
+        return (fightCenter, "FIGHT")
     }
 
     private func contact(_ point: simd_float3, kind: Int) -> HudContact {
@@ -1780,6 +1989,9 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         Planet maps
         Solar System Scope, CC BY 4.0
 
+        Weapon recordings
+        Kenney Sci-fi Sounds, CC0
+
         \(PilotLog.medalLine())
 
         Thank you for flying the lane
@@ -1819,7 +2031,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let locked = (phase == .combat && !died) ? (cycled ?? lockTarget(cone: 0.15)) : nil
         hud.lockWorld = locked.map { $0.alive ? $0.position : nil } ?? nil
         if let locked, locked.alive {
-            let kind = locked.disabled ? "DISABLED" : (locked.role == .bandit ? "BANDIT" : "BOGEY")
+            let kind = locked.disabled ? "DISABLED" : (locked.boss ? "WARDEN" : (locked.role == .bandit ? "BANDIT" : "RAIDER"))
             hud.lockTitle = kind
             hud.lockHealth = locked.hullMax > 1 ? max(0, locked.hull / locked.hullMax) : 0
             hud.lockMissile = missileLevel > 0 && !locked.disabled
@@ -1856,6 +2068,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         hud.creditScroll = creditScroll
         hud.gunName = (showcase ? Gun.pulse : gun).label
         hud.underFire = enemies.contains { $0.alive && !$0.disabled && $0.threat > 0 }
+        hud.lessonDone = lessonKills >= lessonGoal || phaseTime > 45
         hud.contacts = []
         hud.blips = []
         hud.threats = []
@@ -1900,7 +2113,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             if died {
                 hud.resultsBody = "SHIP LOST\n\(time) IN THE LANE\nBOUNTY \(bounty)"
             } else {
-                hud.resultsBody = "BOUNTY \(bounty)\n\(deliveries) BANDITS DELIVERED\n\(kills) BOGEYS DOWN\n\(time) IN THE LANE\nRANK \(rank)"
+                hud.resultsBody = "BOUNTY \(bounty)\n\(kills) RAIDERS DOWN\n\(time) IN THE LANE\nRANK \(rank)"
             }
             hud.credits = creditsText()
         }
@@ -1936,15 +2149,20 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             hangar.removeFromParentNode()
             cockpitOn = false
             refreshCockpitVisibility()
+            beginRaid()
         case .warden:
             cockpitOn = false
             refreshCockpitVisibility()
             player.isHidden = false
+            guideColumn.isHidden = true
+            guideLight.isHidden = true
             spawnWarden()
         case .results:
             cockpitOn = false
             cockpit.isHidden = true
             player.isHidden = false
+            guideColumn.isHidden = true
+            guideLight.isHidden = true
             audio.setThrust(0.05)
             audio.setLock(0)
             if !loggedSortie {
@@ -2070,6 +2288,27 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         scene.rootNode.addChildNode(Meshes.world("mars", radius: 140, at: simd_float3(-420, 80, -980), air: UIColor(red: 0.85, green: 0.45, blue: 0.28, alpha: 1)))
         scene.rootNode.addChildNode(Meshes.world("earth", radius: 90, at: simd_float3(-260, 30, -640), air: UIColor(red: 0.45, green: 0.7, blue: 1, alpha: 1)))
         scene.rootNode.addChildNode(Meshes.sun(art: art))
+        let beaconMat = SCNMaterial()
+        beaconMat.lightingModel = .constant
+        beaconMat.diffuse.contents = UIColor(red: 1, green: 0.92, blue: 0.35, alpha: 1)
+        beaconMat.emission.contents = UIColor(red: 1, green: 0.92, blue: 0.35, alpha: 1)
+        beaconMat.emission.intensity = 2.4
+        beaconMat.transparency = 0.85
+        beaconMat.blendMode = .add
+        beaconMat.writesToDepthBuffer = false
+        beaconMat.isDoubleSided = true
+        let column = SCNCylinder(radius: 0.55, height: 40)
+        column.materials = [beaconMat]
+        guideColumn.geometry = column
+        guideColumn.isHidden = true
+        scene.rootNode.addChildNode(guideColumn)
+        guideLight.light = SCNLight()
+        guideLight.light?.type = .omni
+        guideLight.light?.color = UIColor(red: 1, green: 0.9, blue: 0.4, alpha: 1)
+        guideLight.light?.intensity = 1600
+        guideLight.light?.attenuationEndDistance = 90
+        guideLight.isHidden = true
+        scene.rootNode.addChildNode(guideLight)
         let freighter = Meshes.freighter(art: art)
         freighter.simdPosition = dropoff
         scene.rootNode.addChildNode(freighter)
@@ -2187,6 +2426,7 @@ private final class Enemy {
     var alive = true
     var disabled = false
     var threat: Float = 0
+    var boss = false
     init(node: SCNNode, position: simd_float3, hull: Float, cooldown: Float, role: ShipRole) {
         self.node = node
         self.position = position

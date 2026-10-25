@@ -45,6 +45,7 @@ final class FlightViewController: UIViewController {
     private var grainIndex = 0
     private var letterboxAmount: CGFloat = 1
     private var appliedScale: CGFloat = 0
+    private var bigObjective = false
     private var lastOrientationLog = ""
     private var requestedOrientation = false
 
@@ -119,10 +120,14 @@ final class FlightViewController: UIViewController {
         promptLabel.font = UIFont.monospacedSystemFont(ofSize: 13, weight: .light)
         promptLabel.textColor = UIColor(white: 0.92, alpha: 1)
         promptLabel.textAlignment = .center
-        promptLabel.numberOfLines = 1
+        promptLabel.numberOfLines = 2
         promptLabel.adjustsFontSizeToFitWidth = true
-        promptLabel.minimumScaleFactor = 0.7
+        promptLabel.minimumScaleFactor = 0.55
         promptLabel.text = "LEFT DRIVES  ·  RIGHT AIMS"
+        promptLabel.layer.shadowColor = UIColor.black.cgColor
+        promptLabel.layer.shadowRadius = 8
+        promptLabel.layer.shadowOpacity = 0.95
+        promptLabel.layer.shadowOffset = .zero
         promptLabel.isUserInteractionEnabled = false
         view.addSubview(promptLabel)
 
@@ -285,8 +290,12 @@ final class FlightViewController: UIViewController {
         weaponLabel.alpha = 0
         compassLabel.alpha = 0
         shieldLabel.alpha = combat && !m.cockpit ? 1 : 0
-        promptLabel.text = m.phase == .combat ? m.objective : "LEFT DRIVES  ·  RIGHT AIMS"
-        promptLabel.alpha = m.phase == .combat ? 1 : (m.phase == .cinema && m.titleAlpha < 0.25 ? 1 : 0)
+        bigObjective = m.phase == .combat
+        promptLabel.text = bigObjective ? m.objective : "LEFT DRIVES  ·  RIGHT AIMS"
+        promptLabel.alpha = bigObjective ? 1 : (m.phase == .cinema && m.titleAlpha < 0.25 ? 1 : 0)
+        promptLabel.textColor = bigObjective
+            ? UIColor(red: 1, green: 0.95, blue: 0.82, alpha: 1)
+            : UIColor(white: 0.92, alpha: 1)
         calloutLabel.text = m.callout
         calloutLabel.alpha = CGFloat(m.calloutAlpha)
         titleLabel.alpha = CGFloat(m.titleAlpha)
@@ -301,20 +310,21 @@ final class FlightViewController: UIViewController {
         if m.showResults || inFlight { view.bringSubviewToFront(hangarButton) }
         view.bringSubviewToFront(pauseButton)
         resultsLabel.alpha = m.showResults ? 1 : 0
-        beamButton.isHidden = m.phase != .combat || !m.beamReady
         beamButton.setTitle(m.towing ? "RELEASE" : "BEAM NOW", for: .normal)
         let beamHot = m.beamReady && !m.towing
         beamButton.layer.borderColor = (beamHot ? UIColor(red: 1, green: 0.72, blue: 0.28, alpha: 1) : UIColor(white: 0.75, alpha: 0.85)).cgColor
         beamButton.backgroundColor = beamHot ? UIColor(red: 0.35, green: 0.16, blue: 0.02, alpha: 0.8) : UIColor(white: 0, alpha: 0.35)
         viewButton.setTitle(m.cockpit ? "CHASE" : "COCKPIT", for: .normal)
-        viewButton.isHidden = m.phase != .combat
-        cycleButton.isHidden = m.phase != .combat
-        faceButton.isHidden = m.phase != .combat
-        faceButton.layer.borderColor = (m.underFire ? UIColor(red: 1, green: 0.22, blue: 0.1, alpha: 1) : UIColor(white: 0.75, alpha: 0.85)).cgColor
+        let advanced = m.phase == .combat && m.lessonDone
+        viewButton.isHidden = !advanced
+        cycleButton.isHidden = !advanced
         gunButton.setTitle(m.gunName, for: .normal)
-        gunButton.isHidden = m.phase != .combat
-        loopButton.isHidden = m.phase != .combat
-        rollButton.isHidden = m.phase != .combat
+        gunButton.isHidden = !advanced
+        loopButton.isHidden = !advanced
+        rollButton.isHidden = !advanced
+        faceButton.isHidden = m.phase != .combat || !(m.underFire || m.lessonDone)
+        faceButton.layer.borderColor = (m.underFire ? UIColor(red: 1, green: 0.22, blue: 0.1, alpha: 1) : UIColor(white: 0.75, alpha: 0.85)).cgColor
+        beamButton.isHidden = m.phase != .combat || !m.beamReady || !m.lessonDone
         if m.showResults {
             resultsLabel.text = "NEON RIFT 2\n\n" + m.resultsBody
             creditsLabel.text = m.credits
@@ -402,7 +412,14 @@ final class FlightViewController: UIViewController {
         compassLabel.frame = CGRect(x: b.midX - colW / 2, y: safe.top + 18 * scale, width: colW, height: 22 * scale)
         let stickY = controlCenters(scale: scale).0.y
         shieldLabel.frame = CGRect(x: 20 * scale, y: stickY - 78 * scale, width: b.width - 40 * scale, height: rowH)
-        promptLabel.frame = CGRect(x: b.midX - 110 * scale, y: safe.top + 46 * scale, width: 220 * scale, height: 22 * scale)
+        if bigObjective {
+            let y = max(safe.top + 4 * scale, b.height * 0.15)
+            promptLabel.frame = CGRect(x: 16 * scale, y: y, width: b.width - 32 * scale, height: 84 * scale)
+            promptLabel.font = UIFont.systemFont(ofSize: 30 * scale, weight: .heavy)
+        } else {
+            promptLabel.frame = CGRect(x: b.midX - 110 * scale, y: safe.top + 46 * scale, width: 220 * scale, height: 22 * scale)
+            promptLabel.font = UIFont.monospacedSystemFont(ofSize: 13 * scale, weight: .light)
+        }
         calloutLabel.frame = CGRect(x: 20 * scale, y: b.midY - 70 * scale, width: b.width - 40 * scale, height: 28 * scale)
         let buttonW = 92 * scale
         let buttonH = 32 * scale
@@ -460,7 +477,6 @@ final class FlightViewController: UIViewController {
         for label in [clockLabel, navLabel, speedLabel, weaponLabel, compassLabel, shieldLabel] {
             label.font = font
         }
-        promptLabel.font = UIFont.monospacedSystemFont(ofSize: 13 * scale, weight: .light)
         resultsLabel.font = UIFont.monospacedSystemFont(ofSize: 15 * scale, weight: .light)
         titleLabel.attributedText = tracked("NEON RIFT 2", size: 26 * scale, kern: 9 * scale)
         skipButton.titleLabel?.font = UIFont.systemFont(ofSize: 13 * scale, weight: .light)

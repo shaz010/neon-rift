@@ -1,11 +1,24 @@
 import AVFoundation
 import UIKit
 
-/// Playback-category bed plus shot and explosion voices. Silent-switch safe
+/// Recorded cannon, crack, blast, and engine samples (Kenney Sci-fi Sounds, CC0)
+/// through a compressor. A quiet synth bed stays underneath. Silent-switch safe
 /// because the session is `.playback` before the engine starts.
 final class FlightAudio {
     private let engine = AVAudioEngine()
     private let box = UnsafeMutablePointer<AudioBox>.allocate(capacity: 1)
+    private let bus = AVAudioMixerNode()
+    private let compressor = AVAudioUnitDynamicsProcessor()
+    private let engineVoice = AVAudioPlayerNode()
+    private var shotVoices: [AVAudioPlayerNode] = []
+    private var boomVoices: [AVAudioPlayerNode] = []
+    private var shotCursor = 0
+    private var boomCursor = 0
+    private var cannon: AVAudioPCMBuffer?
+    private var cannonLow: AVAudioPCMBuffer?
+    private var crack: AVAudioPCMBuffer?
+    private var boomBuffer: AVAudioPCMBuffer?
+    private var engineLoop: AVAudioPCMBuffer?
     private var started = false
 
     init() {
@@ -131,12 +144,14 @@ final class FlightAudio {
                         + sin(musicPhase * 1320 * .pi) * chime * 0.05
                     let tow = sin(phase * 6 * .pi) * beam * (0.04 + 0.03 * sin(phase * 0.5))
                     let pulse = max(0, sin(musicPhase * 2 * .pi))
-                    let bed = sin(musicPhase * 2 * .pi * (92 + music * 70)) * pulse * (0.012 + music * 0.05)
+                    let bed = sin(musicPhase * 2 * .pi * (92 + music * 70)) * pulse * (0.006 + music * 0.018)
                     lockPhase += dt * (7 + lock * 8)
                     var gate: Float = 0
                     if sin(lockPhase * 2 * .pi) > 0.45 { gate = 1 }
                     let seeker = gate * sin(lockPhase * 16 * .pi) * lock * 0.055
-                    let sample = (hum + crack + thunder + punch + hit + rise + bell + tow + bed + seeker) * 0.82
+                    // Weapon voices are recorded samples. The synth shot, blast, and seeker stay silent.
+                    let voiced = hum + crack + thunder + punch + seeker
+                    let sample = (hit + rise + bell + tow + bed) * 0.45 + voiced * 0
                     if channels <= 1 {
                         ptr[i] = sample
                     } else {
@@ -178,48 +193,102 @@ final class FlightAudio {
             state.pointee.bodyPhase = endBodyPhase
             return noErr
         }
+        cannon = Self.loadSample("cannon")
+        cannonLow = Self.loadSample("cannon-low")
+        crack = Self.loadSample("crack")
+        boomBuffer = Self.loadSample("boom")
+        engineLoop = Self.loadSample("engine")
+        compressor.threshold = -16
+        compressor.headRoom = 6
+        compressor.attackTime = 0.005
+        compressor.releaseTime = 0.14
+        compressor.masterGain = 3
         engine.attach(source)
-        engine.connect(source, to: engine.mainMixerNode, format: format)
-        engine.mainMixerNode.outputVolume = 0.9
+        engine.attach(bus)
+        engine.attach(compressor)
+        engine.attach(engineVoice)
+        shotVoices = (0..<6).map { _ in AVAudioPlayerNode() }
+        boomVoices = (0..<3).map { _ in AVAudioPlayerNode() }
+        for voice in shotVoices + boomVoices { engine.attach(voice) }
+        engine.connect(source, to: bus, format: format)
+        engine.connect(engineVoice, to: bus, format: engineLoop?.format ?? format)
+        let shotFormat = cannon?.format ?? crack?.format ?? format
+        for voice in shotVoices { engine.connect(voice, to: bus, format: shotFormat) }
+        let boomFormat = boomBuffer?.format ?? format
+        for voice in boomVoices { engine.connect(voice, to: bus, format: boomFormat) }
+        engine.connect(bus, to: compressor, format: format)
+        engine.connect(compressor, to: engine.mainMixerNode, format: format)
+        engine.mainMixerNode.outputVolume = 0.95
         engine.prepare()
         do {
             try engine.start()
             started = true
+            if let engineLoop {
+                engineVoice.volume = 0.22
+                engineVoice.scheduleBuffer(engineLoop, at: nil, options: .loops)
+                engineVoice.play()
+            }
         } catch {
             NSLog("Neon Rift 2 audio engine: \(error.localizedDescription)")
         }
     }
 
-    func setThrust(_ value: Float) { box.pointee.thrust = min(1, max(0, value)) }
+    func setThrust(_ value: Float) {
+        let v = min(1, max(0, value))
+        box.pointee.thrust = v
+        guard started else { return }
+        engineVoice.volume = 0.2 + v * 0.75
+    }
     func setLaunch(_ value: Float) { box.pointee.launch = min(1, max(box.pointee.launch, value)) }
     func setMusic(_ value: Float) { box.pointee.music = min(1, max(0, value)) }
     func setBeam(_ value: Float) { box.pointee.beam = min(1, max(0, value)) }
     func setLock(_ value: Float) { box.pointee.lock = min(1, max(0, value)) }
-    /// 0 pulse, 1 lightning arc, 2 lime beam, 3 phaser.
+    /// 0 pulse cannon, 1 energy crack, 2 beam crack, 3 phaser crack plus blast.
     func shot(_ kind: Int) {
-        box.pointee.shot = 1
-        box.pointee.zap = kind == 2 ? 0.55 : 1.0
-        box.pointee.shotPhase = 0
-        box.pointee.shotKind = Float(kind)
-        box.pointee.shotTone = Float.random(in: 0.84...1.16)
-        box.pointee.crackle = kind == 1 ? 1 : 0
-        if kind == 3, box.pointee.boom < 0.75 {
-            box.pointee.boom = 0.82
-            box.pointee.boomPhase = 0
-            box.pointee.boomTone = Float.random(in: 0.8...1.08)
+        switch kind {
+        case 1:
+            play(crack, cursor: &shotCursor, voices: shotVoices, volume: 0.92)
+        case 2:
+            play(crack, cursor: &shotCursor, voices: shotVoices, volume: 0.7)
+        case 3:
+            play(crack, cursor: &shotCursor, voices: shotVoices, volume: 1)
+            play(boomBuffer, cursor: &boomCursor, voices: boomVoices, volume: 0.62)
+        default:
+            let body = (shotCursor % 2 == 0) ? (cannon ?? cannonLow) : (cannonLow ?? cannon)
+            play(body, cursor: &shotCursor, voices: shotVoices, volume: 1)
         }
     }
     func explosion(power: Float = 1) {
-        let punch = min(1, 0.4 + power * 0.5)
-        if punch >= box.pointee.boom {
-            box.pointee.boom = punch
-            box.pointee.boomPhase = 0
-            box.pointee.boomTone = Float.random(in: 0.76...1.1)
-        }
+        play(boomBuffer, cursor: &boomCursor, voices: boomVoices, volume: min(1, 0.58 + power * 0.42))
     }
     func impact() {
-        box.pointee.body = 1
-        box.pointee.bodyPhase = 0
+        play(cannon ?? cannonLow, cursor: &shotCursor, voices: shotVoices, volume: 0.7)
+    }
+
+    private func play(_ buffer: AVAudioPCMBuffer?, cursor: inout Int, voices: [AVAudioPlayerNode], volume: Float) {
+        guard started, let buffer, !voices.isEmpty else { return }
+        let voice = voices[cursor % voices.count]
+        cursor = (cursor + 1) % max(1, voices.count)
+        voice.volume = volume
+        voice.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+        if !voice.isPlaying { voice.play() }
+    }
+
+    private static func loadSample(_ name: String) -> AVAudioPCMBuffer? {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "wav") else {
+            NSLog("Neon Rift 2 missing \(name).wav")
+            return nil
+        }
+        do {
+            let file = try AVAudioFile(forReading: url)
+            let frames = AVAudioFrameCount(file.length)
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frames) else { return nil }
+            try file.read(into: buffer)
+            return buffer
+        } catch {
+            NSLog("Neon Rift 2 sample \(name): \(error.localizedDescription)")
+            return nil
+        }
     }
     func titleHit() { box.pointee.sting = 1 }
     func chime() { box.pointee.chime = 1 }
