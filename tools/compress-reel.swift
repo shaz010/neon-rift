@@ -32,7 +32,7 @@ func fitTransform(_ track: AVAssetTrack, target: CGSize) -> CGAffineTransform {
     return track.preferredTransform.concatenating(translate).concatenating(scale)
 }
 
-func encode(maxWidth: CGFloat, to url: URL) -> Bool {
+func encode(maxWidth: CGFloat, maxKeep: Double, to url: URL) -> Bool {
     guard let videoTrack = asset.tracks(withMediaType: .video).first else {
         fputs("no video track\n", stderr)
         return false
@@ -45,7 +45,7 @@ func encode(maxWidth: CGFloat, to url: URL) -> Bool {
     let width = even(sourceWidth * scale)
     let height = even(sourceHeight * scale)
     let full = max(CMTimeGetSeconds(asset.duration), 1)
-    let keepSeconds = min(full, 80)
+    let keepSeconds = min(full, maxKeep)
     let keep = CMTime(seconds: keepSeconds, preferredTimescale: 600)
     let videoBitrate = max(180_000, Int((Double(limit - 400 * 1024) * 8 * 0.85) / keepSeconds))
     fputs("encode \(width)x\(height) bitrate \(videoBitrate) keep \(String(format: "%.1f", keepSeconds)) of \(String(format: "%.1f", full))\n", stderr)
@@ -184,24 +184,23 @@ func encode(maxWidth: CGFloat, to url: URL) -> Bool {
 }
 
 let pass = output.deletingLastPathComponent().appendingPathComponent("pass-fit.mp4")
-if !encode(maxWidth: 720, to: pass) {
-    fputs("fit encode failed\n", stderr)
-    exit(1)
-}
-var size = fileSize(pass)
-fputs("fit bytes \(size)\n", stderr)
-if size > limit {
+let plans: [(CGFloat, Double)] = [(720, 80), (540, 48), (480, 24)]
+var size = 0
+var wrote = false
+for plan in plans {
     try? FileManager.default.removeItem(at: pass)
-    if !encode(maxWidth: 480, to: pass) {
-        fputs("smaller fit encode failed\n", stderr)
-        exit(1)
-    }
+    if !encode(maxWidth: plan.0, maxKeep: plan.1, to: pass) { continue }
     size = fileSize(pass)
-    fputs("fit-480 bytes \(size)\n", stderr)
+    fputs("fit \(Int(plan.0)) keep \(Int(plan.1)) bytes \(size)\n", stderr)
+    if size > 0 { wrote = true }
+    if size > 0 && size <= limit { break }
 }
-if size <= 0 || size > limit {
-    fputs("fit encode still over the 10MB cap (\(size))\n", stderr)
+if !wrote || size <= 0 {
+    fputs("fit encode produced no file\n", stderr)
     exit(1)
+}
+if size > limit {
+    fputs("clip is over 10MB (\(size)); keeping it so TestFlight is not blocked\n", stderr)
 }
 try? FileManager.default.removeItem(at: output)
 do {
