@@ -15,6 +15,7 @@ import {
   commandBasis,
   cockpitFromYaw,
   commandFocus,
+  rangePose,
   shotPose,
   dot,
   COMMAND_UP,
@@ -242,4 +243,96 @@ test('medals remember a haul without touching another save', () => {
   assert.deepEqual(next.medals.sort(), ['FIRST BLOOD', 'HAULER']);
   assert.equal(next.bestBounty, 400);
   assert.equal(next.livery, 'ion');
+});
+
+test('the haul still starts in the hangar unless the range flag is on', () => {
+  const haul = createMatch({}, 1);
+  assert.equal(haul.phase, 'hangar');
+  assert.equal(haul.simple, false);
+  const range = createMatch({}, 1, { simple: true });
+  assert.equal(range.phase, 'run');
+  assert.equal(range.enemies.filter((enemy) => enemy.alive).length, 1);
+});
+
+test('the range camera is fixed and ignores the ship', () => {
+  const a = rangePose();
+  const b = rangePose();
+  assert.deepEqual(a.eye, b.eye);
+  assert.deepEqual(a.lookDir, b.lookDir);
+  assert.ok(Math.abs(a.basis.x[1]) < 0.08);
+  assert.equal(a.eye.x, 0);
+  assert.ok(a.eye.y > 20);
+});
+
+test('the ship stays put until a drag, then stops the moment the thumb lifts', () => {
+  const state = createMatch({}, 1, { simple: true });
+  const start = { x: state.pos.x, z: state.pos.z };
+  for (let i = 0; i < 40; i++) step(state, idleInput(), 0.05);
+  assert.equal(state.pos.x, start.x);
+  assert.equal(state.pos.z, start.z);
+  assert.equal(state.vel.x, 0);
+  assert.equal(state.vel.z, 0);
+  assert.equal(state.yaw, 0);
+  const held = idleInput();
+  held.dragging = true;
+  held.dragX = 0;
+  held.dragZ = 0;
+  step(state, held, 0.05);
+  assert.equal(state.pos.x, start.x);
+  assert.equal(state.pos.z, start.z);
+  held.dragX = 1.25;
+  held.dragZ = -0.5;
+  step(state, held, 0.05);
+  assert.ok(Math.abs(state.pos.x - (start.x + 1.25)) < 1e-9);
+  assert.ok(Math.abs(state.pos.z - (start.z - 0.5)) < 1e-9);
+  assert.equal(state.vel.x, 0);
+  assert.equal(state.vel.z, 0);
+  const parked = { x: state.pos.x, z: state.pos.z };
+  for (let i = 0; i < 30; i++) step(state, idleInput(), 0.05);
+  assert.equal(state.pos.x, parked.x);
+  assert.equal(state.pos.z, parked.z);
+  assert.equal(state.vel.x, 0);
+  assert.equal(state.vel.z, 0);
+  assert.equal(state.shake, 0);
+  assert.equal(state.cam, null);
+});
+
+test('one locked torpedo kills the bandit without shaking the camera, then another appears', () => {
+  const state = createMatch({}, 1, { simple: true });
+  const bandit = state.enemies[0];
+  const early = idleInput();
+  early.torpedo = true;
+  step(state, early, 0.05);
+  assert.equal(state.bolts.length, 0);
+  const fire = idleInput();
+  fire.torpedo = true;
+  fire.lockId = bandit.id;
+  step(state, fire, 0.05);
+  const torpedo = state.bolts.find((bolt) => bolt.kind === 'torpedo');
+  assert.ok(torpedo);
+  const dx = bandit.x - state.pos.x;
+  const dz = bandit.z - state.pos.z;
+  const len = Math.hypot(dx, dz);
+  assert.ok(Math.abs(torpedo.vx - (dx / len) * 12) < 0.05);
+  assert.ok(Math.abs(torpedo.vz - (dz / len) * 12) < 0.05);
+  const again = idleInput();
+  again.torpedo = true;
+  again.lockId = bandit.id;
+  step(state, again, 0.05);
+  assert.equal(state.bolts.filter((bolt) => bolt.kind === 'torpedo').length, 1);
+  const parked = { x: state.pos.x, z: state.pos.z };
+  for (let i = 0; i < 90 && state.kills < 1; i++) step(state, idleInput(), 0.05);
+  assert.equal(state.kills, 1);
+  assert.equal(state.shake, 0);
+  assert.equal(state.cam, null);
+  assert.ok(state.blasts.length + state.booms.length >= 3);
+  assert.equal(state.pos.x, parked.x);
+  assert.equal(state.pos.z, parked.z);
+  for (let i = 0; i < 40; i++) step(state, idleInput(), 0.05);
+  const live = state.enemies.filter((enemy) => enemy.alive);
+  assert.equal(live.length, 1);
+  assert.notEqual(live[0].id, bandit.id);
+  assert.equal(state.shake, 0);
+  assert.equal(state.cam, null);
+  assert.equal(state.pos.x, parked.x);
 });
