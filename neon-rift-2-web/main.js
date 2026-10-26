@@ -1,28 +1,31 @@
-import * as THREE from './vendor/three.module.min.js?v=20261026a';
+import * as THREE from './vendor/three.module.min.js?v=20261026c';
 import {
   SAVE_KEY,
   LIVERIES,
   WEAPONS,
+  BUILD_LABEL,
   defaultSave,
   createMatch,
   startRun,
   mergeSave,
   step,
-  forward,
-} from './sim.js?v=20261026a';
+} from './sim.js?v=20261026c';
 import {
   commandBasis,
   commandFocus,
   cockpitFromYaw,
   cockpitEye,
+  rangePose,
   shotPose,
   basisLooking,
-} from './cameraRig.js?v=20261026a';
-import { createAudio, vibrate } from './audio.js?v=20261026a';
+} from './cameraRig.js?v=20261026c';
+import { createAudio, vibrate } from './audio.js?v=20261026c';
 
 const $ = (id) => document.getElementById(id);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const debugOn = new URLSearchParams(location.search).has('debug');
+const params = new URLSearchParams(location.search);
+const debugOn = params.has('debug');
+const simple = !params.has('full');
 const audio = createAudio();
 const PAINT = {
   factory: 0x9aa3ad,
@@ -87,7 +90,9 @@ function writeSave(save) {
 
 let save = loadSave();
 let viewMode = 'command';
-let state = createMatch(save, (Math.random() * 1e9) >>> 0);
+let state = createMatch(save, (Math.random() * 1e9) >>> 0, { simple });
+document.body.dataset.simple = simple ? '1' : '0';
+$('build').textContent = BUILD_LABEL;
 let savedResult = false;
 const audioBus = audio;
 
@@ -171,7 +176,10 @@ function shipMesh() {
   const wing = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.05, 0.72), darkMat);
   wing.position.z = 0.25;
   g.add(wing);
-  const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), glowMat);
+  const canopyMat = simple
+    ? new THREE.MeshStandardMaterial({ color: 0x1a1020, metalness: 0.4, roughness: 0.35, emissive: 0x2a1030, emissiveIntensity: 0.3 })
+    : glowMat;
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), canopyMat);
   canopy.scale.y = 0.5;
   canopy.position.set(0, 0.2, -0.2);
   g.add(canopy);
@@ -180,9 +188,11 @@ function shipMesh() {
     nacelle.rotation.x = Math.PI / 2;
     nacelle.position.set(0.42 * side, -0.02, 0.85);
     g.add(nacelle);
-    const flame = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), glowMat);
-    flame.position.set(0.42 * side, -0.02, 1.32);
-    g.add(flame);
+    if (!simple) {
+      const flame = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), glowMat);
+      flame.position.set(0.42 * side, -0.02, 1.32);
+      g.add(flame);
+    }
   }
   return g;
 }
@@ -208,6 +218,10 @@ player.add(shell);
 deckRing.rotation.x = -Math.PI / 2;
 deckRing.position.y = 0.06;
 player.add(deckRing);
+if (simple) {
+  shell.visible = false;
+  deckRing.visible = false;
+}
 scene.add(player);
 const shafts = [];
 
@@ -304,6 +318,7 @@ function buildWorld() {
     shafts.push(shaft);
   }
   const freighter = new THREE.Group();
+  freighter.name = 'freighter';
   const hull = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.1, 11), new THREE.MeshStandardMaterial({
     color: 0xc5d0da, metalness: 0.55, roughness: 0.4, emissive: 0x123040, emissiveIntensity: 0.25,
   }));
@@ -319,7 +334,12 @@ function buildWorld() {
   );
   pad.rotation.x = -Math.PI / 2;
   pad.position.set(state.freighter.x, 0.04, state.freighter.z);
+  pad.name = 'pad';
   scene.add(pad);
+  if (simple) {
+    freighter.visible = false;
+    pad.visible = false;
+  }
 }
 buildWorld();
 
@@ -478,8 +498,46 @@ let boostEdge = false;
 let skipEdge = false;
 let weaponEdge = 0;
 let dodgeEdge = null;
+let lockEdge = 0;
+let dragAccum = { x: 0, z: 0 };
 let lastLeftTap = 0;
 let lastRightTap = 0;
+
+function groundUnder(clientX, clientY) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
+  const ndcY = -((clientY - rect.top) / rect.height) * 2 + 1;
+  const origin = new THREE.Vector3(ndcX, ndcY, 0).unproject(camera);
+  const far = new THREE.Vector3(ndcX, ndcY, 1).unproject(camera);
+  const dy = far.y - origin.y;
+  if (Math.abs(dy) < 1e-6) return null;
+  const t = -origin.y / dy;
+  if (t < 0) return null;
+  return {
+    x: origin.x + (far.x - origin.x) * t,
+    z: origin.z + (far.z - origin.z) * t,
+  };
+}
+
+function banditAt(clientX, clientY) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+  let best = null;
+  let bestD = 72;
+  for (const enemy of state.enemies) {
+    if (!enemy.alive) continue;
+    const point = project(enemy.x, 1.2, enemy.z);
+    if (!point) continue;
+    const dist = Math.hypot(point.x - x, point.y - y);
+    if (dist < bestD) {
+      best = enemy;
+      bestD = dist;
+    }
+  }
+  return best;
+}
 
 function resize() {
   const vv = window.visualViewport;
@@ -569,7 +627,7 @@ ui.touch.addEventListener('pointerdown', (event) => {
   const side = (event.clientX - rect.left) < rect.width * 0.5 ? 'L' : 'R';
   const now = performance.now();
   let gesture = null;
-  if (side === 'L' && now - lastLeftTap < 320) boostEdge = true;
+  if (!simple && side === 'L' && now - lastLeftTap < 320) boostEdge = true;
   if (side === 'L') lastLeftTap = now;
   if (side === 'R' && now - lastRightTap < 280) {
     torpedoEdge = true;
@@ -584,6 +642,7 @@ ui.touch.addEventListener('pointerdown', (event) => {
     y: event.clientY,
     t0: now,
     gesture,
+    ground: simple ? groundUnder(event.clientX, event.clientY) : null,
   });
 });
 ui.touch.addEventListener('pointermove', (event) => {
@@ -594,7 +653,15 @@ ui.touch.addEventListener('pointermove', (event) => {
   pointer.x = event.clientX;
   pointer.y = event.clientY;
   if (pointer.side === 'H') tumble(dx, dy);
-  if (pointer.side === 'R' && !pointer.gesture) {
+  if (simple && pointer.side === 'L') {
+    const ground = groundUnder(pointer.x, pointer.y);
+    if (ground && pointer.ground) {
+      dragAccum.x += ground.x - pointer.ground.x;
+      dragAccum.z += ground.z - pointer.ground.z;
+    }
+    pointer.ground = ground;
+  }
+  if (!simple && pointer.side === 'R' && !pointer.gesture) {
     const adx = pointer.x - pointer.ox;
     const ady = pointer.y - pointer.oy;
     const dist = Math.hypot(adx, ady);
@@ -610,7 +677,17 @@ ui.touch.addEventListener('pointermove', (event) => {
     }
   }
 });
-function endPointer(event) { pointers.delete(event.pointerId); }
+function endPointer(event) {
+  const pointer = pointers.get(event.pointerId);
+  if (simple && pointer && state.phase === 'run') {
+    const moved = Math.hypot(pointer.x - pointer.ox, pointer.y - pointer.oy);
+    if (moved < 14) {
+      const bandit = banditAt(pointer.x, pointer.y);
+      if (bandit) lockEdge = bandit.id;
+    }
+  }
+  pointers.delete(event.pointerId);
+}
 ui.touch.addEventListener('pointerup', endPointer);
 ui.touch.addEventListener('pointercancel', endPointer);
 
@@ -650,26 +727,34 @@ function readInput() {
   if (keys.has('ArrowLeft')) aimX -= 1;
   if (keys.has('ArrowRight')) aimX += 1;
   const right = pointerBySide('R');
-  const held = right && !right.gesture && performance.now() - right.t0 > 60;
-  const fire = held || keys.has('Space');
+  const held = !simple && right && !right.gesture && performance.now() - right.t0 > 60;
+  const fire = held || (!simple && keys.has('Space'));
+  const dragging = simple && !!pointerBySide('L');
   const input = {
-    moveX: Math.max(-1, Math.min(1, moveX)),
-    moveY: Math.max(-1, Math.min(1, moveY)),
-    aimX: Math.max(-1, Math.min(1, aimX)),
+    moveX: simple ? 0 : Math.max(-1, Math.min(1, moveX)),
+    moveY: simple ? 0 : Math.max(-1, Math.min(1, moveY)),
+    aimX: simple ? 0 : Math.max(-1, Math.min(1, aimX)),
     fire,
     torpedo: torpedoEdge,
-    boost: boostEdge,
+    boost: simple ? false : boostEdge,
     skip: skipEdge,
-    weapon: weaponEdge,
-    dodge: !!dodgeEdge,
+    weapon: simple ? 0 : weaponEdge,
+    dodge: simple ? false : !!dodgeEdge,
     dodgeX: dodgeEdge ? dodgeEdge.x : 0,
     dodgeY: dodgeEdge ? dodgeEdge.y : 0,
+    dragging,
+    dragX: dragging ? dragAccum.x : 0,
+    dragZ: dragging ? dragAccum.z : 0,
+    lockId: lockEdge,
   };
   torpedoEdge = false;
   boostEdge = false;
   skipEdge = false;
   weaponEdge = 0;
   dodgeEdge = null;
+  lockEdge = 0;
+  dragAccum.x = 0;
+  dragAccum.z = 0;
   return input;
 }
 
@@ -683,7 +768,7 @@ function toggleView() {
 
 function launch() {
   audioBus.unlock();
-  if (state.phase !== 'hangar') return;
+  if (simple || state.phase !== 'hangar') return;
   viewMode = 'command';
   startRun(state);
   coachUntil = performance.now() + 7000;
@@ -756,12 +841,13 @@ function syncHud() {
   ui.coach.classList.toggle('show', state.phase === 'run' && performance.now() < coachUntil);
   const cool = state.torpedoCool > 0.08;
   ui.torpedo.classList.toggle('cool', cool);
-  ui.torpedo.firstChild.textContent = cool ? state.torpedoCool.toFixed(1) : 'TORPEDO';
+  ui.torpedo.classList.toggle('armed', !!(simple && state.lockId));
+  ui.torpedo.firstChild.textContent = cool ? state.torpedoCool.toFixed(1) : (simple ? 'FIRE' : 'TORPEDO');
   const weapon = WEAPONS[state.weapon] || WEAPONS[0];
   ui.weaponName.textContent = weapon.name;
   ui.charge.style.transform = `scaleX(${weapon.id === 'rail' ? state.charge : 0})`;
   ui.stickR.classList.toggle('hot', !!pointerBySide('R') || keys.has('Space'));
-  const shellOn = state.shield > 8 || state.shieldGlow > 0 || state.dodge > 0;
+  const shellOn = !simple && (state.shield > 8 || state.shieldGlow > 0 || state.dodge > 0);
   shell.visible = state.phase === 'run' && shellOn;
   const shellColor = state.shieldKind === 'spike' ? 0xff4ad4 : state.shieldKind === 'aegis' ? 0xc46bff : 0x7af6ff;
   shell.material.color.setHex(state.dodge > 0 ? 0xf4fbff : shellColor);
@@ -774,7 +860,7 @@ function syncHud() {
 
 function floats() {
   for (const fx of state.fx) {
-    if (/DISABLED|DELIVERED|WARDEN|BOGEY|BOOST|HITCHED|SHIELD|SLOW/.test(fx.text)) {
+    if (/DISABLED|DELIVERED|WARDEN|BOGEY|BOOST|HITCHED|SHIELD|SLOW|HIT|LOCKED/.test(fx.text)) {
       ui.banner.textContent = fx.text;
       bannerT = Math.max(bannerT, 0.8);
     }
@@ -800,11 +886,11 @@ function sounds() {
 }
 
 function placeCamera(dt) {
-  const shake = reduceMotion ? 0 : state.shake;
+  const shake = simple || reduceMotion ? 0 : state.shake;
   const jx = Math.sin(state.time * 40) * shake * 0.35;
   const jz = Math.cos(state.time * 33) * shake * 0.35;
-  let mode = state.phase === 'hangar' ? 'hangar' : viewMode;
-  if (state.cam && state.phase === 'run') {
+  let mode = state.phase === 'hangar' ? 'hangar' : (simple ? 'range' : viewMode);
+  if (!simple && state.cam && state.phase === 'run') {
     mode = 'shot';
     if (frozenCam !== state.cam) {
       frozenCam = state.cam;
@@ -827,6 +913,12 @@ function placeCamera(dt) {
     camera.position.set(eye.x, eye.y, eye.z);
     applyBasis(camera, basisLooking([look[0] / len, look[1] / len, look[2] / len], [0, 1, 0]));
     camera.fov = 38;
+  } else if (simple) {
+    frozenCam = null;
+    const pose = rangePose();
+    camera.position.set(pose.eye.x, pose.eye.y, pose.eye.z);
+    applyBasis(camera, pose.basis);
+    camera.fov = pose.fov;
   } else if (viewMode === 'cockpit') {
     frozenCam = null;
     const eye = cockpitEye(state.pos, state.yaw);
@@ -846,17 +938,41 @@ function placeCamera(dt) {
   camera.updateProjectionMatrix();
   if (debugOn) {
     window.__nr = () => ({
+      build: BUILD_LABEL,
+      simple: !!state.simple,
       phase: state.phase,
       yaw: state.yaw,
       speed: Math.hypot(state.vel.x, state.vel.z),
-      bolts: state.bolts.map((bolt) => bolt.kind),
+      pos: { x: state.pos.x, z: state.pos.z },
+      vel: { x: state.vel.x, z: state.vel.z },
+      eye: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+      shake: state.shake,
+      blasts: state.blasts.length,
+      bolts: state.bolts.map((bolt) => ({
+        kind: bolt.kind,
+        x: Math.round(bolt.x * 10) / 10,
+        z: Math.round(bolt.z * 10) / 10,
+        life: Math.round(bolt.life * 100) / 100,
+      })),
       enemies: state.enemies.map((enemy) => ({
         role: enemy.role,
+        x: Math.round(enemy.x * 10) / 10,
+        z: Math.round(enemy.z * 10) / 10,
         hull: Math.round(enemy.hull),
         disabled: enemy.disabled,
         alive: enemy.alive,
       })),
       cam: state.cam ? state.cam.kind : '',
+      bandit: (() => {
+        const enemy = state.enemies.find((item) => item.alive);
+        if (!enemy) return null;
+        const point = project(enemy.x, 1.2, enemy.z);
+        return {
+          id: enemy.id,
+          x: point ? point.x : null,
+          y: point ? point.y : null,
+        };
+      })(),
       lock: state.lockId,
       deliveries: state.deliveries,
       towed: state.towedId,
@@ -867,7 +983,7 @@ function placeCamera(dt) {
     yAxis.set(0, 1, 0).applyQuaternion(camera.quaternion);
     const bad = mode === 'command'
       ? Math.abs(yAxis.z + 1) > 0.08
-      : mode === 'hangar' || mode === 'cockpit' || mode === 'shot'
+      : mode === 'hangar' || mode === 'cockpit' || mode === 'shot' || mode === 'range'
         ? Math.abs(xAxis.y) > 0.12
         : false;
     ui.debug.style.display = 'block';
@@ -958,10 +1074,10 @@ function frame(now) {
   } else {
     player.position.set(state.pos.x, 0, state.pos.z);
     player.rotation.set(0, -state.yaw, 0);
-    const fwd = forward(state.yaw);
-    const glow = 0.35 + Math.min(1, Math.hypot(state.vel.x, state.vel.z) / 22) * 0.65;
-    glowMat.color.setRGB(0.45 + glow * 0.2, 0.9, 1);
-    void fwd;
+    if (!simple) {
+      const glow = 0.35 + Math.min(1, Math.hypot(state.vel.x, state.vel.z) / 22) * 0.65;
+      glowMat.color.setRGB(0.45 + glow * 0.2, 0.9, 1);
+    }
   }
   syncGroup(state.enemies, 'foe', foeVisual);
   syncGroup(state.bolts, 'bolt', (bolt) => {
@@ -1037,7 +1153,7 @@ function frame(now) {
       continue;
     }
     sparkPos[o] = spark.x;
-    sparkPos[o + 1] = 0.4;
+    sparkPos[o + 1] = spark.y || 0.4;
     sparkPos[o + 2] = spark.z;
     const hex = spark.color || 0xfff1c4;
     sparkCol[o] = ((hex >> 16) & 255) / 255;
@@ -1098,5 +1214,10 @@ LIVERIES.forEach((name) => {
   ui.paints.appendChild(button);
 });
 paintShip();
+if (simple) {
+  ui.coach.textContent = 'Drag with your left thumb. The ship stops when you let go. Tap the bandit, then FIRE.';
+  coachUntil = performance.now() + 9000;
+}
 renderPanels();
+placeCamera(0.016);
 requestAnimationFrame(frame);

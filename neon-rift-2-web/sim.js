@@ -14,6 +14,9 @@ export const WEAPONS = [
   { id: 'mine', name: 'MINES' },
 ];
 export const SHIELDS = ['bubble', 'spike', 'aegis'];
+/** Shown on screen so a cached page is obvious. Bump with the asset query. */
+export const BUILD_LABEL = 'v26C';
+/** The live default. Pass `{ simple: false }` or open `?full=1` for the haul. */
 
 export function defaultSave() {
   return {
@@ -26,8 +29,8 @@ export function defaultSave() {
   };
 }
 
-export function createMatch(save = {}, seed = 1) {
-  return {
+export function createMatch(save = {}, seed = 1, options = {}) {
+  const state = {
     phase: 'hangar',
     stage: 'haul',
     time: 0,
@@ -91,7 +94,13 @@ export function createMatch(save = {}, seed = 1) {
     cam: null,
     camGap: 0,
     medalsEarned: [],
+    simple: !!options.simple,
+    booms: [],
+    respawn: 0,
+    rangeSlot: 0,
   };
+  if (state.simple) armRange(state);
+  return state;
 }
 
 export function startRun(state) {
@@ -128,9 +137,15 @@ export function step(state, input, dt) {
   }
   if (state.phase === 'run') {
     state.time += raw;
-    fly(state, input, raw);
-    fight(state, input, raw);
+    if (state.simple) {
+      rangeMove(state, input);
+      rangeFight(state, input, raw);
+    } else {
+      fly(state, input, raw);
+      fight(state, input, raw);
+    }
   }
+  pumpBooms(state, raw);
   state.flash = Math.max(0, state.flash - raw * 1.5);
   state.shake = Math.max(0, state.shake - raw * 1.6);
   state.sayT = Math.max(0, state.sayT - raw);
@@ -146,10 +161,18 @@ export function step(state, input, dt) {
     spark.age += raw;
     spark.x += spark.vx * raw;
     spark.z += spark.vz * raw;
+    spark.y = (spark.y || 0.35) + (spark.vy || 0) * raw;
+    if (spark.debris) spark.vy = (spark.vy || 0) - 9 * raw;
   }
   state.sparks = state.sparks.filter((spark) => spark.age < spark.life);
   for (const arc of state.arcs) arc.age += raw;
   state.arcs = state.arcs.filter((arc) => arc.age < arc.life);
+  if (state.simple) {
+    state.shake = 0;
+    state.cam = null;
+    state.vel.x = 0;
+    state.vel.z = 0;
+  }
   refreshNav(state);
   return state;
 }
@@ -167,6 +190,10 @@ export function idleInput() {
     dodge: false,
     dodgeX: 0,
     dodgeY: 0,
+    dragging: false,
+    dragX: 0,
+    dragZ: 0,
+    lockId: 0,
   };
 }
 
@@ -191,6 +218,176 @@ export function spawnEnemy(state, role, x, z) {
   };
   state.enemies.push(enemy);
   return enemy;
+}
+
+/** Still range: one bandit, direct drag, no mission systems. */
+function armRange(state) {
+  state.phase = 'run';
+  state.stage = 'range';
+  state.pos.x = 0;
+  state.pos.z = 10;
+  state.yaw = 0;
+  state.vel.x = 0;
+  state.vel.z = 0;
+  state.enemies = [];
+  state.bolts = [];
+  state.lockId = null;
+  state.objective = 'TAP THE BANDIT';
+  state.say = 'TAP THE BANDIT';
+  state.sayT = 1.6;
+  spawnRangeBandit(state, 0);
+}
+
+function spawnRangeBandit(state, slot) {
+  state.enemies = state.enemies.filter((enemy) => enemy.alive);
+  if (state.enemies.some((enemy) => enemy.alive)) return;
+  const xs = [0, -8, 7, -4, 5];
+  const enemy = spawnEnemy(state, 'bandit', xs[Math.abs(slot) % xs.length], -24);
+  enemy.vx = 0;
+  enemy.vz = 0;
+  enemy.hull = 40;
+  state.lockId = null;
+  state.objective = 'TAP THE BANDIT';
+}
+
+/** The ship moves only by the drag delta this frame, then velocity is zero. */
+function rangeMove(state, input) {
+  state.vel.x = 0;
+  state.vel.z = 0;
+  if (input.dragging) {
+    state.pos.x = clamp(state.pos.x + (input.dragX || 0), -16, 16);
+    state.pos.z = clamp(state.pos.z + (input.dragZ || 0), -2, 16);
+  }
+  const locked = state.enemies.find((enemy) => enemy.id === state.lockId && enemy.alive);
+  if (locked) {
+    state.yaw = Math.atan2(locked.x - state.pos.x, -(locked.z - state.pos.z));
+  }
+}
+
+function rangeFight(state, input, dt) {
+  state.torpedoCool = Math.max(0, state.torpedoCool - dt);
+  if (input.lockId) {
+    const picked = state.enemies.find((enemy) => enemy.id === input.lockId && enemy.alive);
+    if (picked) {
+      state.lockId = picked.id;
+      state.objective = 'FIRE';
+      state.say = 'LOCKED';
+      state.sayT = 0.6;
+    }
+  }
+  const locked = state.enemies.find((enemy) => enemy.id === state.lockId && enemy.alive);
+  if (!locked) state.lockId = null;
+  else state.objective = 'FIRE';
+  const flyingTorpedo = state.bolts.some((bolt) => bolt.player && bolt.kind === 'torpedo' && !bolt.dead);
+  if (input.torpedo && locked && !flyingTorpedo && state.torpedoCool <= 0) {
+    launchRangeTorpedo(state, locked);
+  }
+  for (const enemy of state.enemies) {
+    enemy.vx = 0;
+    enemy.vz = 0;
+    enemy.windup = 0;
+  }
+  updateBolts(state, dt);
+  collide(state);
+  expireBolts(state);
+  state.enemies = state.enemies.filter((enemy) => enemy.alive);
+  if (state.respawn > 0) {
+    state.respawn -= dt;
+    if (state.respawn <= 0) {
+      state.respawn = 0;
+      state.rangeSlot += 1;
+      spawnRangeBandit(state, state.rangeSlot);
+    }
+  }
+  state.shake = 0;
+  state.cam = null;
+}
+
+function launchRangeTorpedo(state, enemy) {
+  const dx = enemy.x - state.pos.x;
+  const dz = enemy.z - state.pos.z;
+  const len = Math.hypot(dx, dz) || 1;
+  const speed = 12;
+  spawnBolt(state, {
+    x: state.pos.x + (dx / len) * 1.8,
+    z: state.pos.z + (dz / len) * 1.8,
+    vx: (dx / len) * speed,
+    vz: (dz / len) * speed,
+    life: len / speed + 0.8,
+    player: true,
+    damage: 80,
+    radius: 0.9,
+    blast: true,
+    kind: 'torpedo',
+    color: 0xffe08a,
+  });
+  state.torpedoCool = 0.35;
+  state.buzz.push('torpedo');
+  state.flash = Math.max(state.flash, 0.2);
+}
+
+function rangeKill(state, enemy) {
+  enemy.alive = false;
+  enemy.hull = 0;
+  state.kills += 1;
+  state.lockId = null;
+  state.fx.push({ text: 'HIT', x: enemy.x, z: enemy.z });
+  state.objective = 'BANDIT DOWN';
+  state.flash = Math.max(state.flash, 0.85);
+  spectacle(state, enemy.x, enemy.z);
+  state.respawn = 1.25;
+  state.shake = 0;
+  state.cam = null;
+  return 'killed';
+}
+
+function spectacle(state, x, z) {
+  addBlast(state, x, z, 4.4, true, 0xffe08a);
+  addBlast(state, x, z, 8.2, true, 0xff4ad4);
+  addBlast(state, x, z, 12.5, false, 0x7af6ff);
+  addSparks(state, x, z, 0xffe08a, 16, 12);
+  addSparks(state, x, z, 0xff4ad4, 12, 8);
+  addDebris(state, x, z);
+  state.booms.push(
+    { t: 0.14, x, z, radius: 6.4, color: 0xff4ad4, spark: 0xff4ad4 },
+    { t: 0.32, x, z, radius: 10, color: 0xc46bff, spark: 0xc46bff },
+    { t: 0.52, x, z, radius: 14, color: 0xffb23a, spark: 0xffe08a },
+  );
+}
+
+function pumpBooms(state, dt) {
+  if (!state.booms || !state.booms.length) return;
+  for (const boom of state.booms) boom.t -= dt;
+  const due = state.booms.filter((boom) => boom.t <= 0);
+  state.booms = state.booms.filter((boom) => boom.t > 0);
+  for (const boom of due) {
+    addBlast(state, boom.x, boom.z, boom.radius, true, boom.color);
+    addSparks(state, boom.x, boom.z, boom.spark, 10, 7);
+    addDebris(state, boom.x, boom.z);
+    state.flash = Math.max(state.flash, 0.4);
+    state.buzz.push('shock');
+    if (state.simple) state.shake = 0;
+  }
+}
+
+function addDebris(state, x, z) {
+  for (let i = 0; i < 8; i++) {
+    const a = (Math.PI * 2 * i) / 8 + state.time;
+    state.sparks.push({
+      id: state.nextId++,
+      x,
+      z,
+      y: 0.7,
+      vx: Math.cos(a) * (3 + (i % 3)),
+      vz: Math.sin(a) * (3 + (i % 4)),
+      vy: 3.5 + (i % 5) * 0.8,
+      debris: true,
+      age: 0,
+      life: 0.85,
+      color: i % 2 ? 0xff4ad4 : 0xffe08a,
+    });
+  }
+  if (state.sparks.length > 96) state.sparks.splice(0, state.sparks.length - 96);
 }
 
 function fly(state, input, dt) {
@@ -590,11 +787,12 @@ function expireBolts(state) {
 function hurtEnemy(state, enemy, damage, fromBlast) {
   if (!enemy.alive || enemy.disabled) return false;
   enemy.hull -= damage;
-  if (!fromBlast) {
+  if (!fromBlast && !state.simple) {
     state.buzz.push('impact');
     state.shake = Math.max(state.shake, 0.35);
   }
   if (enemy.hull > 0) return false;
+  if (state.simple) return rangeKill(state, enemy);
   if (enemy.role === 'bandit') {
     enemy.disabled = true;
     enemy.hull = 0;
@@ -687,9 +885,10 @@ function detonate(state, bolt, direct) {
     addBlast(state, bolt.x, bolt.z, radius * 1.15, false, 0x7af6ff);
     addSparks(state, bolt.x, bolt.z, 0xff4ad4, 16, 11);
     addSparks(state, bolt.x, bolt.z, 0x7af6ff, 12, 8);
-    state.shake = 1.7;
     state.flash = Math.max(state.flash, 1);
     state.buzz.push('shock');
+    state.shake = state.simple ? 0 : 1.7;
+    if (state.simple) state.cam = null;
   } else {
     addSparks(state, bolt.x, bolt.z, color, 10, 7);
     state.shake = Math.max(state.shake, 0.9);
@@ -957,6 +1156,11 @@ function updatePickups(state, dt) {
 }
 
 function refreshNav(state) {
+  if (state.simple) {
+    const bandit = state.enemies.find((enemy) => enemy.alive && enemy.role === 'bandit');
+    state.nav = bandit ? { x: bandit.x, z: bandit.z, label: 'BANDIT' } : null;
+    return;
+  }
   if (state.towedId) {
     state.nav = { x: state.freighter.x, z: state.freighter.z, label: 'FREIGHTER' };
     state.objective = 'HAUL TO THE FREIGHTER';
@@ -1009,6 +1213,7 @@ function yawError(yaw, from, target) {
 }
 
 function requestCam(state, from, to, kind, boltId) {
+  if (state.simple) return;
   if (state.phase !== 'run') return;
   if (state.cam || state.camGap > 0) return;
   state.cam = {

@@ -8,8 +8,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Neon Rift 2">
 <meta name="theme-color" content="#05030a">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <title>Neon Rift 2</title>
-<link rel="stylesheet" href="style.css?v=20261026a">
+<link rel="stylesheet" href="style.css?v=20261026c">
 </head>
 <body data-phase="hangar">
 <canvas id="view"></canvas>
@@ -37,10 +39,11 @@
 <div id="weapon"><b id="weaponName">PULSE</b><i id="charge"></i></div>
 <div id="stickL" class="stick left"><div class="knob"></div><span>FLY</span></div>
 <div id="stickR" class="stick right"><div class="knob"></div><span>AIM</span></div>
-<button id="torpedo" type="button">TORPEDO<small>SLOW KILL</small></button>
-<div id="coach">Left thumb flies, pulls back to brake, double-tap to boost. Right thumb holds to fire, swipes to switch guns, double-taps the torpedo, and flicks a shield dodge.</div>
+<button id="torpedo" type="button">FIRE<small>TORPEDO</small></button>
+<div id="build">v26C</div>
+<div id="coach">Drag with your left thumb. The ship stops when you let go. Tap the bandit, then FIRE.</div>
 <div id="popups"></div>
-<div class="panel-wrap on" id="hangar">
+<div class="panel-wrap" id="hangar">
   <div class="panel hangar-card">
     <p class="kicker">HANGAR</p>
     <h1>NEON RIFT 2</h1>
@@ -63,6 +66,20 @@
 <div id="fatal"><p>This browser could not start the 3D view.</p></div>
 <div id="debug" style="display:none;position:fixed;z-index:12;left:8px;bottom:8px;font:12px monospace;color:#9ff"></div>
 <div id="lock"></div>
-<script type="module" src="main.js?v=20261026a"></script>
+<script>
+const BUILD = '20261026c';
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    const key = 'nr2-reload-' + BUILD;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+    } catch { /* private */ }
+    location.reload();
+  });
+  navigator.serviceWorker.register('sw.js?v=' + BUILD, { scope: './' }).catch(() => {});
+}
+</script>
+<script type="module" src="main.js?v=20261026c"></script>
 </body>
 </html>

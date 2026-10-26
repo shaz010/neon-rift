@@ -64,6 +64,19 @@ export function cockpitEye(player, yaw = 0) {
   };
 }
 
+/** Fixed elevated view for the range. It does not take the ship, so
+ * steering cannot move, drift, or shake the camera. */
+export function rangePose() {
+  const eye = { x: 0, y: 36, z: 28 };
+  const lookAt = { x: 0, y: 0, z: -8 };
+  const lookDir = normalize([
+    lookAt.x - eye.x,
+    lookAt.y - eye.y,
+    lookAt.z - eye.z,
+  ]);
+  return { eye, lookDir, basis: basisLooking(lookDir, [0, 1, 0]), fov: 46 };
+}
+
 /** High, straight-down frame. The ship sits in the lower third so incoming
  * craft stay on screen. Height depends on aspect; the orientation does not. */
 export function commandFocus(player, aspect) {
