@@ -31,9 +31,10 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1-14. Pickups bloom into the ship, and the hull shifts violet with power "
-    "or red when a hit is close. The music list is still Original, Black Veil, "
-    "Late Shift, and Floor. The flywheel, the knot, the controls, and the enemies "
+    "nrl1-15. The hull turns ultraviolet on a streak or a prize, and deep red "
+    "when you are on your last life with no shield and something is close. "
+    "Haptics use the phone's taptic engine in the app. Original music is back "
+    "on the earlier chain. The flywheel, the knot, the controls, and the enemies "
     "stay as they were. This is the lab game, separate from Neon Rift 2."
 )
 
