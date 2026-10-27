@@ -439,6 +439,13 @@
     const dry = ctx.createGain(); dry.connect(gate);
     const pump = ctx.createGain(); pump.gain.value = 1; pump.connect(lp);
     const music = ctx.createGain(); music.connect(lp);
+    const pre = ctx.createGain();
+    const d1 = ctx.createDelay(0.9); d1.delayTime.value = 0.18;
+    const d2 = ctx.createDelay(0.9); d2.delayTime.value = 0.29;
+    const damp = ctx.createBiquadFilter(); damp.type = "lowpass"; damp.frequency.value = 3400;
+    const fb = ctx.createGain(); fb.gain.value = 0.33;
+    const wet = ctx.createGain(); wet.gain.value = 0.3;
+    pre.connect(d1); d1.connect(damp); damp.connect(d2); d2.connect(fb); fb.connect(d1); d2.connect(wet); wet.connect(gate);
     let cur = "", step = 0, next = ctx.currentTime + 0.05, lastError = "";
     const info = { id: "", step: 0, rush: false, bpm: 0 };
 
@@ -505,7 +512,8 @@
         pump.gain.setValueAtTime(1, t);
         pump.gain.linearRampToValueAtTime(0.38, t + 0.028);
         pump.gain.linearRampToValueAtTime(1, t + 0.16);
-      }
+      },
+      room: function (f, time, dur, vol) { voice(f, time, dur, "sine", vol, pre); }
     };
     function arm() {
       const t = ctx.currentTime;
@@ -559,6 +567,188 @@
       get lastError() { return lastError; }
     };
   }
+
+  function richDrums(api, t, s, style, rush, B, menu, fill) {
+    const h = menu ? 0.015 : (rush || B ? 0.05 : 0.03);
+    if (s === 0 && style !== "floor") api.duck(t);
+    if (style === "pulse") {
+      if (s === 0) api.kick(t, 0.9, 38);
+      if (s === 10) api.kick(t, 0.5, 34);
+      if (s % 4 === 0) api.hat(t, h * 0.5, false);
+      if (B && s === 8) api.snare(t, 0.16);
+    } else if (style === "hop") {
+      if (s === 0 || s === 7 || s === 10) api.kick(t, s === 0 ? 0.68 : 0.42, 52);
+      if (s === 4 || s === 12) api.snare(t, B ? 0.24 : 0.18);
+      if (s % 2 === 0) api.hat(t, h, false);
+      if ((B || rush) && s % 2 === 1) api.hat(t, h * 0.4, false);
+    } else if (style === "floor") {
+      if (s % 4 === 0) { api.kick(t, 0.86, 48); api.duck(t); }
+      if (s % 4 === 2) api.hat(t, h, true);
+      if (s === 4 || s === 12) api.snare(t, B ? 0.24 : 0.16);
+      if (B && (s === 6 || s === 14)) api.snare(t, 0.06);
+    } else if (style === "cine") {
+      if (s === 0 || (B && s === 8)) api.kick(t, B ? 0.74 : 0.4, 40);
+      if (B && (s === 4 || s === 12)) api.snare(t, 0.18);
+      if (s % 8 === 4) api.hat(t, h * 0.45, false);
+      if (B && s === 0) api.noise(t, 0.2, 0.03, "bandpass", 700);
+    } else if (style === "garage") {
+      if (s === 0 || s === 6 || s === 11) api.kick(t, s === 0 ? 0.8 : 0.5, 55);
+      if (s === 4 || s === 12) api.snare(t, 0.2);
+      if (s % 2 === 1) api.hat(t, h, s % 4 === 3);
+    } else {
+      if (s % 4 === 0) api.kick(t, 0.84, 46);
+      api.hat(t, s % 2 ? h * 0.4 : h * 0.7, false);
+      if (B && s % 8 === 4) api.noise(t, 0.05, 0.04, "bandpass", 2000);
+    }
+    if (fill && s % 2 === 0) api.snare(t, 0.045 + s * 0.004);
+  }
+  const BASS = {
+    veil: [0, 99, 99, 99, 0, 99, 7, 99, 99, 99, 3, 99, 0, 99, 99, 99],
+    floor: [0, 99, 0, 99, 7, 99, 0, 99, 3, 99, 0, 99, 10, 99, 7, 99],
+    hop: [0, 99, 99, 0, 99, 5, 99, 99, 7, 99, 0, 99, 3, 99, 99, 10],
+    cine: [0, 99, 99, 99, 99, 99, 99, 99, 7, 99, 99, 99, 99, 99, 3, 99],
+    garage: [0, 99, 99, 0, 99, 99, 7, 99, 0, 99, 10, 99, 7, 99, 99, 3],
+    funk: [0, 0, 99, 7, 0, 99, 10, 7, 0, 3, 99, 7, 5, 99, 3, 0]
+  };
+  const MASK = {
+    a: [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0],
+    b: [1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1],
+    c: [0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0],
+    d: [1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0]
+  };
+  const HOOK = {
+    noir: [0, 3, 7, 10, 12, 10, 7, 3, 2, 0, -2, 0, 3, 7, 3, 0],
+    hop: [0, 0, 3, 7, 10, 7, 3, 0, -2, 0, 3, 5, 7, 3, 0, -2],
+    floor: [0, 7, 12, 7, 3, 7, 10, 7, 12, 10, 7, 3, 0, 3, 7, 12],
+    cine: [0, 2, 3, 7, 12, 10, 8, 7, 3, 2, 0, -2, 0, 7, 12, 15],
+    funk: [0, 4, 7, 4, 10, 7, 5, 3, 0, 3, 5, 7, 10, 7, 4, 0],
+    dark: [0, 1, 0, 3, 7, 6, 3, 1, 0, -1, 0, 3, 6, 3, 1, 0]
+  };
+  function richHit(spec) {
+    return function (api, time, pos, rush, menu) {
+      const s = pos % 16, bar = (pos / 16) | 0;
+      const split = spec.split || ((spec.bars / 2) | 0);
+      const B = bar >= split;
+      const prog = B && spec.progB ? spec.progB : spec.prog;
+      const chord = prog[Math.floor(bar / (spec.every || 1)) % prog.length];
+      const root = chord[0];
+      const open = B ? 1 : Math.min(1, (bar + 1) / Math.max(1, split));
+      const fill = bar % split === split - 1;
+      richDrums(api, time, s, B && spec.drumsB ? spec.drumsB : spec.drums, rush, B, menu, fill);
+      const line = BASS[B && spec.bassB ? spec.bassB : spec.bass];
+      const deg = line[s];
+      if (deg !== 99) {
+        const f = hz(root - 12 + deg);
+        if (spec.saw) api.saw(f, time, 0.12, (menu ? 0.04 : 0.075) * (rush ? 1.15 : 1), 0, { type: "lowpass", f: (spec.cut || 240) + open * 220, q: 0.8 });
+        else api.sine(f, time, B ? 0.36 : 0.5, menu ? 0.08 : 0.15, hz(Math.max(26, root - 15 + deg)));
+      }
+      if (s === 0 || (B && s === 8)) {
+        const stab = s === 8 ? 0.6 : 1;
+        for (let i = 1; i < chord.length && i < 5; i++) {
+          const vol = (i === 1 ? 0.048 : 0.028) * stab * (menu ? 0.5 : 1) * (0.6 + open * 0.55);
+          api.saw(hz(chord[i]), time, s === 0 ? 1.8 : 0.42, vol, 0, { type: "lowpass", f: 380 + open * (B ? 2400 : 1100), q: 0.5 }, "pump");
+        }
+        if (s === 0) {
+          api.sine(hz(root - 24), time, 0.85, menu ? 0.06 : 0.11);
+          api.room(hz(chord[Math.min(2, chord.length - 1)]), time, 1.6, 0.045 * (B ? 1.4 : 1));
+        }
+      }
+      const hook = B ? HOOK[spec.hookB || spec.hook].slice().reverse() : HOOK[spec.hook];
+      const mask = MASK[B && spec.maskB ? spec.maskB : spec.mask];
+      if (!menu && mask[s]) {
+        const step = hook[s % hook.length];
+        api.tri(hz(root + 12 + step), time, 0.22, rush || B ? 0.058 : 0.038);
+        if (B && s % 8 === 0) api.sine(hz(root + 24 + step), time, 0.18, 0.02);
+      }
+    };
+  }
+  const RICH = [
+    { id: "v16", num: "19", name: "RED LAMP", bpm: 76, rush: 84, bars: 24, split: 12, every: 2, lp: [1800, 3600], drums: "pulse", bass: "veil", saw: false, hook: "noir", mask: "c",
+      line: "Noir, slower than a heartbeat. A minor lamp and a long answer.",
+      prog: [[45, 57, 60, 64, 67], [41, 53, 57, 60, 65], [48, 55, 60, 64], [43, 55, 58, 62, 67]],
+      progB: [[40, 52, 55, 59, 62], [45, 57, 60, 64], [38, 50, 57, 62], [43, 55, 59, 62]] },
+    { id: "v17", num: "20", name: "LATE WINDOW", bpm: 88, rush: 96, bars: 24, split: 12, swing: 0.62, every: 2, lp: [2400, 4800], drums: "hop", bass: "hop", hook: "hop", mask: "b",
+      line: "Late-shift groove with a swung hook that moves to a new chord.",
+      prog: [[50, 62, 65, 69, 72], [48, 60, 63, 67], [45, 57, 60, 64, 69], [43, 55, 59, 62]],
+      progB: [[46, 58, 62, 65], [41, 53, 58, 62], [48, 60, 63, 67, 70], [43, 55, 58, 62]] },
+    { id: "v18", num: "21", name: "CELLAR TWO", bpm: 124, rush: 128, bars: 32, split: 16, lp: [3200, 8600], drums: "floor", bass: "floor", saw: true, cut: 420, hook: "floor", mask: "a",
+      line: "Club floor. Chords pump, then the hook opens in the second half.",
+      prog: [[45, 57, 60, 64], [43, 55, 58, 62], [41, 53, 57, 60], [40, 52, 55, 59]],
+      progB: [[48, 60, 63, 67, 70], [45, 57, 60, 64], [43, 50, 55, 58], [41, 53, 57, 60]] },
+    { id: "v19", num: "22", name: "GLASS CUT", bpm: 72, rush: 80, bars: 24, split: 12, every: 2, lp: [2000, 5200], drums: "cine", bass: "cine", hook: "cine", mask: "c",
+      line: "Cinematic hybrid. Low strings, then a brighter second theme.",
+      prog: [[41, 53, 57, 60, 65], [46, 58, 62, 65], [43, 55, 58, 62], [36, 48, 55, 60]],
+      progB: [[48, 60, 64, 67, 72], [45, 57, 60, 64], [50, 62, 65, 69], [43, 55, 59, 62, 67]] },
+    { id: "v20", num: "23", name: "NIGHT MARKET", bpm: 102, rush: 110, bars: 24, split: 12, lp: [2800, 6400], drums: "hop", bass: "funk", saw: true, cut: 520, hook: "funk", mask: "d",
+      line: "A funky night walk. The bass talks, the chords answer.",
+      prog: [[50, 62, 65, 69], [48, 60, 64, 67], [53, 65, 69, 72], [45, 57, 60, 64]],
+      progB: [[55, 67, 71, 74], [50, 62, 65, 69], [48, 60, 63, 67, 70], [43, 55, 59, 62]] },
+    { id: "v21", num: "24", name: "UNDERFLOOR", bpm: 121, rush: 126, bars: 32, split: 16, lp: [2600, 7000], drums: "floor", bass: "hop", saw: true, cut: 300, hook: "hop", mask: "b",
+      line: "Deep house. Warm chords under the kick, a new loop after the drop.",
+      prog: [[41, 53, 56, 60, 63], [46, 58, 61, 65], [43, 55, 58, 62], [48, 60, 63, 67, 70]],
+      progB: [[39, 51, 55, 58, 62], [44, 56, 60, 63], [41, 53, 56, 60], [46, 53, 58, 62]] },
+    { id: "v22", num: "25", name: "BLACK MILE", bpm: 128, rush: 132, bars: 32, split: 16, lp: [2400, 7800], drums: "floor", bass: "floor", saw: true, cut: 260, hook: "dark", mask: "a",
+      line: "Dark club. A minor mile that breaks into a higher hook.",
+      prog: [[40, 52, 55, 59], [38, 50, 53, 57], [45, 57, 60, 63], [43, 55, 58, 62]],
+      progB: [[42, 54, 58, 61], [40, 52, 55, 59, 62], [37, 49, 52, 56], [35, 47, 51, 54]] },
+    { id: "v23", num: "26", name: "RAIN NAVE", bpm: 78, rush: 86, bars: 24, split: 12, every: 2, lp: [1900, 4600], drums: "cine", bass: "veil", hook: "cine", mask: "b",
+      line: "A wet nave. Slow chords, then the melody steps into the aisle.",
+      prog: [[43, 55, 58, 62, 67], [38, 50, 55, 58], [41, 53, 57, 60, 65], [36, 48, 53, 57]],
+      progB: [[46, 58, 62, 65, 70], [41, 53, 57, 60], [48, 55, 60, 64, 67], [43, 50, 55, 59]] },
+    { id: "v24", num: "27", name: "SECOND SHIFT", bpm: 92, rush: 100, bars: 24, split: 12, swing: 0.6, every: 2, lp: [2300, 5000], drums: "hop", bass: "hop", hook: "noir", mask: "d",
+      line: "Another late shift. Dusty chords and a hook that turns the corner.",
+      prog: [[46, 58, 61, 65, 68], [43, 55, 58, 62], [41, 53, 56, 60, 65], [48, 60, 63, 67]],
+      progB: [[44, 56, 60, 63], [39, 51, 55, 58, 62], [46, 53, 58, 62], [41, 53, 57, 60]] },
+    { id: "v25", num: "28", name: "KILN ROOM", bpm: 116, rush: 124, bars: 24, split: 12, lp: [2200, 6400], drums: "techno", bass: "floor", saw: true, cut: 220, hook: "dark", mask: "a",
+      line: "Industrial, but it has a tune. Metal hats, a bass hook, a second room.",
+      prog: [[38, 50, 53, 57], [40, 52, 56, 59], [43, 55, 58, 62], [36, 48, 51, 55]],
+      progB: [[41, 53, 56, 60, 63], [39, 51, 54, 58], [34, 46, 50, 53], [36, 48, 52, 55]] },
+    { id: "v26", num: "29", name: "HARBOR LIGHT", bpm: 84, rush: 92, bars: 24, split: 12, swing: 0.58, every: 2, lp: [2100, 4400], drums: "hop", bass: "cine", hook: "hop", mask: "c",
+      line: "Trip-hop on the water. A slow bass and chords that change harbor.",
+      prog: [[44, 56, 59, 63, 67], [42, 54, 57, 61], [39, 51, 54, 58, 63], [37, 49, 53, 56]],
+      progB: [[46, 58, 61, 65], [41, 53, 56, 60, 65], [44, 51, 56, 60], [39, 51, 55, 58]] },
+    { id: "v27", num: "30", name: "HALF DROP", bpm: 140, rush: 146, bars: 32, split: 16, lp: [2000, 8200], drums: "hop", drumsB: "floor", bass: "hop", bassB: "floor", saw: true, cut: 340, hook: "floor", mask: "b", maskB: "a",
+      line: "Half-time weight, then the floor drops and the hook shouts.",
+      prog: [[40, 52, 55, 59], [38, 50, 53, 57], [43, 55, 58, 62], [36, 48, 52, 55]],
+      progB: [[45, 57, 60, 64, 67], [43, 55, 58, 62], [40, 52, 55, 59], [38, 50, 54, 57]] },
+    { id: "v28", num: "31", name: "COLD CHORUS", bpm: 110, rush: 118, bars: 32, split: 16, lp: [2600, 9000], drums: "floor", bass: "veil", saw: true, cut: 380, hook: "dark", hookB: "floor", mask: "c", maskB: "a",
+      line: "Darksynth with a chorus you can hum, and a brighter second half.",
+      prog: [[42, 54, 57, 61], [39, 51, 54, 58], [44, 56, 59, 63, 66], [37, 49, 53, 56]],
+      progB: [[46, 58, 61, 65, 68], [44, 56, 59, 63], [41, 53, 56, 60], [39, 51, 55, 58]] },
+    { id: "v29", num: "32", name: "SHORELINE", bpm: 96, rush: 104, bars: 24, split: 12, every: 2, lp: [2500, 5400], drums: "hop", bass: "funk", saw: false, hook: "cine", mask: "d",
+      line: "Chillwave with a tide. Major colors pull toward a minor shore.",
+      prog: [[53, 65, 69, 72, 76], [48, 60, 64, 67], [50, 62, 65, 69, 72], [45, 57, 60, 64]],
+      progB: [[51, 63, 66, 70], [46, 58, 62, 65, 69], [48, 55, 60, 64], [43, 55, 58, 62]] },
+    { id: "v30", num: "33", name: "SKIP STEP", bpm: 132, rush: 136, bars: 28, split: 16, swing: 0.57, lp: [3000, 7600], drums: "garage", bass: "garage", saw: true, cut: 480, hook: "funk", mask: "b",
+      line: "Garage skip with chords. The second half swings a new bass.",
+      prog: [[51, 63, 66, 70], [49, 61, 64, 68], [46, 58, 61, 65, 68], [44, 56, 60, 63]],
+      progB: [[53, 65, 68, 72], [48, 60, 63, 67, 70], [50, 62, 65, 69], [46, 58, 62, 65]] },
+    { id: "v31", num: "34", name: "LONG HALL", bpm: 70, rush: 78, bars: 24, split: 12, every: 2, lp: [1600, 4800], drums: "cine", bass: "cine", hook: "noir", mask: "c",
+      line: "A long hall. One chord at a time, then the hall answers.",
+      prog: [[36, 48, 55, 60, 64], [41, 53, 57, 60, 65], [38, 50, 55, 58], [43, 55, 58, 62, 67]],
+      progB: [[40, 52, 55, 59, 64], [45, 57, 60, 64, 69], [37, 49, 53, 56], [42, 54, 58, 61]] },
+    { id: "v32", num: "35", name: "VEIL SONG", bpm: 82, rush: 90, bars: 24, split: 12, every: 2, lp: [1900, 4200], drums: "pulse", bass: "veil", hook: "noir", mask: "a",
+      line: "Black Veil with a melody. The same dark pulse, a song on top.",
+      prog: [[45, 57, 60, 64, 69], [40, 52, 55, 59], [43, 55, 58, 62, 67], [38, 50, 53, 57]],
+      progB: [[47, 59, 62, 66], [42, 54, 57, 61, 66], [45, 52, 57, 61], [40, 52, 56, 59]] },
+    { id: "v33", num: "36", name: "YARD LIGHT", bpm: 132, rush: 136, bars: 32, split: 16, lp: [2800, 7400], drums: "techno", bass: "floor", saw: true, cut: 200, hook: "floor", mask: "c", maskB: "a",
+      line: "A yard at night. Techno kick, but the chords actually go somewhere.",
+      prog: [[43, 55, 58, 62], [41, 53, 56, 60], [39, 51, 55, 58], [46, 58, 61, 65]],
+      progB: [[40, 52, 55, 59, 62], [38, 50, 53, 57], [45, 57, 60, 63], [43, 50, 55, 59]] },
+    { id: "v34", num: "37", name: "AFTER FLOOR", bpm: 118, rush: 124, bars: 32, split: 16, lp: [3000, 8000], drums: "floor", bass: "funk", saw: true, cut: 460, hook: "funk", mask: "d", maskB: "a",
+      line: "Floor energy with a noir chord. The drop keeps the funk bass.",
+      prog: [[48, 60, 63, 67, 70], [46, 58, 61, 65], [43, 55, 58, 62], [41, 53, 57, 60, 65]],
+      progB: [[50, 62, 65, 69], [45, 57, 60, 64, 67], [48, 55, 60, 64], [43, 55, 59, 62]] },
+    { id: "v35", num: "38", name: "THREAD", bpm: 90, rush: 98, bars: 24, split: 12, every: 2, lp: [2200, 5600], drums: "cine", drumsB: "hop", bass: "hop", hook: "cine", mask: "b", maskB: "a",
+      line: "A cinematic thread. The pulse stays, the second half grows a groove.",
+      prog: [[44, 56, 59, 63, 67], [42, 54, 57, 61], [39, 51, 55, 58, 63], [37, 49, 52, 56]],
+      progB: [[46, 58, 62, 65, 69], [41, 53, 56, 60], [48, 60, 63, 67], [43, 55, 58, 62, 67]] }
+  ];
+  RICH.forEach(function (spec) {
+    const tr = { id: spec.id, tag: spec.num, name: spec.name, audition: true, bpm: spec.bpm, rush: spec.rush, bars: spec.bars, lp: spec.lp, line: spec.line, hit: richHit(spec) };
+    if (spec.swing) tr.swing = spec.swing;
+    tracks.push(tr);
+  });
 
   const byId = {};
   tracks.forEach(function (t) {

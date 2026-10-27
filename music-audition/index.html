@@ -19,7 +19,7 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webk
 .card.play{border-color:rgba(94,242,214,.7);background:rgba(94,242,214,.08)}
 .card.fav{box-shadow:inset 0 0 0 1px rgba(255,120,160,.45)}
 .top{display:flex;gap:10px;align-items:center}
-.tag{font-weight:900;font-size:22px;width:36px;color:#5ef2d6;flex:none}
+.tag{font-weight:900;font-size:20px;width:46px;color:#5ef2d6;flex:none}
 .name{font-weight:900;letter-spacing:1px;flex:1}
 .heart{width:52px;height:52px;border-radius:14px;border:1px solid rgba(255,140,170,.45);background:rgba(255,140,170,.08);font-size:26px;line-height:1;flex:none}
 .heart.on{background:#ff5a92;color:#1a0610;border-color:#ff5a92}
@@ -31,18 +31,18 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webk
 a{color:#9fd0ff}
 </style></head><body>
 <h1>MUSIC AUDITION</h1>
-<p class="sub">nrl1-12. Black Veil, Late Shift, and Floor stay for reference, then a new batch. Tap a heart to keep a pick. Nothing here is linked from the game.</p>
+<p class="sub">nrl1-13. 38 numbered beds. 19–38 are the fuller set. Tap a heart to keep a pick. Nothing here is linked from the game.</p>
 <div id="status">Tap play to start audio.</div>
 <button class="rush" id="rush" type="button">RUSH OFF</button>
 <button class="pan" id="pan" type="button">L / R TEST</button>
 <div id="picks"><b>MY PICKS</b><div id="pickList">None yet. Tap a heart, then screenshot this box.</div></div>
 <div id="list"></div>
-<p class="note">Headphones on. Rush is the intense version of whichever loop is playing. Hearts stay on this phone. The L / R test is a tone in the left ear, then the right. <a href="../">nrl1 lab</a></p>
-<script src="../bed.js?v=nrl1-12"></script>
+<p class="note">Headphones on. Rush is the intense version of whichever loop is playing. Hearts stay on this phone. The L / R test skips every effect and beeps the left ear, then the right. If you hear both in both ears, check iPhone Settings &gt; Accessibility &gt; Audio/Visual &gt; Mono Audio. <a href="../">nrl1 lab</a></p>
+<script src="../bed.js?v=nrl1-13"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
-const ORDER=["B","E","F","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10","v11","v12","v13","v14","v15"];
+const ORDER=["B","E","F","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10","v11","v12","v13","v14","v15","v16","v17","v18","v19","v20","v21","v22","v23","v24","v25","v26","v27","v28","v29","v30","v31","v32","v33","v34","v35"];
 const KEY="nrl_audition_picks";
 const tracks=ORDER.map(id=>window.NRLBed&&NRLBed.byId[id]).filter(Boolean);
 let ctx=null,session=null,master=null,playing=null,rush=false,timer=0,lastKey="",lastAt=0;
@@ -52,6 +52,10 @@ function forceStereo(node){
   try{node.channelCount=2;node.channelCountMode="explicit";node.channelInterpretation="speakers";}catch(e){}
   return node;
 }
+function tapMono(source, merge, index){
+  const pick=ctx.createChannelSplitter(2);
+  source.connect(pick); pick.connect(merge,0,index);
+}
 function stereoDynamics(setup){
   const input=forceStereo(ctx.createGain());
   const split=ctx.createChannelSplitter(2);
@@ -59,8 +63,15 @@ function stereoDynamics(setup){
   const L=ctx.createDynamicsCompressor(), R=ctx.createDynamicsCompressor();
   setup(L); setup(R);
   input.connect(split); split.connect(L,0); split.connect(R,1);
-  L.connect(merge,0,0); R.connect(merge,0,1);
+  tapMono(L, merge, 0); tapMono(R, merge, 1);
   return {input:input, output:merge};
+}
+function primeStereo(){
+  try{
+    const n=Math.max(8,(ctx.sampleRate*.03)|0), buf=ctx.createBuffer(2,n,ctx.sampleRate);
+    buf.getChannelData(0)[0]=.0002; buf.getChannelData(1)[0]=-.0002;
+    const s=ctx.createBufferSource(); s.buffer=buf; s.connect(ctx.destination); s.start(ctx.currentTime);
+  }catch(e){}
 }
 function unlock(){
   const AC=window.AudioContext||window.webkitAudioContext;
@@ -69,7 +80,9 @@ function unlock(){
     master=forceStereo(ctx.createGain()); master.gain.value=.8;
     const glue=stereoDynamics(c=>{c.threshold.value=-12;c.knee.value=8;c.ratio.value=2.2;c.attack.value=.008;c.release.value=.18;});
     const lim=stereoDynamics(c=>{c.threshold.value=-2.5;c.knee.value=0;c.ratio.value=20;c.attack.value=.001;c.release.value=.12;});
+    try{if(ctx.destination.maxChannelCount>1)ctx.destination.channelCount=Math.min(2,ctx.destination.maxChannelCount);ctx.destination.channelCountMode="explicit";ctx.destination.channelInterpretation="discrete";}catch(e){}
     master.connect(glue.input); glue.output.connect(lim.input); lim.output.connect(ctx.destination);
+    primeStereo();
     session=NRLBed.attach(ctx, master);
   }
   if(ctx.state==="suspended") ctx.resume();
@@ -153,24 +166,28 @@ $("rush").onclick=()=>{
   $("rush").classList.toggle("on", rush);
   if(playing){const t=NRLBed.byId[playing]; $("status").textContent=numOf(playing)+"  "+t.name+(rush?" · rush":"");}
 };
+function earBeeps(freq,count){
+  const sr=ctx.sampleRate, dur=.62, n=(sr*dur)|0, buf=ctx.createBuffer(1,n,sr), d=buf.getChannelData(0);
+  const beep=.1, gap=.06;
+  for(let k=0;k<count;k++){const st=((k*(beep+gap))*sr)|0; for(let i=0;i<(beep*sr)&&st+i<n;i++){const e=Math.sin(Math.PI*i/(beep*sr)); d[st+i]+=Math.sin(2*Math.PI*freq*(st+i)/sr)*.5*e;}}
+  return buf;
+}
+function playEar(channel,when,buf){
+  const z=ctx.createBuffer(1,buf.length,ctx.sampleRate), merge=ctx.createChannelMerger(2);
+  const a=ctx.createBufferSource(), b=ctx.createBufferSource();
+  a.buffer=channel===0?buf:z; b.buffer=channel===0?z:buf;
+  a.connect(merge,0,0); b.connect(merge,0,1); merge.connect(ctx.destination);
+  a.start(when); b.start(when);
+}
 $("pan").onclick=()=>{
   unlock();
   playing=null; if(session) session.arm(); paintCards();
-  const t=ctx.currentTime;
-  function blip(pan,when){
-    const p=ctx.createStereoPanner(); p.pan.setValueAtTime(pan, when);
-    const o=ctx.createOscillator(), g=ctx.createGain();
-    o.type="square"; o.frequency.value=740;
-    g.gain.setValueAtTime(.0001, when);
-    g.gain.exponentialRampToValueAtTime(.22, when+.01);
-    g.gain.exponentialRampToValueAtTime(.0001, when+.2);
-    o.connect(g); g.connect(p); p.connect(master);
-    o.start(when); o.stop(when+.22);
-  }
-  blip(-1, t); blip(1, t+.48);
+  const t=ctx.currentTime+.03;
+  playEar(0, t, earBeeps(220,2));
+  playEar(1, t+.72, earBeeps(660,3));
   $("status").textContent="LEFT";
-  setTimeout(()=>$("status").textContent="RIGHT", 460);
-  setTimeout(()=>$("status").textContent="Left ear, then right ear.", 900);
+  setTimeout(()=>$("status").textContent="RIGHT", 680);
+  setTimeout(()=>$("status").textContent="If you hear both in both ears, check iPhone Settings > Accessibility > Audio/Visual > Mono Audio", 1500);
 };
 build();
 timer=setInterval(tick, 25);
