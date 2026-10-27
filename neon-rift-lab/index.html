@@ -7,9 +7,9 @@
 <meta name="apple-mobile-web-app-title" content="nrl1">
 <meta name="theme-color" content="#c2185b">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<link rel="icon" href="apple-touch-icon.png?v=nrl1-12">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=nrl1-12" sizes="180x180">
-<link rel="manifest" href="manifest.json?v=nrl1-12">
+<link rel="icon" href="apple-touch-icon.png?v=nrl1-13">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=nrl1-13" sizes="180x180">
+<link rel="manifest" href="manifest.json?v=nrl1-13">
 <title>nrl1</title>
 <style>
 :root{--bg:#16243a;--teal:#5ef2d6;--mint:#9ff0c0;--sky:#8ec5ff;--lav:#c9a0ff;--coral:#ff9e8a;--amber:#ffd27a;--ink:#e6f4ff;--dim:#8fb3c9}
@@ -59,7 +59,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
 #mapcv{width:100%;height:100%;display:block;touch-action:manipulation;background:transparent}
 </style></head><body><canvas id="c"></canvas>
 <button id="pauseBtn" aria-label="pause">II</button>
-<div id="ver" aria-hidden="true">nrl1-12</div>
+<div id="ver" aria-hidden="true">nrl1-13</div>
 
 <div class="ui on" id="menu"><div class="panel clear">
   <div class="scroller">
@@ -108,7 +108,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
   <label class="set">MUSIC <input type="range" min="0" max="100" id="sMus"></label>
   <div class="set"><span>TRACK</span><button type="button" id="sTrack" class="buy ok"></button></div>
   <button class="btn" id="sPan" type="button">L / R TEST</button>
-  <div class="hint" id="panLab">Headphones: left ear, then right ear.</div>
+  <div class="hint" id="panLab">Left ear, then right ear. If you hear both in both ears, check iPhone Settings &gt; Accessibility &gt; Audio/Visual &gt; Mono Audio.</div>
   <label class="set">SFX <input type="range" min="0" max="100" id="sSfx"></label>
   <label class="set">HAPTICS <input type="checkbox" id="sHap"></label>
   <label class="set">REDUCED MOTION <input type="checkbox" id="sRm"></label>
@@ -153,7 +153,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
   <div class="row"><button class="btn" id="rHangar">HANGAR</button><button class="btn" id="rMenu">MENU</button></div>
 </div></div>
 
-<script src="bed.js?v=nrl1-12"></script>
+<script src="bed.js?v=nrl1-13"></script>
 <script>
 "use strict";
 const cv=document.getElementById('c'),$=id=>document.getElementById(id);
@@ -273,62 +273,77 @@ const PUP_META={shield:{n:'AEGIS',c:'#8ec5ff',g:'A'},chrono:{n:'CHRONO',c:'#9ff0
 
 /* ---------- AUDIO ---------- */
 const A={ctx:null,master:null,music:null,sfx:null,room:null,step:0,next:0,intensity:0,muted:false};
-function applyVol(){if(!A.ctx)return;A.master.gain.value=A.muted?0:.55;A.sfx.gain.value=SV.set.sfx/100;const m=.5*SV.set.mus/100;A.music.gain.value=m;if(A.bed)A.bed.gain.value=m;}
+function applyVol(){if(!A.ctx)return;A.master.gain.value=A.muted?0:.55;const s=SV.set.sfx/100;A.sfx.gain.value=s;if(A.ui)A.ui.gain.value=s;const m=.5*SV.set.mus/100;A.music.gain.value=m;if(A.bed)A.bed.gain.value=m;}
 function audioInit(){
   if(A.ctx)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
   A.ctx=new AC();
-  /* WebKit's DynamicsCompressorNode is mono. A panner before one compressor
-     reaches Shure headphones as a dead center. Split, compress each ear, merge. */
-  A.master=forceStereo(A.ctx.createGain());
+  /* iOS Mono Audio is off. This graph was still centering the sound.
+     A StereoPanner fed a Haas delay, and that delay stays 2 channels. WebKit's
+     ChannelMerger only keeps an input that is one channel wide, so the delayed
+     ear dropped out and the merger came back as one channel. The next node is
+     "speakers", which plays that one channel in both ears. The split
+     compressors then copied the center. WebKit's compressor also copies a
+     1-channel input into both of its outputs, so each compressor is tapped
+     back to channel 0 before the next merger. No <audio> element. */
+  const dest=A.ctx.destination;
+  try{if(dest.maxChannelCount>1)dest.channelCount=Math.min(2,dest.maxChannelCount);dest.channelCountMode='explicit';dest.channelInterpretation='discrete';}catch(e){}
+  A.master=forceDiscrete(A.ctx.createGain());
   const glue=stereoDynamics(A.ctx,c=>{c.threshold.value=-12;c.knee.value=8;c.ratio.value=2.2;c.attack.value=.008;c.release.value=.2;});
   const lim=stereoDynamics(A.ctx,c=>{c.threshold.value=-2.5;c.knee.value=0;c.ratio.value=20;c.attack.value=.001;c.release.value=.14;});
   A.glue=glue;A.lim=lim.L;A.limR=lim.R;
-  A.master.connect(glue.input);glue.output.connect(lim.input);lim.output.connect(A.ctx.destination);
-  A.sfx=forceStereo(A.ctx.createGain());A.sfx.connect(A.master);
+  A.master.connect(glue.input);glue.output.connect(lim.input);lim.output.connect(dest);
+  A.sfx=forceDiscrete(A.ctx.createGain());A.sfx.connect(A.master);
+  A.ui=forceStereo(A.ctx.createGain());A.ui.connect(A.master);
   A.music=forceStereo(A.ctx.createGain());A.lp=A.ctx.createBiquadFilter();A.lp.type='lowpass';A.lp.frequency.value=1200;
   try{A.lp.channelCount=2;A.lp.channelCountMode='explicit';A.lp.channelInterpretation='speakers';}catch(e){}
   A.music.connect(A.lp);A.lp.connect(A.master);
-  A.room=A.ctx.createGain();
-  const dA=A.ctx.createDelay(.25),dB=A.ctx.createDelay(.25),wet=A.ctx.createGain(),fb=A.ctx.createGain();
-  dA.delayTime.value=.045;dB.delayTime.value=.078;wet.gain.value=.18;fb.gain.value=.28;
-  A.room.connect(dA);A.room.connect(dB);dA.connect(wet);dB.connect(wet);dA.connect(fb);fb.connect(dA);wet.connect(A.sfx);
-  A.bed=null;A.bedSession=null;A.panKind=A.ctx.createStereoPanner?'stereo':'equalpower';
+  A.room=null;
+  A.bed=null;A.bedSession=null;A.panKind='merger';
   A.next=A.ctx.currentTime+.1;applyVol();
+  primeStereo(A.ctx);
 }
-function forceStereo(node){try{node.channelCount=2;node.channelCountMode='explicit';node.channelInterpretation='speakers';}catch(e){}return node;}
+function forceStereo(node){try{node.channelCountMode='explicit';node.channelInterpretation='speakers';node.channelCount=2;}catch(e){}return node;}
+function forceDiscrete(node){try{node.channelCountMode='explicit';node.channelInterpretation='discrete';node.channelCount=2;}catch(e){}return node;}
+function forceMono(node){try{node.channelCountMode='explicit';node.channelInterpretation='discrete';node.channelCount=1;}catch(e){}return node;}
+function holdEars(ctx,merge){
+  const n=Math.max(8,(ctx.sampleRate*.25)|0),z=ctx.createBuffer(1,n,ctx.sampleRate);
+  [0,1].forEach(ch=>{const s=ctx.createBufferSource();s.buffer=z;s.loop=true;s.connect(merge,0,ch);try{s.start(0);}catch(e){}});
+}
+function primeStereo(ctx){
+  try{
+    const n=Math.max(8,(ctx.sampleRate*.03)|0),buf=ctx.createBuffer(2,n,ctx.sampleRate);
+    buf.getChannelData(0)[0]=.0002;buf.getChannelData(1)[0]=-.0002;
+    const s=ctx.createBufferSource();s.buffer=buf;s.connect(ctx.destination);s.start(ctx.currentTime);
+  }catch(e){}
+}
+function tapMono(ctx,source,merge,index){
+  const pick=ctx.createChannelSplitter(2);
+  source.connect(pick);pick.connect(merge,0,index);
+  return pick;
+}
 function stereoDynamics(ctx,setup){
-  const input=forceStereo(ctx.createGain());
+  const input=forceDiscrete(ctx.createGain());
   const split=ctx.createChannelSplitter(2),merge=ctx.createChannelMerger(2);
   const L=ctx.createDynamicsCompressor(),R=ctx.createDynamicsCompressor();
   setup(L);setup(R);
   input.connect(split);split.connect(L,0);split.connect(R,1);
-  L.connect(merge,0,0);R.connect(merge,0,1);
+  tapMono(ctx,L,merge,0);tapMono(ctx,R,merge,1);
+  holdEars(ctx,merge);
   return {input,output:merge,L,R};
 }
-function tone(f,t,d,type,vol,dest,slide){if(!(f>0))return;const c=A.ctx,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(slide>0)o.frequency.exponentialRampToValueAtTime(Math.max(1,slide),t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(dest||A.sfx);o.onended=()=>{try{o.disconnect();g.disconnect();}catch(e){}};o.start(t);o.stop(t+d+.05);}
-function noise(t,d,vol,freq,dest){const c=A.ctx,n=Math.max(1,c.sampleRate*d|0),b=c.createBuffer(1,n,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1;const s=c.createBufferSource();s.buffer=b;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=freq;const g=c.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(f);f.connect(g);g.connect(dest||A.sfx);s.onended=()=>{try{s.disconnect();f.disconnect();g.disconnect();}catch(e){}};s.start(t);s.stop(t+d+.02);}
-function panAmount(x){if(x==null||!(W>0))return 0;return clamp(x/W*2-1,-1,1);}
+function tone(f,t,d,type,vol,dest,slide){if(!(f>0))return;const c=A.ctx,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(slide>0)o.frequency.exponentialRampToValueAtTime(Math.max(1,slide),t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(dest||A.ui);o.onended=()=>{try{o.disconnect();g.disconnect();}catch(e){}};o.start(t);o.stop(t+d+.05);}
+function noise(t,d,vol,freq,dest){const c=A.ctx,n=Math.max(1,c.sampleRate*d|0),b=c.createBuffer(1,n,c.sampleRate),a=b.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1;const s=c.createBufferSource();s.buffer=b;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=freq;const g=c.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(f);f.connect(g);g.connect(dest||A.ui);s.onended=()=>{try{s.disconnect();f.disconnect();g.disconnect();}catch(e){}};s.start(t);s.stop(t+d+.02);}
+function panAmount(x){if(x==null||!(W>0))return 0;const n=clamp(x/W*2-1,-1,1);if(n<=-.12)return -1;if(n>=.12)return 1;return n/.12;}
+function earGain(pan){const a=(clamp(pan,-1,1)+1)*Math.PI/4;return [Math.max(.0002,Math.cos(a)),Math.max(.0002,Math.sin(a))];}
 function buildPanInput(ctx,dest,pan,sweep,when){
   const t=when==null?ctx.currentTime:when;
   const input=ctx.createGain();
-  let panner=null;
-  if(ctx.createStereoPanner){try{panner=ctx.createStereoPanner();panner.pan.setValueAtTime(pan,t);if(sweep!=null&&Math.abs(sweep-pan)>.02)panner.pan.linearRampToValueAtTime(sweep,t+.26);}catch(e){panner=null;}}
-  if(!panner){
-    panner=ctx.createPanner();panner.panningModel='equalpower';panner.distanceModel='linear';panner.refDistance=1;panner.maxDistance=4;panner.rolloffFactor=0;
-    const place=(p,time)=>{const z=.2;if(panner.positionX){panner.positionX.setValueAtTime(p,time);panner.positionY.setValueAtTime(0,time);panner.positionZ.setValueAtTime(z,time);}else panner.setPosition(p,0,z);};
-    place(pan,t);if(sweep!=null&&Math.abs(sweep-pan)>.02&&panner.positionX)panner.positionX.linearRampToValueAtTime(sweep,t+.26);
-  }
-  input.connect(panner);
-  const out=ctx.createGain();
-  if(Math.abs(pan)<.08){panner.connect(out);}
-  else{
-    const split=ctx.createChannelSplitter(2),merge=ctx.createChannelMerger(2),delay=ctx.createDelay(.05);
-    delay.delayTime.setValueAtTime(.007+Math.abs(pan)*.009,t);
-    panner.connect(split);
-    const side=pan>=0?1:0,far=pan>=0?0:1;
-    split.connect(merge,side,side);split.connect(delay,far);delay.connect(merge,0,far);merge.connect(out);
-  }
-  out.connect(dest);input._tail=out;return input;
+  const left=forceMono(ctx.createGain()),right=forceMono(ctx.createGain()),merge=ctx.createChannelMerger(2);
+  input.connect(left);input.connect(right);
+  tapMono(ctx,left,merge,0);tapMono(ctx,right,merge,1);
+  const g=earGain(pan);left.gain.setValueAtTime(g[0],t);right.gain.setValueAtTime(g[1],t);
+  if(sweep!=null&&Math.abs(sweep-pan)>.02){const g2=earGain(sweep);left.gain.linearRampToValueAtTime(g2[0],t+.26);right.gain.linearRampToValueAtTime(g2[1],t+.26);}
+  merge.connect(dest);input._tail=merge;return input;
 }
 function at(x,sweepTo){if(!A.ctx)return null;const pan=panAmount(x);return buildPanInput(A.ctx,A.sfx,pan,sweepTo==null?null:panAmount(sweepTo),A.ctx.currentTime);}
 function retire(node,when){
@@ -343,7 +358,6 @@ function bass(power,x){
   tone(46,t,.98,'sine',.72*p,d,30);
   tone(74,t,.14,'sine',.26*p,d,46);
   noise(t,.1,.18*p,90,d);
-  if(p>=.8&&A.room){tone(hi,t,.66,'sine',.14*p,A.room,lo);noise(t,.16,.08*p,120,A.room);}
   retire(d,t+1.05);
 }
 function energy2(buf){
@@ -355,11 +369,12 @@ function panProbe(){
   const sr=44100,n=Math.floor(sr*.32);
   function bus(){
     const ctx=new OfflineAudioContext(2,n,sr);
-    const master=forceStereo(ctx.createGain());
+    try{ctx.destination.channelCount=2;ctx.destination.channelCountMode='explicit';ctx.destination.channelInterpretation='discrete';}catch(e){}
+    const master=forceDiscrete(ctx.createGain());
     const glue=stereoDynamics(ctx,c=>{c.threshold.value=-12;c.knee.value=8;c.ratio.value=2.2;c.attack.value=.003;c.release.value=.1;});
     const lim=stereoDynamics(ctx,c=>{c.threshold.value=-2.5;c.knee.value=0;c.ratio.value=20;c.attack.value=.001;c.release.value=.08;});
     master.connect(glue.input);glue.output.connect(lim.input);lim.output.connect(ctx.destination);
-    const sfx=forceStereo(ctx.createGain());sfx.gain.value=.8;sfx.connect(master);
+    const sfx=forceDiscrete(ctx.createGain());sfx.gain.value=.8;sfx.connect(master);
     return {ctx,sfx};
   }
   function blip(ctx,dest,pan){
@@ -385,8 +400,19 @@ function panProbe(){
   o1.type='sine';o1.frequency.setValueAtTime(65.5,0);o1.frequency.exponentialRampToValueAtTime(41.25,.9);
   g1.gain.setValueAtTime(.0001,0);g1.gain.linearRampToValueAtTime(1.12,0.01);g1.gain.exponentialRampToValueAtTime(.0001,.9);
   o1.connect(g1);g1.connect(input);o1.start(0);o1.stop(.92);
-  return Promise.all([left.ctx.startRendering().then(energy2),right.ctx.startRendering().then(energy2),monoCollapse(-1),heavy.ctx.startRendering().then(energy2)]).then(r=>({
-    kind:A.panKind,sfxCh:A.sfx.channelCount,sfxMode:A.sfx.channelCountMode,left:r[0],right:r[1],mono:r[2],bass:r[3]
+  function rawEar(channel){
+    const ctx=new OfflineAudioContext(2,n,sr);
+    try{ctx.destination.channelCount=2;ctx.destination.channelCountMode='explicit';ctx.destination.channelInterpretation='discrete';}catch(e){}
+    const tone=ctx.createBuffer(1,Math.floor(sr*.2),sr),z=ctx.createBuffer(1,tone.length,sr),d=tone.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=Math.sin(2*Math.PI*440*i/sr)*.4*Math.sin(Math.PI*i/d.length);
+    const merge=ctx.createChannelMerger(2),a=ctx.createBufferSource(),b=ctx.createBufferSource();
+    a.buffer=channel===0?tone:z;b.buffer=channel===0?z:tone;
+    a.connect(merge,0,0);b.connect(merge,0,1);merge.connect(ctx.destination);
+    a.start(0);b.start(0);
+    return ctx.startRendering().then(energy2);
+  }
+  return Promise.all([left.ctx.startRendering().then(energy2),right.ctx.startRendering().then(energy2),monoCollapse(-1),heavy.ctx.startRendering().then(energy2),rawEar(0),rawEar(1)]).then(r=>({
+    kind:A.panKind,sfxCh:A.sfx&&A.sfx.channelCount,sfxMode:A.sfx&&A.sfx.channelCountMode,sfxInterp:A.sfx&&A.sfx.channelInterpretation,left:r[0],right:r[1],mono:r[2],bass:r[3],rawL:r[4],rawR:r[5]
   }));
 }
 /* The nrl1-9 bed. This is track 1, Original. Do not replace these notes. */
@@ -482,12 +508,28 @@ const sfx={
 };
 function vib(p){if(SV.set.hap&&navigator.vibrate){try{navigator.vibrate(p)}catch(e){}}}
 function bigHit(power,pattern,x){bass(power,x);if(!RM())shake+=8+power*14;vib(pattern||[30,24,60]);flash=Math.max(flash,.25+power*.25);}
+const MONO_HINT='If you hear both in both ears, check iPhone Settings > Accessibility > Audio/Visual > Mono Audio';
+function earBeeps(ctx,freq,count){
+  const sr=ctx.sampleRate,dur=.62,n=(sr*dur)|0,buf=ctx.createBuffer(1,n,sr),d=buf.getChannelData(0);
+  const beep=.1,gap=.06;
+  for(let k=0;k<count;k++){const st=((k*(beep+gap))*sr)|0;for(let i=0;i<(beep*sr)&&st+i<n;i++){const e=Math.sin(Math.PI*i/(beep*sr));d[st+i]+=Math.sin(2*Math.PI*freq*(st+i)/sr)*.5*e;}}
+  return buf;
+}
+function playEar(ctx,channel,when,buf){
+  const z=ctx.createBuffer(1,buf.length,ctx.sampleRate),merge=ctx.createChannelMerger(2);
+  const a=ctx.createBufferSource(),b=ctx.createBufferSource();
+  a.buffer=channel===0?buf:z;b.buffer=channel===0?z:buf;
+  a.connect(merge,0,0);b.connect(merge,0,1);merge.connect(ctx.destination);
+  a.start(when);b.start(when);
+}
 function panTest(){
   wake();if(!A.ctx)return;
-  const lab=$('panLab');if(lab)lab.textContent='LEFT';
-  const t=A.ctx.currentTime,L=at(0);
-  tone(880,t,.16,'square',.22,L);bass(.9,0);retire(L,t+.4);
-  setTimeout(()=>{if(!A.ctx)return;if(lab)lab.textContent='RIGHT';const t2=A.ctx.currentTime,R=at(W);tone(880,t2,.16,'square',.22,R);bass(.9,W);retire(R,t2+.4);setTimeout(()=>{if(lab)lab.textContent='Left ear, then right ear.';},420);},520);
+  const lab=$('panLab'),c=A.ctx,t=c.currentTime+.03;
+  if(lab)lab.textContent='LEFT';
+  playEar(c,0,t,earBeeps(c,220,2));
+  playEar(c,1,t+.72,earBeeps(c,660,3));
+  setTimeout(()=>{if(lab)lab.textContent='RIGHT';},680);
+  setTimeout(()=>{if(lab)lab.textContent=MONO_HINT;},1500);
 }
 
 /* ---------- INPUT ---------- */
@@ -2122,7 +2164,7 @@ function refreshMenu(){
   $('bDaily').textContent='DAILY RIFT · '+(dd.done?'✓ ':'')+'#'+String(dk).slice(4)+(dd.best?' · BEST '+dd.best.toLocaleString():'');
   const lit=(SV.sectors.stars||[]).filter(n=>n>0).length;
   const mt=musicChoices().find(t=>t.id===trackId());
-  $('mHint').innerHTML=(HS?'BEST '+HS.toLocaleString()+' · ':'')+'MISSIONS '+done+'/'+ACH.length+' · STARS '+lit+'/6<br>'+controlBlurb()+'<br>Endless is the classic run. Constellation is six short sectors.<br>Music: '+(mt?mt.name:'ORIGINAL')+'. Switch it any time in Music.<br><span style="letter-spacing:1px;opacity:.75">nrl1-12</span>';
+  $('mHint').innerHTML=(HS?'BEST '+HS.toLocaleString()+' · ':'')+'MISSIONS '+done+'/'+ACH.length+' · STARS '+lit+'/6<br>'+controlBlurb()+'<br>Endless is the classic run. Constellation is six short sectors.<br>Music: '+(mt?mt.name:'ORIGINAL')+'. Switch it any time in Music.<br><span style="letter-spacing:1px;opacity:.75">nrl1-13</span>';
 }
 function paintConstellation(){
   const c=$('mapcv');if(!c)return;
@@ -2213,12 +2255,12 @@ sCtl.onclick=()=>{SV.set.two=!SV.set.two;save();sfx.ui();syncSet();if(G.screen==
 if(matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches&&!localStorage.getItem('neonrift_lab_save'))SV.set.rm=true;
 syncSet();
 (function(){const d=document.createElement('div');d.style.cssText='position:fixed;top:env(safe-area-inset-top);visibility:hidden';document.body.appendChild(d);document.documentElement.style.setProperty('--sat',d.getBoundingClientRect().top+'px');d.remove();})();
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js?v=nrl1-12',{scope:'./'}).catch(()=>{});}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js?v=nrl1-13',{scope:'./'}).catch(()=>{});}
 
 let last=performance.now();reset();refreshMenu();
 function loop(now){let rdt=clamp((now-last)/1000,0,.05);last=now;if(!G.paused)update(rdt);render(G.paused?0:rdt);musicTick();sectorLayerTick();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
-function snap(){return {state:G.state,score,streak,heat,grav,zone:zoneIdx,mode:G.mode,sector:sectorIdx,sectorT:+(sectorT||0).toFixed(2),sectorRush:sectorRush?1:0,sectorPhase,perfects:perfects||0,event:evt&&evt.k,boss:boss?{kind:boss.kind||'flywheel',phase:boss.phase,hp:Math.round(boss.hp*10)/10,max:boss.max,frac:+(boss.hp/boss.max).toFixed(3),plates:boss.plateGone&&boss.plateGone.filter(Boolean).length,broken:boss.broken,clock:+(boss.clock||0).toFixed(2)}:null,finale:finale?{t:+finale.t.toFixed(2),shattered:!!finale.shattered,shards:finale.shards.length}:null,torp:{ammo:P?P.torpAmmo:0,cd:P?+P.torpCd.toFixed(2):0},boons:P?{shield:P.shield,chrono:+(P.slowmo||0).toFixed(2),magnet:+(P.magnet||0).toFixed(2),surge:+(P.surge||0).toFixed(2),over:+(P.over||0).toFixed(2)}:null,controls:twoThumb()?'two':'one',flip:!!SV.set.flip,ver:'nrl1-12',track:trackId(),hull:SV.hull,weapon:SV.weapon,paint:SV.skin,x:P?Math.round(P.x):0,y:P?Math.round(P.y):0,haz:haz.filter(h=>!h.dead).map(h=>({k:h.k,x:Math.round(h.x),y:Math.round(h.y)})),torps:torps.length,elapsed,stageT,dashArm,dashing:!!(P&&P.dashT>0),swapFlash:+swapFlash.toFixed(2),stars:SV.sectors.stars.slice(),unlocked:SV.sectors.u};}
+function snap(){return {state:G.state,score,streak,heat,grav,zone:zoneIdx,mode:G.mode,sector:sectorIdx,sectorT:+(sectorT||0).toFixed(2),sectorRush:sectorRush?1:0,sectorPhase,perfects:perfects||0,event:evt&&evt.k,boss:boss?{kind:boss.kind||'flywheel',phase:boss.phase,hp:Math.round(boss.hp*10)/10,max:boss.max,frac:+(boss.hp/boss.max).toFixed(3),plates:boss.plateGone&&boss.plateGone.filter(Boolean).length,broken:boss.broken,clock:+(boss.clock||0).toFixed(2)}:null,finale:finale?{t:+finale.t.toFixed(2),shattered:!!finale.shattered,shards:finale.shards.length}:null,torp:{ammo:P?P.torpAmmo:0,cd:P?+P.torpCd.toFixed(2):0},boons:P?{shield:P.shield,chrono:+(P.slowmo||0).toFixed(2),magnet:+(P.magnet||0).toFixed(2),surge:+(P.surge||0).toFixed(2),over:+(P.over||0).toFixed(2)}:null,controls:twoThumb()?'two':'one',flip:!!SV.set.flip,ver:'nrl1-13',track:trackId(),hull:SV.hull,weapon:SV.weapon,paint:SV.skin,x:P?Math.round(P.x):0,y:P?Math.round(P.y):0,haz:haz.filter(h=>!h.dead).map(h=>({k:h.k,x:Math.round(h.x),y:Math.round(h.y)})),torps:torps.length,elapsed,stageT,dashArm,dashing:!!(P&&P.dashT>0),swapFlash:+swapFlash.toFixed(2),stars:SV.sectors.stars.slice(),unlocked:SV.sectors.u};}
 window.__G={G,SV,get score(){return score},get state(){return G.state},get zone(){return zoneIdx},get streak(){return streak},start:startRun,startSector,show,
   setControls(v){SV.set.two=!!v;save();},
   forceBoss(){if(G.state==='play')startBoss();},
