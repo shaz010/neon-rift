@@ -2,7 +2,7 @@ name: TestFlight nrl1
 
 # Packages the lab web game on this branch as its own iOS app and uploads it
 # to TestFlight. It does not build Neon Rift 2.
-# Push uploads are paused. nrl1-15 ships on the web only until Shahbaz approves
+# Push uploads are paused. nrl1-16 ships on the web only until Shahbaz approves
 # the next TestFlight build. Run this workflow by hand when that approval is given.
 on:
   workflow_dispatch:
@@ -39,11 +39,11 @@ jobs:
           sudo xcode-select -s "${latest}"
           xcodebuild -version
 
-      - name: Confirm this is the nrl1-15 web game
+      - name: Confirm this is the nrl1-16 web game
         run: |
           set -euo pipefail
-          grep -q 'nrl1-15' index.html
-          grep -q "CACHE = 'nrl1-15'" sw.js
+          grep -q 'nrl1-16' index.html
+          grep -q "CACHE = 'nrl1-16'" sw.js
           test -f ios/nrl1.xcodeproj/project.pbxproj
 
       - name: Install the App Store Connect client
@@ -144,8 +144,8 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.nrl1\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Web build: nrl1-15"
-            echo "- Changelog: the hull turns ultraviolet on a streak or a prize, and deep red on the last life with no shield when something is close. The app build has taptic haptics. Original music uses the earlier chain. Gameplay is unchanged."
+            echo "- Web build: nrl1-16"
+            echo "- Changelog: a lost finger no longer leaves the steer or the cut stuck. Gameplay is otherwise unchanged."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Remove the API key
