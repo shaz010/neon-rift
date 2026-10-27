@@ -486,7 +486,7 @@ function reset(){
   RS={time:0,combo:0,mult:1,score:0,storms:0,kills:0,zone:0,bombs:0,daily:false,dailyDone:false,dash:0,graze:0,shards:0,streak:0,payoffs:0};
   zoneIdx=0;zoneBanner=0;runCr=0;lives=u.life;shieldRegen=u.shield>=2?(u.shield==2?40:30):0;
   grav=1;evt=null;eventCD=EVENT_EVERY;eventQ=0;eventN=0;spawnN=0;streak=0;streakT=0;payoffLock=0;heat=0;coachT=0;calm=0;runUnlocks=[];eventBanner=0;finale=null;debris=[];dashArm=0;pendTap=null;swapFlash=0;knots=[];knotHint=0;
-  sectorIdx=-1;sectorT=0;sectorRush=0;sectorPhase='wave';sectorClear=0;sectorBass=0;runHurts=0;perfects=0;perfectT=0;confetti=[];pops=[];layerNext=0;A.song=-1;
+  sectorIdx=-1;sectorT=0;sectorRush=0;sectorPhase='wave';sectorClear=0;sectorBass=0;runHurts=0;perfects=0;perfectT=0;confetti=[];pops=[];A.song=-1;
   clearPtrs();
 }
 stars=[];for(let i=0;i<78;i++){const layer=i<48?0:i<68?1:2;stars.push({x:Math.random(),y:Math.random(),layer,z:layer===0?.3:layer===1?.62:1,spd:layer===0?R(.04,.1):layer===1?R(.12,.22):R(.26,.42),ph:R(0,TAU)});}
