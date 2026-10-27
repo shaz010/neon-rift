@@ -31,12 +31,11 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1-9. Each enemy has its own shape, a glowing core, and a stronger shimmer. "
-    "Hits and kills flash in color. Impacts and blasts sit on a deeper bass and "
-    "pan with where they happen on screen. Big blasts have a little room around "
-    "them. The six sectors, the flywheel, the knot, the music, and the controls "
-    "stay as they were. Endless is still there. This is the lab game, separate "
-    "from Neon Rift 2."
+    "nrl1-10. Kills and explosions hit with a deeper bass. Each of the six sectors "
+    "has its own original tune: guitar, bass, drums, and a little harmony, and the "
+    "rush pushes the band harder. Endless and the menu use a seventh tune in that "
+    "same style. The flywheel, the knot, the controls, and the enemies stay as "
+    "they were. This is the lab game, separate from Neon Rift 2."
 )
 
 
