@@ -31,12 +31,12 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1-8. Six short sectors on a star map. Each one has its own color, a new "
-    "enemy, and a boss. One sector is still the flywheel, fought the same way. "
-    "The last 15 seconds of a sector speed up. A big knot shows PERFECT KNOT. "
-    "Clearing a sector plays a fanfare and saves one to three stars, then lights "
-    "the next star. Endless is still there. Knot, flick, torpedo, and swap are "
-    "unchanged. This is the lab game, separate from Neon Rift 2."
+    "nrl1-9. Each enemy has its own shape, a glowing core, and a stronger shimmer. "
+    "Hits and kills flash in color. Impacts and blasts sit on a deeper bass and "
+    "pan with where they happen on screen. Big blasts have a little room around "
+    "them. The six sectors, the flywheel, the knot, the music, and the controls "
+    "stay as they were. Endless is still there. This is the lab game, separate "
+    "from Neon Rift 2."
 )
 
 
