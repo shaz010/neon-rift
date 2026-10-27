@@ -31,7 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1-17. A finger that stays down keeps steering and drawing through a knot, slow motion, and a rush. "
+    "nrl1-18. Lifting a stuck finger and touching again steers the ship. A finger that stays down still keeps steering through a knot and slow motion. "
     "The hull still turns ultraviolet on a streak or a prize, and deep red "
     "when you are on your last life with no shield and something is close. "
     "The flywheel, the knot, the controls, and the enemies stay as they were. "
