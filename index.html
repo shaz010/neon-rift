@@ -7,17 +7,18 @@
 <meta name="apple-mobile-web-app-title" content="nrl1">
 <meta name="theme-color" content="#c2185b">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<link rel="icon" href="apple-touch-icon.png?v=nrl1-16">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=nrl1-16" sizes="180x180">
-<link rel="manifest" href="manifest.json?v=nrl1-16">
+<link rel="icon" href="apple-touch-icon.png?v=nrl1-17">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=nrl1-17" sizes="180x180">
+<link rel="manifest" href="manifest.json?v=nrl1-17">
 <title>nrl1</title>
 <style>
 :root{--bg:#16243a;--teal:#5ef2d6;--mint:#9ff0c0;--sky:#8ec5ff;--lav:#c9a0ff;--coral:#ff9e8a;--amber:#ffd27a;--ink:#e6f4ff;--dim:#8fb3c9}
 html,body{margin:0;height:100%;background:#05060c;overflow:hidden;touch-action:none;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;position:fixed;width:100%;color:var(--ink);-webkit-tap-highlight-color:transparent}
-canvas{display:block;touch-action:none;width:100vw;height:100vh}
+canvas{display:block;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;width:100vw;height:100vh}
 .ui{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom);box-sizing:border-box;opacity:0;pointer-events:none;visibility:hidden;z-index:0;transition:opacity .28s ease}
 .ui.on{opacity:1;pointer-events:auto;visibility:visible;z-index:6}
 body.playing:not(.paused) .ui{pointer-events:none !important}
+body.touching #pauseBtn{pointer-events:none !important}
 .rm .ui{transition:opacity .12s linear}
 .panel{width:min(460px,100%);max-height:calc(100% - 8px);display:flex;flex-direction:column;overflow:hidden;background:rgba(18,32,52,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(142,197,255,.22);border-radius:20px;padding:20px 18px;box-sizing:border-box;box-shadow:0 20px 60px rgba(0,0,0,.35)}
 .scroller{overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;min-height:0;flex:1 1 auto}
@@ -51,7 +52,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
 .unl{margin-top:10px}.unl div{opacity:0;transform:translateY(8px);animation:pop .45s cubic-bezier(.2,1.6,.4,1) forwards;padding:9px 12px;border-radius:12px;background:rgba(255,210,122,.1);border:1px solid rgba(255,210,122,.35);margin:6px 0;font-weight:800;font-size:13px;color:var(--amber);letter-spacing:1px}
 @keyframes pop{to{opacity:1;transform:none}}
 .rm .unl div{animation:pop .01s forwards}
-#pauseBtn{position:fixed;top:calc(env(safe-area-inset-top) + 64px);right:14px;width:40px;height:40px;border-radius:12px;border:1px solid rgba(142,197,255,.25);background:rgba(18,32,52,.5);color:var(--ink);font:900 14px inherit;display:none;cursor:pointer;z-index:3}
+#pauseBtn{position:fixed;top:calc(env(safe-area-inset-top) + 64px);right:14px;width:40px;height:40px;border-radius:12px;border:1px solid rgba(142,197,255,.25);background:rgba(18,32,52,.5);color:var(--ink);font:900 14px inherit;display:none;cursor:pointer;z-index:3;touch-action:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #ver{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 3px);text-align:center;font:700 10px -apple-system,sans-serif;letter-spacing:1.5px;color:rgba(255,236,250,.78);pointer-events:none;z-index:4;text-shadow:0 1px 2px rgba(0,0,0,.65)}
 .hint{color:var(--dim);font-size:12px;margin-top:12px;line-height:1.6}
 .x{background:none;border:none;color:var(--dim);font-size:24px;cursor:pointer;padding:0 4px}
@@ -60,7 +61,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
 #mapcv{width:100%;height:100%;display:block;touch-action:manipulation;background:transparent}
 </style></head><body><canvas id="c"></canvas>
 <button id="pauseBtn" aria-label="pause">II</button>
-<div id="ver" aria-hidden="true">nrl1-16</div>
+<div id="ver" aria-hidden="true">nrl1-17</div>
 
 <div class="ui on" id="menu"><div class="panel clear">
   <div class="scroller">
@@ -154,7 +155,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
   <div class="row"><button class="btn" id="rHangar">HANGAR</button><button class="btn" id="rMenu">MENU</button></div>
 </div></div>
 
-<script src="bed.js?v=nrl1-16"></script>
+<script src="bed.js?v=nrl1-17"></script>
 <script>
 "use strict";
 const cv=document.getElementById('c'),$=id=>document.getElementById(id);
@@ -566,6 +567,8 @@ function panTest(){
 /* ---------- INPUT ---------- */
 const K={};
 const ptrs=new Map();
+const touchSnap=new Map();
+const ignoreTouch=new Set();
 let pointer=null,helm=null,thread=null,mouseAim=null,pendTap=null,swapFlash=0,bodyCutOpen=true;
 function wake(){audioInit();if(A.ctx&&A.ctx.state==='suspended')A.ctx.resume();}
 function twoThumb(){return !!SV.set.two}
@@ -576,47 +579,56 @@ addEventListener('keydown',e=>{K[e.code]=true;wake();
   if((e.code==='KeyP'||e.code==='Escape')&&G.state==='play'){G.paused?resume():pauseGame();return;}
   if((e.code==='Space'||e.code==='Enter')&&!e.repeat)action();});
 addEventListener('keyup',e=>{K[e.code]=false;if(e.code==='KeyF'&&P){P.keyBrace=0;if(P.bracing)releaseBrace();}});
-function clearPtrs(){ptrs.clear();pointer=null;helm=null;thread=null;mouseAim=null;pendTap=null;}
+function clearPtrs(){ptrs.clear();touchSnap.clear();ignoreTouch.clear();pointer=null;helm=null;thread=null;mouseAim=null;pendTap=null;document.body.classList.remove('touching');}
 function roleForX(x){const left=x<W*0.5,flip=!!SV.set.flip;return left?(flip?'thread':'helm'):(flip?'helm':'thread');}
 function syncPlayPointer(){
   const playing=G.state==='play';
   document.body.classList.toggle('playing',playing);
   document.body.classList.toggle('paused',!!(playing&&G.paused));
 }
-function eatPlayTouch(e){if(G.state==='play'&&!G.paused&&e.cancelable)e.preventDefault();}
-function makeContact(id,x,y,kind){return {id,x,y,sx:x,sy:y,t:performance.now(),dx:0,dy:0,moved:0,cut:false,pts:[{x,y}],loop:[{x,y}],knotted:false,caught:[],kind:kind||'touch',sliced:false};}
+function playingTouch(){return G.state==='play'&&!G.paused;}
+function eatPlayTouch(e){if(playingTouch()&&e.cancelable)e.preventDefault();}
+function hitPause(e){const t=e.target;return !!(t&&t.closest&&t.closest('#pauseBtn'));}
+function markTouching(){document.body.classList.toggle('touching',!!([...ptrs].some(([,p])=>p.kind!=='mouse')));}
+function makeContact(id,x,y,kind){const now=performance.now();return {id,x,y,sx:x,sy:y,t:now,lastProc:now,dx:0,dy:0,moved:0,cut:false,pts:[{x,y}],loop:[{x,y}],knotted:false,caught:[],kind:kind||'touch',sliced:false,lostAt:0,ptr:null};}
+function slotFree(cur,kind){return !cur||(cur.kind==='pointer'&&kind==='touch');}
 function beginContact(id,x,y,kind){
-  if(G.state!=='play'||G.paused||id==null)return false;
+  if(!playingTouch()||id==null)return false;
   if(ptrs.has(id))cancelContact(id);
   const p=makeContact(id,x,y,kind);
   if(!twoThumb()){
-    if(pointer)return false;
-    pointer=p;mouseAim=null;ptrs.set(id,p);return true;
+    if(!slotFree(pointer,kind))return false;
+    if(pointer)cancelContact(pointer.id);
+    pointer=p;mouseAim=null;ptrs.set(id,p);markTouching();return true;
   }
   p.role=roleForX(x);
-  if(p.role==='helm'){if(helm)return false;helm=p;}
-  else{if(thread)return false;thread=p;}
-  ptrs.set(id,p);return true;
+  if(p.role==='helm'){if(!slotFree(helm,kind))return false;if(helm)cancelContact(helm.id);helm=p;}
+  else{if(!slotFree(thread,kind))return false;if(thread)cancelContact(thread.id);thread=p;}
+  ptrs.set(id,p);markTouching();return true;
 }
 function moveContact(id,x,y){
   const p=ptrs.get(id);
-  if(!p||G.state!=='play'||G.paused)return;
-  if(p===thread){
-    const a=p.pts.length?p.pts[p.pts.length-1]:null;
-    const d=a?Math.hypot(x-a.x,y-a.y):999;
-    if(!a||d>=1.5){
-      if(a){p.moved+=d;strokeCut(a.x,a.y,x,y);p.sliced=true;if(!p.knotted)tryKnot(p,x,y);}
-      p.pts.push({x,y});if(p.pts.length>64)p.pts.shift();pushLoop(p,x,y);
-    }
-  }else{p.dx+=x-p.x;p.dy+=y-p.y;p.moved+=Math.hypot(x-p.x,y-p.y);}
-  p.x=x;p.y=y;
+  if(!p||!playingTouch())return;
+  if(p===thread&&p.knotted){p.knotted=false;p.loop=[{x:p.x,y:p.y}];p.pts=[{x:p.x,y:p.y}];p.caught=[];p.sliced=false;}
+  try{
+    if(p===thread){
+      const a=p.pts.length?p.pts[p.pts.length-1]:null;
+      const d=a?Math.hypot(x-a.x,y-a.y):999;
+      if(!a||d>=1.5){
+        if(a){p.moved+=d;strokeCut(a.x,a.y,x,y);p.sliced=true;if(!p.knotted)tryKnot(p,x,y);}
+        p.pts.push({x,y});if(p.pts.length>64)p.pts.shift();pushLoop(p,x,y);
+      }
+    }else{p.dx+=x-p.x;p.dy+=y-p.y;p.moved+=Math.hypot(x-p.x,y-p.y);}
+  }catch(_){}
+  p.x=x;p.y=y;p.lastProc=performance.now();p.lostAt=0;
 }
 function finishContact(id,how){
-  const p=ptrs.get(id);ptrs.delete(id);
+  const p=ptrs.get(id);ptrs.delete(id);touchSnap.delete(id);
   const wasHelm=!!(p&&p===helm),wasThread=!!(p&&p===thread),wasPointer=!!(p&&p===pointer);
   if(wasHelm||(helm&&helm.id===id))helm=null;
   if(wasThread||(thread&&thread.id===id))thread=null;
   if(wasPointer||(pointer&&pointer.id===id))pointer=null;
+  markTouching();
   if(!p)return;
   if(how==='cancel'||how==='reconcile'||how==='reset'){
     if(wasThread&&how==='cancel'){if(!p.sliced&&p.moved>12)commitThread(p);if(!p.knotted&&(p.sliced||p.moved>12))tryKnot(p,p.x,p.y);}
@@ -691,33 +703,122 @@ cv.addEventListener('pointercancel',e=>{
   try{cv.releasePointerCapture(e.pointerId);}catch(_){}
   cancelContact(mouseKey(e.pointerId));
 });
-cv.addEventListener('touchstart',e=>{
+function rememberTouches(list){
+  if(!list)return;
+  const now=performance.now();
+  for(let i=0;i<list.length;i++){
+    const t=list[i];
+    touchSnap.set(t.identifier,{x:t.clientX,y:t.clientY,seen:now});
+    const p=ptrs.get(t.identifier);
+    if(p)p.lostAt=0;
+  }
+}
+function syncTouchMoves(list){
+  if(!list)return;
+  const now=performance.now();
+  for(let i=0;i<list.length;i++){
+    const t=list[i];
+    if(ignoreTouch.has(t.identifier))continue;
+    const p=ptrs.get(t.identifier);
+    if(!p)continue;
+    if(Math.hypot(t.clientX-p.x,t.clientY-p.y)>=0.5)moveContact(t.identifier,t.clientX,t.clientY);
+    else p.lastProc=now;
+  }
+}
+function adoptListed(list){
+  if(!playingTouch()||!list)return;
+  for(let i=0;i<list.length;i++){
+    const t=list[i];
+    if(ptrs.has(t.identifier)||ignoreTouch.has(t.identifier))continue;
+    beginContact(t.identifier,t.clientX,t.clientY,'touch');
+  }
+}
+function notePointer(e){
+  if(!e||e.pointerType!=='touch')return;
+  const now=performance.now();
+  let id=null;
+  for(const [k,p] of ptrs){
+    if(p.kind==='mouse')continue;
+    if(p.ptr===e.pointerId||k===e.pointerId){id=k;break;}
+  }
+  if(id==null){
+    const open=[];
+    let bd=80,near=null;
+    for(const [k,p] of ptrs){
+      if(p.kind==='mouse'||p.ptr!=null)continue;
+      open.push(k);
+      const d=Math.hypot(p.x-e.clientX,p.y-e.clientY);
+      if(d<bd){bd=d;near=k;}
+    }
+    if(open.length===1)id=open[0];
+    else if(near!=null)id=near;
+    if(id!=null)ptrs.get(id).ptr=e.pointerId;
+  }
+  if(id!=null){touchSnap.set(id,{x:e.clientX,y:e.clientY,seen:now});return;}
+  if(![...ptrs].some(([,p])=>p.kind!=='mouse'))touchSnap.set('ptr'+e.pointerId,{x:e.clientX,y:e.clientY,seen:now,orphan:e.pointerId});
+}
+function touchWatchdog(){
+  if(!playingTouch())return;
+  const now=performance.now();
+  for(const [key,s] of [...touchSnap]){
+    if(s.orphan!=null){
+      if(now-s.seen<100)continue;
+      if(beginContact(s.orphan,s.x,s.y,'pointer')){
+        const p=ptrs.get(s.orphan);
+        if(p)p.ptr=s.orphan;
+        touchSnap.delete(key);
+        touchSnap.set(s.orphan,{x:s.x,y:s.y,seen:now});
+      }else if(now-s.seen>800)touchSnap.delete(key);
+      continue;
+    }
+    const p=ptrs.get(key);
+    if(!p){if(now-s.seen>500)touchSnap.delete(key);continue;}
+    if(now-(p.lastProc||0)>100&&Math.hypot(s.x-p.x,s.y-p.y)>0.75)moveContact(key,s.x,s.y);
+  }
+  markTouching();
+}
+const touchOpts={capture:true,passive:false};
+window.addEventListener('touchstart',e=>{
   wake();syncPlayPointer();
-  if(!(G.state==='play'&&!G.paused))return;
+  if(!playingTouch())return;
+  if(hitPause(e)){for(let i=0;i<e.changedTouches.length;i++)ignoreTouch.add(e.changedTouches[i].identifier);return;}
   eatPlayTouch(e);
-  const live=touchListIds(e.touches);
-  reconcileIds(live);
+  rememberTouches(e.touches);
+  reconcileIds(touchListIds(e.touches));
   for(let i=0;i<e.changedTouches.length;i++){const t=e.changedTouches[i];beginContact(t.identifier,t.clientX,t.clientY,'touch');}
-},{passive:false});
-cv.addEventListener('touchmove',e=>{
-  if(!(G.state==='play'&&!G.paused))return;
+  adoptListed(e.touches);
+  syncTouchMoves(e.touches);
+  markTouching();
+},touchOpts);
+window.addEventListener('touchmove',e=>{
+  if(!playingTouch())return;
+  let onlyPause=!!(e.touches&&e.touches.length);
+  if(e.touches)for(let i=0;i<e.touches.length;i++)if(!ignoreTouch.has(e.touches[i].identifier))onlyPause=false;
+  if(onlyPause)return;
   eatPlayTouch(e);
-  reconcileIds(touchListIds(e.touches));
-  for(let i=0;i<e.changedTouches.length;i++){const t=e.changedTouches[i];moveContact(t.identifier,t.clientX,t.clientY);}
-},{passive:false});
-cv.addEventListener('touchend',e=>{
-  if(G.state==='play'&&!G.paused)eatPlayTouch(e);
-  for(let i=0;i<e.changedTouches.length;i++)endContact(e.changedTouches[i].identifier);
-  reconcileIds(touchListIds(e.touches));
-},{passive:false});
-cv.addEventListener('touchcancel',e=>{
-  for(let i=0;i<e.changedTouches.length;i++)cancelContact(e.changedTouches[i].identifier);
-  reconcileIds(touchListIds(e.touches));
-},{passive:false});
+  rememberTouches(e.touches);
+  adoptListed(e.touches);
+  syncTouchMoves(e.touches);
+  markTouching();
+},touchOpts);
+window.addEventListener('touchend',e=>{
+  if(playingTouch())eatPlayTouch(e);
+  for(let i=0;i<e.changedTouches.length;i++){const id=e.changedTouches[i].identifier;ignoreTouch.delete(id);endContact(id);}
+  rememberTouches(e.touches);
+  markTouching();
+},touchOpts);
+window.addEventListener('touchcancel',e=>{
+  const live=touchListIds(e.touches);
+  for(let i=0;i<e.changedTouches.length;i++){const id=e.changedTouches[i].identifier;ignoreTouch.delete(id);if(!live.has(id))cancelContact(id);}
+  rememberTouches(e.touches);
+  markTouching();
+},touchOpts);
+window.addEventListener('pointerdown',notePointer,{capture:true,passive:true});
+window.addEventListener('pointermove',notePointer,{capture:true,passive:true});
 cv.addEventListener('dblclick',e=>{e.preventDefault();});
-['gesturestart','gesturechange'].forEach(t=>cv.addEventListener(t,e=>{if(G.state==='play'&&!G.paused&&e.cancelable)e.preventDefault();},{passive:false}));
+['gesturestart','gesturechange'].forEach(t=>window.addEventListener(t,e=>{if(playingTouch()&&e.cancelable)e.preventDefault();},{capture:true,passive:false}));
 function lostTouches(){resetContacts();}
-document.addEventListener('visibilitychange',()=>{lostTouches();if(document.hidden&&G.state==='play'&&!G.paused)pauseGame();});
+document.addEventListener('visibilitychange',()=>{lostTouches();if(document.hidden&&playingTouch())pauseGame();});
 window.addEventListener('blur',lostTouches);
 window.addEventListener('pagehide',lostTouches);
 
@@ -2432,7 +2533,7 @@ function refreshMenu(){
   $('bDaily').textContent='DAILY RIFT · '+(dd.done?'✓ ':'')+'#'+String(dk).slice(4)+(dd.best?' · BEST '+dd.best.toLocaleString():'');
   const lit=(SV.sectors.stars||[]).filter(n=>n>0).length;
   const mt=musicChoices().find(t=>t.id===trackId());
-  $('mHint').innerHTML=(HS?'BEST '+HS.toLocaleString()+' · ':'')+'MISSIONS '+done+'/'+ACH.length+' · STARS '+lit+'/6<br>'+controlBlurb()+'<br>Endless is the classic run. Constellation is six short sectors.<br>Music: '+(mt?mt.name:'ORIGINAL')+'. Switch it any time in Music.<br><span style="letter-spacing:1px;opacity:.75">nrl1-16</span>';
+  $('mHint').innerHTML=(HS?'BEST '+HS.toLocaleString()+' · ':'')+'MISSIONS '+done+'/'+ACH.length+' · STARS '+lit+'/6<br>'+controlBlurb()+'<br>Endless is the classic run. Constellation is six short sectors.<br>Music: '+(mt?mt.name:'ORIGINAL')+'. Switch it any time in Music.<br><span style="letter-spacing:1px;opacity:.75">nrl1-17</span>';
 }
 function paintConstellation(){
   const c=$('mapcv');if(!c)return;
@@ -2523,12 +2624,12 @@ sCtl.onclick=()=>{SV.set.two=!SV.set.two;save();sfx.ui();syncSet();if(G.screen==
 if(matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches&&!localStorage.getItem('neonrift_lab_save'))SV.set.rm=true;
 syncSet();
 (function(){const d=document.createElement('div');d.style.cssText='position:fixed;top:env(safe-area-inset-top);visibility:hidden';document.body.appendChild(d);document.documentElement.style.setProperty('--sat',d.getBoundingClientRect().top+'px');d.remove();})();
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js?v=nrl1-16',{scope:'./'}).catch(()=>{});}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js?v=nrl1-17',{scope:'./'}).catch(()=>{});}
 
 let last=performance.now();reset();refreshMenu();
-function loop(now){let rdt=clamp((now-last)/1000,0,.05);last=now;syncPlayPointer();if(!G.paused)update(rdt);render(G.paused?0:rdt);musicTick();sectorLayerTick();requestAnimationFrame(loop);}
+function loop(now){let rdt=clamp((now-last)/1000,0,.05);last=now;syncPlayPointer();touchWatchdog();if(!G.paused)update(rdt);render(G.paused?0:rdt);musicTick();sectorLayerTick();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
-function snap(){return {state:G.state,score,streak,heat,grav,zone:zoneIdx,mode:G.mode,sector:sectorIdx,sectorT:+(sectorT||0).toFixed(2),sectorRush:sectorRush?1:0,sectorPhase,perfects:perfects||0,event:evt&&evt.k,boss:boss?{kind:boss.kind||'flywheel',phase:boss.phase,hp:Math.round(boss.hp*10)/10,max:boss.max,frac:+(boss.hp/boss.max).toFixed(3),plates:boss.plateGone&&boss.plateGone.filter(Boolean).length,broken:boss.broken,clock:+(boss.clock||0).toFixed(2)}:null,finale:finale?{t:+finale.t.toFixed(2),shattered:!!finale.shattered,shards:finale.shards.length}:null,torp:{ammo:P?P.torpAmmo:0,cd:P?+P.torpCd.toFixed(2):0},boons:P?{shield:P.shield,chrono:+(P.slowmo||0).toFixed(2),magnet:+(P.magnet||0).toFixed(2),surge:+(P.surge||0).toFixed(2),over:+(P.over||0).toFixed(2)}:null,controls:twoThumb()?'two':'one',flip:!!SV.set.flip,ver:'nrl1-16',track:trackId(),hull:SV.hull,weapon:SV.weapon,paint:SV.skin,x:P?Math.round(P.x):0,y:P?Math.round(P.y):0,haz:haz.filter(h=>!h.dead).map(h=>({k:h.k,x:Math.round(h.x),y:Math.round(h.y)})),torps:torps.length,elapsed,stageT,dashArm,dashing:!!(P&&P.dashT>0),swapFlash:+swapFlash.toFixed(2),stars:SV.sectors.stars.slice(),unlocked:SV.sectors.u};}
+function snap(){return {state:G.state,score,streak,heat,grav,zone:zoneIdx,mode:G.mode,sector:sectorIdx,sectorT:+(sectorT||0).toFixed(2),sectorRush:sectorRush?1:0,sectorPhase,perfects:perfects||0,event:evt&&evt.k,boss:boss?{kind:boss.kind||'flywheel',phase:boss.phase,hp:Math.round(boss.hp*10)/10,max:boss.max,frac:+(boss.hp/boss.max).toFixed(3),plates:boss.plateGone&&boss.plateGone.filter(Boolean).length,broken:boss.broken,clock:+(boss.clock||0).toFixed(2)}:null,finale:finale?{t:+finale.t.toFixed(2),shattered:!!finale.shattered,shards:finale.shards.length}:null,torp:{ammo:P?P.torpAmmo:0,cd:P?+P.torpCd.toFixed(2):0},boons:P?{shield:P.shield,chrono:+(P.slowmo||0).toFixed(2),magnet:+(P.magnet||0).toFixed(2),surge:+(P.surge||0).toFixed(2),over:+(P.over||0).toFixed(2)}:null,controls:twoThumb()?'two':'one',flip:!!SV.set.flip,ver:'nrl1-17',track:trackId(),hull:SV.hull,weapon:SV.weapon,paint:SV.skin,x:P?Math.round(P.x):0,y:P?Math.round(P.y):0,haz:haz.filter(h=>!h.dead).map(h=>({k:h.k,x:Math.round(h.x),y:Math.round(h.y)})),torps:torps.length,elapsed,stageT,dashArm,dashing:!!(P&&P.dashT>0),swapFlash:+swapFlash.toFixed(2),stars:SV.sectors.stars.slice(),unlocked:SV.sectors.u};}
 window.__G={G,SV,get score(){return score},get state(){return G.state},get zone(){return zoneIdx},get streak(){return streak},start:startRun,startSector,show,
   setControls(v){SV.set.two=!!v;save();},
   forceBoss(){if(G.state==='play')startBoss();},
@@ -2554,7 +2655,7 @@ window.__G={G,SV,get score(){return score},get state(){return G.state},get zone(
   touchStress(){
     const fails=[];
     const check=(name,ok)=>{if(!ok)fails.push(name);};
-    const prev={state:G.state,paused:G.paused,two:!!SV.set.two,flip:!!SV.set.flip,slow,inv:P?P.inv:0,slowmo:P?P.slowmo:0};
+    const prev={state:G.state,paused:G.paused,two:!!SV.set.two,flip:!!SV.set.flip,slow,inv:P?P.inv:0,slowmo:P?P.slowmo:0,mode:G.mode,lives,shield:P?P.shield:0};
     if(!P)reset();
     G.state='play';G.paused=false;SV.set.two=true;SV.set.flip=false;P.inv=1e6;slow=1;P.slowmo=0;
     syncPlayPointer();resetContacts();
@@ -2639,8 +2740,70 @@ window.__G={G,SV,get score(){return score},get state(){return G.state},get zone(
       fire('touchstart',[mk(23,W-30,160)],[mk(23,W-30,160)]);
       check('touchstart drops the stale steer',thread&&(thread.id===23||helm&&helm.id===23)&&!ptrs.has(21));
       resetContacts();
+      fire('touchstart',[mk(41,36,240)],[mk(41,36,240)]);
+      fire('touchstart',[mk(42,W-36,240)],[mk(41,36,240),mk(42,W-36,240)]);
+      fire('touchmove',[mk(42,W-36,300)],[mk(42,W-36,300)]);
+      check('partial move keeps the held steer',helm&&helm.id===41&&thread&&thread.id===42);
+      const xHold=P.x;
+      fire('touchmove',[mk(42,W-36,320)],[mk(41,90,250),mk(42,W-36,320)]);
+      movePlayer(.05);
+      check('full touch list moves a finger left out of changedTouches',helm&&helm.id===41&&P.x>xHold+5);
+      fire('touchcancel',[mk(41,90,250),mk(42,W-36,320)],[]);
+      check('cancel clears a held pair',!helm&&!thread);
+      window.dispatchEvent(new PointerEvent('pointermove',{pointerId:41,pointerType:'touch',clientX:140,clientY:250,bubbles:true}));
+      const ghost=touchSnap.get('ptr41');
+      if(ghost)ghost.seen-=150;
+      touchWatchdog();
+      check('cancelled hold is tracked again',helm&&helm.id===41);
+      window.dispatchEvent(new PointerEvent('pointermove',{pointerId:41,pointerType:'touch',clientX:190,clientY:250,bubbles:true}));
+      const again=touchSnap.get(41);
+      if(again)again.seen=performance.now();
+      if(helm)helm.lastProc=performance.now()-180;
+      const xGhost=P.x;
+      touchWatchdog();
+      movePlayer(.05);
+      check('pointer move resumes a cancelled hold',helm&&helm.id===41&&P.x>xGhost+5);
+      resetContacts();
       touchEvents=true;
     }catch(e){touchEvents=false;}
+    try{
+    beginContact(60,28,210,'touch');
+    beginContact(61,W-28,180,'touch');
+    const steer=()=>{const x=helm.x+18;moveContact(60,x,helm.y);movePlayer(.016);return P.x;};
+    const cut=()=>{const y=(thread?thread.y:180)+36;moveContact(61,W-28,y);return thread?thread.moved:0;};
+    let sx=P.x;check('held steer before events',steer()>sx+4&&helm.id===60);
+    thread.knotted=true;const cm=thread.moved;cut();
+    check('knot snap keeps drawing',thread&&thread.id===61&&!thread.knotted&&thread.moved>cm+20);
+    slow=.3;P.slowmo=6;perfectT=.9;sx=P.x;check('perfect knot slow-mo keeps steer',steer()>sx+4&&helm.id===60);
+    try{startEvent('rush');}catch(e){}
+    sx=P.x;check('rush keeps steer',steer()>sx+4&&helm.id===60&&thread.id===61);
+    try{endEvent();startBoss();}catch(e){}
+    sx=P.x;check('boss keeps steer',steer()>sx+4&&helm.id===60);
+    const cutBoss=thread.moved;cut();check('boss keeps the cut',thread.moved>cutBoss+20);
+    try{absorbPrize(P.x,P.y,'#ffd27a',true);}catch(e){}
+    sx=P.x;check('absorb keeps steer',steer()>sx+4&&helm.id===60);
+    const flipped=SV.set.flip;swapSides();
+    sx=P.x;check('swap keeps the held fingers',SV.set.flip!==flipped&&helm.id===60&&thread.id===61&&steer()>sx+4);
+    if(SV.set.flip!==prev.flip){SV.set.flip=prev.flip;}
+    G.mode='sector';sectorIdx=0;sectorPhase='wave';sectorT=RUSH_AT;sectorRush=1;
+    try{startSectorBoss();}catch(e){}
+    sx=P.x;check('sector change keeps steer',steer()>sx+4&&helm.id===60&&thread.id===61);
+    const liveLives=lives,liveShield=P.shield;
+    lives=1;P.shield=0;try{die();}catch(e){}
+    check('reserve life keeps the hold',G.state==='play'&&helm&&helm.id===60&&thread&&thread.id===61);
+    sx=P.x;check('reserve life still steers',steer()>sx+4);
+    lives=liveLives;if(P)P.shield=liveShield;
+    helm.lastProc=performance.now()-180;
+    touchSnap.set(60,{x:helm.x+28,y:helm.y,seen:performance.now()});
+    sx=P.x;touchWatchdog();movePlayer(.05);
+    check('watchdog resyncs a held finger',helm&&helm.id===60&&P.x>sx+5);
+    check('pause control is inert while a finger is down',document.body.classList.contains('touching')&&getComputedStyle(document.getElementById('pauseBtn')).pointerEvents==='none');
+    endContact(60);endContact(61);
+    check('lift lets the pause control receive taps',!document.body.classList.contains('touching'));
+    }catch(e){fails.push('held '+e);}finally{
+    boss=null;evt=null;finale=null;perfectT=0;sectorRush=0;G.mode=prev.mode;sectorIdx=-1;sectorPhase='wave';
+    haz.splice(0,haz.length);pups.splice(0,pups.length);lives=prev.lives;if(P)P.shield=prev.shield;
+    }
     check('overlay ignores pointers while playing',document.body.classList.contains('playing')&&getComputedStyle(document.getElementById('menu')).pointerEvents==='none');
     SV.set.two=prev.two;SV.set.flip=prev.flip;save();
     G.state=prev.state;G.paused=prev.paused;slow=prev.slow;if(P){P.inv=prev.inv;P.slowmo=prev.slowmo;}

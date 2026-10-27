@@ -31,7 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1-16. A lost finger no longer leaves the steer or the cut stuck. "
+    "nrl1-17. A finger that stays down keeps steering and drawing through a knot, slow motion, and a rush. "
     "The hull still turns ultraviolet on a streak or a prize, and deep red "
     "when you are on your last life with no shield and something is close. "
     "The flywheel, the knot, the controls, and the enemies stay as they were. "
