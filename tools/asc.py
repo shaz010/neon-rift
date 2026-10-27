@@ -31,10 +31,9 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1-10. Kills and explosions hit with a deeper bass. Each of the six sectors "
-    "has its own original tune: guitar, bass, drums, and a little harmony, and the "
-    "rush pushes the band harder. Endless and the menu use a seventh tune in that "
-    "same style. The flywheel, the knot, the controls, and the enemies stay as "
+    "nrl1-11. The original music is back as the default, and Settings has a music "
+    "list. Kills hit a little harder. Explosions and flybys sit left or right in "
+    "headphones. The flywheel, the knot, the controls, and the enemies stay as "
     "they were. This is the lab game, separate from Neon Rift 2."
 )
 

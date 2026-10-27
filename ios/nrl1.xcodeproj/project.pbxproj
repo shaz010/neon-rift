@@ -133,6 +133,7 @@
 				"$(SRCROOT)/../index.html",
 				"$(SRCROOT)/../manifest.json",
 				"$(SRCROOT)/../sw.js",
+				"$(SRCROOT)/../bed.js",
 				"$(SRCROOT)/../apple-touch-icon.png",
 				"$(SRCROOT)/../icon-512.png",
 			);
@@ -141,12 +142,13 @@
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/web/index.html",
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/web/manifest.json",
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/web/sw.js",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/web/bed.js",
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/web/apple-touch-icon.png",
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/web/icon-512.png",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nDEST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/web\"\nmkdir -p \"${DEST}\"\nfor f in index.html manifest.json sw.js apple-touch-icon.png icon-512.png; do\n  test -f \"${SRCROOT}/../${f}\"\n  cp \"${SRCROOT}/../${f}\" \"${DEST}/${f}\"\ndone\ngrep -q 'nrl1-10' \"${DEST}/index.html\"\n";
+			shellScript = "set -e\nDEST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/web\"\nmkdir -p \"${DEST}\"\nfor f in index.html manifest.json sw.js bed.js apple-touch-icon.png icon-512.png; do\n  test -f \"${SRCROOT}/../${f}\"\n  cp \"${SRCROOT}/../${f}\" \"${DEST}/${f}\"\ndone\ngrep -q 'nrl1-11' \"${DEST}/index.html\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
