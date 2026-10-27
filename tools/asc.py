@@ -747,7 +747,7 @@ def note() -> None:
     version = require_env("BUILD_NUMBER").strip()
     token = make_token()
     build = None
-    for _ in range(20):
+    for _ in range(48):
         build = find_build(token, app_id, version)
         if build:
             break
