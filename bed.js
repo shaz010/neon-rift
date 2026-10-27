@@ -13,18 +13,48 @@
   const tracks = [
     { id: "A", tag: "A", name: "NIGHT RUN", preview: true, bpm: 102, rush: 116, bars: 16, lp: [5200, 11000],
       line: "Dark outrun. A driving minor arp and a four-on-the-floor kick." },
-    { id: "B", tag: "B", name: "BLACK VEIL", preview: true, bpm: 70, rush: 82, bars: 12, lp: [2200, 4000],
+    { id: "B", tag: "B", name: "BLACK VEIL", preview: true, audition: true, bpm: 70, rush: 82, bars: 12, lp: [2200, 4000],
       line: "Neon-noir pulse. Slow heartbeat and a deep bass." },
     { id: "C", tag: "C", name: "ASCENT", preview: true, bpm: 136, rush: 142, bars: 24, lp: [6400, 12000],
       line: "Uplifting trance. A long build that opens into a drop." },
     { id: "D", tag: "D", name: "SPLIT", preview: true, bpm: 174, rush: 178, bars: 32, lp: [3800, 7200],
       line: "Drum and bass. Fast breakbeat and a moving reese bass." },
-    { id: "E", tag: "E", name: "LATE SHIFT", preview: true, bpm: 80, rush: 90, bars: 12, swing: 0.64, lp: [2600, 4200],
-      line: "Lo-fi hop. Swung drums, dusty chords, a soft bass." },
-    { id: "F", tag: "F", name: "FLOOR", preview: true, bpm: 122, rush: 128, bars: 20, lp: [3400, 9000],
-      line: "Funky French house. Pumping kick, chopped chords, a short hook." },
+    { id: "E", tag: "E", name: "LATE SHIFT", preview: true, audition: true, bpm: 80, rush: 90, bars: 12, swing: 0.64, lp: [2600, 4200],
+      line: "Late-night groove. Swung drums, dusty chords, a soft bass." },
+    { id: "F", tag: "F", name: "FLOOR", preview: true, audition: true, bpm: 122, rush: 128, bars: 20, lp: [3400, 9000],
+      line: "Club floor. Pumping kick, chopped chords, a short hook." },
     { id: "J", tag: "", name: "JANGLE", preview: false, bpm: 118, rush: 130, bars: 16, grid: "8", swing: 0.57, lp: [6200, 10800],
-      line: "Bright 60s band. Strums, a walking bass, and a short hook." }
+      line: "Bright 60s band. Strums, a walking bass, and a short hook." },
+    { id: "v1", tag: "4", name: "LOW LAMP", audition: true, bpm: 66, rush: 74, bars: 12, lp: [1400, 2800],
+      line: "Dark noir drone. A lamp in an empty room, almost still." },
+    { id: "v2", tag: "5", name: "NIGHT BUS", audition: true, bpm: 86, rush: 94, bars: 14, swing: 0.62, lp: [2400, 4600],
+      line: "Late-night groove. The city sliding past a wet window." },
+    { id: "v3", tag: "6", name: "CELLAR", audition: true, bpm: 126, rush: 130, bars: 16, lp: [3200, 8600],
+      line: "Club energy. A low room and a steady kick." },
+    { id: "v4", tag: "7", name: "AFTERDARK", audition: true, bpm: 112, rush: 120, bars: 16, lp: [2800, 9000],
+      line: "Darksynth. A minor arp over a cold bass." },
+    { id: "v5", tag: "8", name: "DEEPER", audition: true, bpm: 122, rush: 126, bars: 16, lp: [2600, 6400],
+      line: "Deep house. Warm chords under a soft four-on-the-floor." },
+    { id: "v6", tag: "9", name: "WAREHOUSE", audition: true, bpm: 132, rush: 136, bars: 18, lp: [3000, 7800],
+      line: "Berlin techno. Hypnotic, dry, one note for a long time." },
+    { id: "v7", tag: "10", name: "COWL", audition: true, bpm: 150, rush: 156, bars: 24, lp: [1800, 4200],
+      line: "Phonk-ish bass. Half-time weight and a metallic tick." },
+    { id: "v8", tag: "11", name: "DOCKSIDE", audition: true, bpm: 84, rush: 92, bars: 12, swing: 0.6, lp: [2000, 3800],
+      line: "Trip-hop. Dusty drums and a slow minor bass." },
+    { id: "v9", tag: "12", name: "GLASS HALL", audition: true, bpm: 72, rush: 80, bars: 12, lp: [2200, 5600],
+      line: "Cinematic hybrid. Low strings and a distant pulse." },
+    { id: "v10", tag: "13", name: "CHROME FUNK", audition: true, bpm: 100, rush: 108, bars: 16, lp: [2800, 6200],
+      line: "Retro funk. A clipped bass and bright stabs." },
+    { id: "v11", tag: "14", name: "DRIFT", audition: true, bpm: 60, rush: 68, bars: 8, lp: [1600, 3200],
+      line: "Ambient pulse. Soft light, no hurry." },
+    { id: "v12", tag: "15", name: "TWO STEP", audition: true, bpm: 132, rush: 136, bars: 20, swing: 0.58, lp: [3400, 8000],
+      line: "Garage / 2-step. A skippy kick and shuffled hats." },
+    { id: "v13", tag: "16", name: "SWING WIRE", audition: true, bpm: 116, rush: 124, bars: 16, swing: 0.66, lp: [3000, 7000],
+      line: "Electro-swing. A swung brass stab over a walking bass." },
+    { id: "v14", tag: "17", name: "IRON", audition: true, bpm: 118, rush: 126, bars: 16, lp: [2400, 6400],
+      line: "Industrial. Rigid metal and a dissonant bass." },
+    { id: "v15", tag: "18", name: "SHORE", audition: true, bpm: 92, rush: 100, bars: 16, lp: [2600, 5400],
+      line: "Chillwave. Washed major-sevens and a soft drum." }
   ];
 
   function hitA(api, t, pos, rush, menu) {
@@ -203,8 +233,201 @@
       api.tri(hz(key - 12 + chord[2]), t, 0.74, rush ? 0.036 : 0.02);
     }
   }
-  tracks[0].hit = hitA; tracks[1].hit = hitB; tracks[2].hit = hitC; tracks[3].hit = hitD;
-  tracks[4].hit = hitE; tracks[5].hit = hitF; tracks[6].hit = hitJ;
+  function hitV1(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const roots = [46, 41, 43, 39], root = roots[bar % 4];
+    if (s === 0) api.kick(t, menu ? 0.4 : 0.72, 36);
+    if (s === 0) api.sine(hz(root - 24), t, 3.6, rush ? 0.24 : 0.16, hz(Math.max(24, root - 27)));
+    if (s === 8 && !menu) api.sine(hz(root - 12), t, 1.5, 0.045);
+    if (s % 8 === 0) api.hat(t, rush ? 0.028 : 0.014, false);
+    if (s === 0) {
+      api.tri(hz(root + 3), t, 3.2, menu ? 0.016 : 0.03);
+      api.tri(hz(root + 10), t, 3.4, 0.02);
+    }
+    if (!menu && (s === 12 || (rush && s === 4))) api.sine(hz(root + 15), t, 0.9, rush ? 0.045 : 0.026);
+  }
+  function hitV2(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const chords = [[58, 61, 65], [56, 60, 63], [53, 56, 60], [51, 55, 58]];
+    const chord = chords[bar % 4];
+    if (s === 0 || s === 10) api.kick(t, s === 0 ? 0.62 : 0.4, 50);
+    if (s === 4 || s === 12) api.snare(t, rush ? 0.2 : 0.14);
+    if (s % 2 === 0) api.hat(t, 0.03, false);
+    if (rush && s % 2 === 1) api.hat(t, 0.016, false);
+    if (s === 0 || s === 8) api.sine(hz(chord[0] - 24), t, 0.7, 0.14);
+    if (s === 0 && !menu) chord.forEach(function (n, i) { api.tri(hz(n), t, 1.1, i ? 0.02 : 0.028); });
+    if (!menu && s % 4 === 2) {
+      const mel = [0, 3, 7, 10, 7, 3, 5, 0];
+      api.sine(hz(chord[0] + 12 + mel[(bar + (s >> 2)) % 8]), t, 0.28, rush ? 0.04 : 0.028);
+    }
+  }
+  function hitV3(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const root = [48, 48, 46, 43][bar % 4];
+    if (s % 4 === 0) { api.kick(t, 0.78, 48); api.duck(t); }
+    if (s % 4 === 2) api.hat(t, rush ? 0.07 : 0.05, true);
+    if (s === 4 || s === 12) api.snare(t, 0.16);
+    const bass = [0, 0, 0, 7, 0, 10, 7, 3];
+    if (s % 2 === 0) api.saw(hz(root - 12 + bass[(s >> 1) % 8]), t, 0.12, rush ? 0.08 : 0.06, 0, { type: "lowpass", f: rush ? 520 : 280, q: 0.8 });
+    if (!menu && (s === 2 || s === 10)) {
+      [0, 3, 7].forEach(function (d) { api.saw(hz(root + 12 + d), t, 0.08, 0.02, 0, { type: "bandpass", f: rush ? 1600 : 900, q: 0.7 }, "pump"); });
+    }
+  }
+  function hitV4(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const root = [45, 48, 41, 43][bar % 4];
+    if (s % 4 === 0) api.kick(t, s === 0 ? 0.74 : 0.5, 46);
+    if (s === 4 || s === 12) api.snare(t, 0.18);
+    if (s % 2 === 1) api.hat(t, rush ? 0.04 : 0.022, false);
+    if (s % 2 === 0) api.saw(hz(root - 12), t, 0.16, rush ? 0.07 : 0.05, 0, { type: "lowpass", f: rush ? 420 : 220, q: 0.9 });
+    const arp = [0, 3, 7, 12, 10, 7, 3, 0];
+    if (!menu) api.saw(hz(root + 12 + arp[s % 8]), t, 0.09, rush ? 0.035 : 0.022, 0, { type: "lowpass", f: rush ? 3200 : 1400, q: 0.6 });
+    if (s === 0) api.tri(hz(root + 15), t, 0.5, menu ? 0.012 : 0.02);
+  }
+  function hitV5(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const root = [53, 55, 48, 50][(bar >> 1) % 4];
+    const third = (bar >> 1) % 4 === 2 ? 3 : 4;
+    if (s % 4 === 0) { api.kick(t, 0.66, 50); if (s === 0) api.duck(t); }
+    if (s % 8 === 4) api.hat(t, rush ? 0.06 : 0.04, true);
+    if (s === 4 || s === 12) api.snare(t, 0.12);
+    const walk = [0, 0, 7, 3, 0, 10, 7, 5];
+    if (s % 2 === 0) api.sine(hz(root - 12 + walk[(s >> 1) % 8]), t, 0.22, 0.11);
+    if ((s === 0 || s === 8) && !menu) [0, third, 7, 11].forEach(function (d, i) {
+      api.tri(hz(root + d), t, 0.7, i === 0 ? 0.03 : 0.018);
+    });
+    if (rush && s === 14) api.hat(t, 0.04, true);
+  }
+  function hitV6(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const root = bar % 8 < 6 ? 43 : 41;
+    if (s % 4 === 0) api.kick(t, 0.8, 47);
+    api.hat(t, s % 4 === 0 ? 0.02 : (s % 2 === 0 ? 0.035 : 0.018), false);
+    if (rush && s % 4 === 2) api.hat(t, 0.03, true);
+    if (s === 4 || s === 12 || (bar % 4 === 3 && s === 14)) api.noise(t, 0.05, 0.04, "bandpass", 1800);
+    if (s % 8 === 4) api.saw(hz(root - 12), t, 0.18, rush ? 0.07 : 0.05, hz(root - 12), { type: "lowpass", f: 160 + ((bar + s) % 5) * 40, q: 0.7 });
+    if (!menu && s === 0 && bar % 2 === 0) api.sine(hz(root + 12), t, 0.3, 0.02);
+  }
+  function hitV7(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const root = [40, 40, 38, 43][(bar >> 1) % 4];
+    if (s === 0) api.kick(t, 0.86, 42);
+    if (s === 8) api.snare(t, rush ? 0.28 : 0.2);
+    if (s === 8) api.noise(t, 0.08, 0.05, "bandpass", 2400);
+    if (s % 2 === 0) api.hat(t, 0.03, false);
+    if (s % 4 === 2) api.noise(t, 0.04, rush ? 0.04 : 0.025, "highpass", 5000);
+    if (s % 2 === 0) {
+      const wob = [180, 240, 160, 300][(s >> 1) % 4] + (rush ? 80 : 0);
+      api.saw(hz(root - 12), t, 0.16, 0.07, 0, { type: "lowpass", f: wob, q: 0.8 });
+      api.saw(hz(root - 12) * 1.01, t, 0.16, 0.04, 0, { type: "lowpass", f: wob * 0.8, q: 0.6 });
+    }
+    if (!menu && s === 12) api.sine(hz(root + 15), t, 0.2, 0.03);
+  }
+  function hitV8(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const root = [50, 45, 47, 43][bar % 4];
+    if (s === 0 || s === 7) api.kick(t, s === 0 ? 0.6 : 0.36, 48);
+    if (s === 4 || s === 12) api.snare(t, 0.2);
+    if (s % 2 === 0) api.hat(t, 0.022, false);
+    if (s % 4 === 0) api.noise(t, 0.06, 0.012, "highpass", 4000);
+    if (s === 0 || s === 6 || s === 10) api.sine(hz(root - 24 + (s === 10 ? 5 : 0)), t, 0.55, 0.15);
+    if (s === 0 && !menu) [0, 3, 10].forEach(function (d, i) { api.tri(hz(root + d), t, 1.4, 0.022); });
+    if (!menu && bar % 2 === 1 && s % 4 === 0) api.sine(hz(root + 12 + [0, 3, 7, 3][(s >> 2) % 4]), t, 0.4, rush ? 0.04 : 0.028);
+  }
+  function hitV9(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const roots = [48, 43, 46, 41], root = roots[bar % 4];
+    if (s === 0) api.kick(t, menu ? 0.28 : 0.5, 40);
+    if (s === 0 || s === 8) api.sine(hz(root - 24), t, 1.8, rush ? 0.16 : 0.11);
+    if (s % 8 === 0) {
+      [0, 3, 7, 12].forEach(function (d, i) { api.tri(hz(root + d), t, 1.6, i === 3 ? 0.012 : 0.022); });
+      api.sine(hz(root + 7), t, 1.5, 0.03);
+    }
+    if (!menu && (s === 4 || s === 12)) api.saw(hz(root + 12), t, 0.35, rush ? 0.03 : 0.016, 0, { type: "lowpass", f: rush ? 900 : 420, q: 0.5 });
+    if (rush && s === 8) api.noise(t, 0.2, 0.03, "bandpass", 800);
+    if (s % 4 === 2) api.hat(t, 0.012, false);
+  }
+  function hitV10(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const root = [55, 53, 50, 58][bar % 4];
+    if (s === 0 || s === 8 || s === 11) api.kick(t, s === 0 ? 0.64 : 0.4, 62);
+    if (s === 4 || s === 12) api.snare(t, 0.18);
+    if (s % 2 === 1) api.hat(t, rush ? 0.04 : 0.025, false);
+    const slapOn = [1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1];
+    const slap = [0, 0, 3, 7, 0, 10, 7, 5, 0, 3, 7, 10, 12, 10, 7, 3];
+    if (slapOn[s]) api.saw(hz(root - 12 + slap[s]), t, 0.09, s % 2 === 0 ? 0.07 : 0.035, 0, { type: "lowpass", f: rush ? 900 : 480, q: 1 });
+    if (!menu && (s === 0 || s === 6)) [0, 4, 7].forEach(function (d) {
+      api.tri(hz(root + d), t, 0.16, 0.03);
+    });
+  }
+  function hitV11(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const root = [53, 48, 55, 50][bar % 4];
+    if (s === 0) api.sine(hz(root - 24), t, 3.8, rush ? 0.14 : 0.1, hz(root - 24));
+    if (s === 0) api.kick(t, 0.32, 44);
+    if (s % 8 === 0) {
+      [0, 3, 7, 14].forEach(function (d) { api.sine(hz(root + d), t, 3.2, d === 14 ? 0.012 : 0.02); });
+    }
+    if (s === 8) api.tri(hz(root + 19), t, 1.2, rush ? 0.03 : 0.016);
+    if (rush && s % 4 === 0) api.hat(t, 0.012, false);
+    if (!menu && s === 12) api.sine(hz(root + 10), t, 0.8, 0.02);
+  }
+  function hitV12(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const root = [56, 51, 53, 58][(bar >> 1) % 4];
+    if (s === 0 || s === 7 || s === 10) api.kick(t, s === 0 ? 0.72 : 0.48, 52);
+    if (s === 4 || s === 12) api.snare(t, 0.16);
+    if (s % 2 === 1) api.hat(t, rush ? 0.05 : 0.032, s % 4 === 3);
+    const bass = [0, 0, 3, 7, 0, 10, 7, 0];
+    if (s % 2 === 0) api.sine(hz(root - 12 + bass[(s >> 1) % 8]), t, 0.16, 0.1);
+    if (!menu && (s === 2 || s === 6 || s === 14)) api.saw(hz(root + 12), t, 0.08, 0.028, 0, { type: "bandpass", f: rush ? 1800 : 980, q: 2.4 });
+  }
+  function hitV13(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const prog = [[0, 4, 7], [5, 9, 0], [7, 11, 2], [9, 0, 4]];
+    const chord = prog[bar % 4], next = prog[(bar + 1) % 4], key = 60;
+    if (s === 0 || s === 8) api.kick(t, 0.58, 58);
+    if (s === 4 || s === 12) api.snare(t, rush ? 0.2 : 0.14);
+    if (s % 2 === 0) api.hat(t, 0.03, false);
+    const beat = (s >> 2) % 4;
+    const walk = [chord[0], chord[1], chord[2], next[0] - 2][beat];
+    if (s % 4 === 0) api.sine(hz(key - 24 + walk), t, 0.34, 0.13);
+    if (!menu && (s === 0 || s === 8)) chord.forEach(function (n, i) {
+      api.saw(hz(key + n), t, 0.18, 0.02, 0, { type: "bandpass", f: rush ? 1400 : 700, q: 0.8 });
+    });
+    if (!menu && s % 4 === 2) api.tri(hz(key + 12 + chord[s % 3]), t, 0.16, rush ? 0.04 : 0.026);
+  }
+  function hitV14(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const root = [42, 42, 40, 45][bar % 4];
+    if (s % 4 === 0) api.kick(t, 0.84, 44);
+    if (s % 2 === 0) api.noise(t, 0.04, rush ? 0.05 : 0.03, "bandpass", 2200 + (s % 8) * 80);
+    if (s === 4 || s === 12) api.snare(t, 0.22);
+    if (s === 4) api.noise(t, 0.1, 0.06, "highpass", 3000);
+    if (s % 2 === 0) {
+      const f = hz(root - 12 + (s === 8 ? 1 : 0));
+      api.saw(f, t, 0.12, 0.06, 0, { type: "lowpass", f: rush ? 360 : 190, q: 1.2 });
+      api.saw(f * 1.02, t, 0.12, 0.03, 0, { type: "lowpass", f: 160, q: 0.6 });
+    }
+    if (!menu && s === 0 && bar % 2 === 1) api.tri(hz(root + 6), t, 0.25, 0.03);
+  }
+  function hitV15(api, t, pos, rush, menu) {
+    const s = pos % 16, bar = (pos / 16) | 0;
+    const chords = [[60, 64, 67, 71], [57, 60, 64, 67], [55, 59, 62, 65], [53, 57, 60, 64]];
+    const chord = chords[(bar >> 1) % 4];
+    if (s === 0 || s === 10) api.kick(t, s === 0 ? 0.48 : 0.3, 54);
+    if (s === 4 || s === 12) api.snare(t, 0.1);
+    if (s % 2 === 0) api.hat(t, rush ? 0.028 : 0.016, false);
+    if (s === 0 || s === 8) {
+      chord.forEach(function (n, i) { api.sine(hz(n), t, 1.3, i ? 0.016 : 0.024); });
+      api.sine(hz(chord[0] - 24), t, 0.8, 0.1);
+    }
+    if (!menu && s % 4 === 2) api.tri(hz(chord[2] + 12), t, 0.3, rush ? 0.03 : 0.02);
+  }
+  const hits = { A: hitA, B: hitB, C: hitC, D: hitD, E: hitE, F: hitF, J: hitJ,
+    v1: hitV1, v2: hitV2, v3: hitV3, v4: hitV4, v5: hitV5, v6: hitV6, v7: hitV7,
+    v8: hitV8, v9: hitV9, v10: hitV10, v11: hitV11, v12: hitV12, v13: hitV13, v14: hitV14, v15: hitV15 };
+  tracks.forEach(function (tr) { if (hits[tr.id]) tr.hit = hits[tr.id]; });
 
   function attach(ctx, dest) {
     const noiseLen = Math.floor(ctx.sampleRate * 0.5);
