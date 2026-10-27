@@ -5,18 +5,24 @@
 <title>nrl1 music audition</title>
 <style>
 html,body{margin:0;background:#05060c;color:#e8f4ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}
-body{min-height:100dvh;padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 20px);box-sizing:border-box}
+body{min-height:100dvh;padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 20px);box-sizing:border-box;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 h1{margin:0;font-size:22px;letter-spacing:2px}
 .sub{color:#8fb3c9;font-size:13px;line-height:1.45;margin:8px 0 14px}
-button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .rush,.pan{width:100%;min-height:52px;border-radius:14px;border:1px solid rgba(142,197,255,.35);background:rgba(142,197,255,.08);font-weight:800;letter-spacing:1px}
 .rush.on{background:rgba(255,80,140,.22);border-color:#ff5a92}
 .pan{margin-top:8px}
+#picks{margin:14px 0;padding:12px;border-radius:16px;border:1px solid rgba(255,210,122,.45);background:rgba(255,210,122,.08)}
+#picks b{display:block;letter-spacing:2px;color:#ffd27a;margin-bottom:6px}
+#pickList{font-weight:800;line-height:1.55;font-size:16px}
 .card{margin-top:10px;padding:10px;border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}
 .card.play{border-color:rgba(94,242,214,.7);background:rgba(94,242,214,.08)}
-.top{display:flex;gap:10px;align-items:baseline}
-.tag{font-weight:900;font-size:20px;width:28px;color:#5ef2d6}
-.name{font-weight:900;letter-spacing:1px}
+.card.fav{box-shadow:inset 0 0 0 1px rgba(255,120,160,.45)}
+.top{display:flex;gap:10px;align-items:center}
+.tag{font-weight:900;font-size:22px;width:36px;color:#5ef2d6;flex:none}
+.name{font-weight:900;letter-spacing:1px;flex:1}
+.heart{width:52px;height:52px;border-radius:14px;border:1px solid rgba(255,140,170,.45);background:rgba(255,140,170,.08);font-size:26px;line-height:1;flex:none}
+.heart.on{background:#ff5a92;color:#1a0610;border-color:#ff5a92}
 .line{color:#b7c9d6;font-size:13px;margin:4px 0 8px}
 .go{width:100%;min-height:48px;border-radius:12px;border:1px solid rgba(94,242,214,.45);background:rgba(94,242,214,.12);font-weight:800;letter-spacing:1px}
 .card.play .go{background:#5ef2d6;color:#07140f}
@@ -25,17 +31,23 @@ button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:tra
 a{color:#9fd0ff}
 </style></head><body>
 <h1>MUSIC AUDITION</h1>
-<p class="sub">nrl1-11 preview. Six original loops, about 30–45 seconds. Tap to play. Nothing here is linked from the game.</p>
-<div id="status">Tap a letter to start audio.</div>
+<p class="sub">nrl1-12. Black Veil, Late Shift, and Floor stay for reference, then a new batch. Tap a heart to keep a pick. Nothing here is linked from the game.</p>
+<div id="status">Tap play to start audio.</div>
 <button class="rush" id="rush" type="button">RUSH OFF</button>
 <button class="pan" id="pan" type="button">L / R TEST</button>
+<div id="picks"><b>MY PICKS</b><div id="pickList">None yet. Tap a heart, then screenshot this box.</div></div>
 <div id="list"></div>
-<p class="note">Headphones on. Rush is the intense version of whichever loop is playing. The L / R test is a tone in the left ear, then the right. <a href="../">nrl1 lab</a></p>
-<script src="../bed.js?v=nrl1-11"></script>
+<p class="note">Headphones on. Rush is the intense version of whichever loop is playing. Hearts stay on this phone. The L / R test is a tone in the left ear, then the right. <a href="../">nrl1 lab</a></p>
+<script src="../bed.js?v=nrl1-12"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
-let ctx=null,session=null,master=null,playing=null,rush=false,timer=0;
+const ORDER=["B","E","F","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10","v11","v12","v13","v14","v15"];
+const KEY="nrl_audition_picks";
+const tracks=ORDER.map(id=>window.NRLBed&&NRLBed.byId[id]).filter(Boolean);
+let ctx=null,session=null,master=null,playing=null,rush=false,timer=0,lastKey="",lastAt=0;
+let picks=[];
+try{const raw=JSON.parse(localStorage.getItem(KEY)||"[]"); if(Array.isArray(raw)) picks=raw.filter(id=>tracks.some(t=>t.id===id));}catch(e){}
 function forceStereo(node){
   try{node.channelCount=2;node.channelCountMode="explicit";node.channelInterpretation="speakers";}catch(e){}
   return node;
@@ -64,31 +76,86 @@ function unlock(){
   const o=ctx.createOscillator(), g=ctx.createGain();
   g.gain.value=.0001; o.connect(g); g.connect(master); o.start(); o.stop(ctx.currentTime+.02);
 }
-function paint(){
-  const list=$("list"); list.innerHTML="";
-  NRLBed.tracks.filter(t=>t.preview).forEach(t=>{
-    const card=document.createElement("div");
-    card.className="card"+(playing===t.id?" play":"");
-    card.innerHTML='<div class="top"><span class="tag">'+t.tag+'</span><span class="name">'+t.name+'</span></div><div class="line">'+t.line+' · ~'+t.loop+'s</div>';
-    const b=document.createElement("button");
-    b.className="go"; b.type="button"; b.textContent=playing===t.id?"STOP":"PLAY";
-    b.addEventListener("click",()=>toggle(t.id));
-    card.appendChild(b); list.appendChild(card);
+function store(){try{localStorage.setItem(KEY,JSON.stringify(picks));}catch(e){}}
+function numOf(id){return tracks.findIndex(t=>t.id===id)+1;}
+function paintPicks(){
+  const box=$("pickList");
+  if(!picks.length){box.textContent="None yet. Tap a heart, then screenshot this box.";return;}
+  box.replaceChildren();
+  picks.forEach(id=>{
+    const t=NRLBed.byId[id]; if(!t) return;
+    const row=document.createElement("div");
+    row.textContent=numOf(id)+"  "+t.name;
+    box.appendChild(row);
   });
-  $("rush").textContent=rush?"RUSH ON":"RUSH OFF";
-  $("rush").classList.toggle("on",rush);
+}
+function paintCards(){
+  tracks.forEach((t,i)=>{
+    const card=document.getElementById("card-"+t.id);
+    const on=playing===t.id, fav=picks.includes(t.id);
+    card.classList.toggle("play", on);
+    card.classList.toggle("fav", fav);
+    card.querySelector(".go").textContent=on?"STOP":"PLAY";
+    const heart=card.querySelector(".heart");
+    heart.textContent=fav?"♥":"♡";
+    heart.classList.toggle("on", fav);
+    heart.setAttribute("aria-pressed", fav?"true":"false");
+  });
+}
+function build(){
+  const list=$("list");
+  tracks.forEach((t,i)=>{
+    const card=document.createElement("div");
+    card.className="card"; card.id="card-"+t.id;
+    card.innerHTML='<div class="top"><span class="tag">'+(i+1)+'</span><span class="name">'+t.name+'</span></div><div class="line">'+t.line+' · ~'+t.loop+'s</div>';
+    const heart=document.createElement("button");
+    heart.className="heart"; heart.type="button"; heart.dataset.act="fav"; heart.dataset.id=t.id; heart.textContent="♡"; heart.setAttribute("aria-label","favorite "+t.name);
+    card.querySelector(".top").appendChild(heart);
+    const b=document.createElement("button");
+    b.className="go"; b.type="button"; b.dataset.act="play"; b.dataset.id=t.id; b.textContent="PLAY";
+    card.appendChild(b);
+    list.appendChild(card);
+  });
+  paintCards(); paintPicks();
+}
+function once(key){
+  const now=performance.now();
+  if(key===lastKey&&now-lastAt<80) return false;
+  lastKey=key; lastAt=now; return true;
 }
 function toggle(id){
+  if(!once("play:"+id)) return;
   unlock();
   if(playing===id){playing=null; session.arm(); $("status").textContent="Stopped.";}
-  else{playing=id; session.arm(); const t=NRLBed.byId[id]; $("status").textContent=t.tag+"  "+t.name+(rush?" · rush":"");}
-  paint();
+  else{
+    playing=id; session.arm();
+    const t=NRLBed.byId[id];
+    $("status").textContent=numOf(id)+"  "+t.name+(rush?" · rush":"");
+  }
+  paintCards();
+}
+function fav(id){
+  if(!once("fav:"+id)) return;
+  const i=picks.indexOf(id);
+  if(i>=0) picks.splice(i,1); else picks.push(id);
+  store(); paintCards(); paintPicks();
 }
 function tick(){ if(playing&&session) session.tick(playing,{rush:rush,menu:false}); }
-$("rush").onclick=()=>{unlock(); rush=!rush; if(playing) $("status").textContent=NRLBed.byId[playing].tag+"  "+NRLBed.byId[playing].name+(rush?" · rush":""); paint();};
+$("list").addEventListener("click", e=>{
+  const b=e.target.closest&&e.target.closest("button[data-act]");
+  if(!b) return;
+  if(b.dataset.act==="fav") fav(b.dataset.id);
+  else toggle(b.dataset.id);
+});
+$("rush").onclick=()=>{
+  unlock(); rush=!rush;
+  $("rush").textContent=rush?"RUSH ON":"RUSH OFF";
+  $("rush").classList.toggle("on", rush);
+  if(playing){const t=NRLBed.byId[playing]; $("status").textContent=numOf(playing)+"  "+t.name+(rush?" · rush":"");}
+};
 $("pan").onclick=()=>{
   unlock();
-  playing=null; session.arm(); paint();
+  playing=null; if(session) session.arm(); paintCards();
   const t=ctx.currentTime;
   function blip(pan,when){
     const p=ctx.createStereoPanner(); p.pan.setValueAtTime(pan, when);
@@ -105,7 +172,7 @@ $("pan").onclick=()=>{
   setTimeout(()=>$("status").textContent="RIGHT", 460);
   setTimeout(()=>$("status").textContent="Left ear, then right ear.", 900);
 };
-paint();
+build();
 timer=setInterval(tick, 25);
-document.addEventListener("visibilitychange",()=>{ if(document.hidden&&playing){playing=null; if(session) session.arm(); paint(); $("status").textContent="Stopped.";} });
+document.addEventListener("visibilitychange",()=>{ if(document.hidden&&playing){playing=null; if(session) session.arm(); paintCards(); $("status").textContent="Stopped.";} });
 </script></body></html>
