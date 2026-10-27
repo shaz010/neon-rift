@@ -1,4 +1,4 @@
-const CACHE = 'nrl1-7';
+const CACHE = 'nrl1-8';
 const SCOPE = '/neon-rift/neon-rift-lab/';
 
 self.addEventListener('install', () => {
