@@ -31,18 +31,18 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webk
 a{color:#9fd0ff}
 </style></head><body>
 <h1>MUSIC AUDITION</h1>
-<p class="sub">nrl1-13. 38 numbered beds. 19–38 are the fuller set. Tap a heart to keep a pick. Nothing here is linked from the game.</p>
+<p class="sub">nrl1-14. 58 numbered beds. 39–58 are 7ths and 9ths in the pocket of Late Shift, Floor, Night Market, and Shoreline. Tap a heart to keep a pick. Nothing here is linked from the game.</p>
 <div id="status">Tap play to start audio.</div>
 <button class="rush" id="rush" type="button">RUSH OFF</button>
 <button class="pan" id="pan" type="button">L / R TEST</button>
 <div id="picks"><b>MY PICKS</b><div id="pickList">None yet. Tap a heart, then screenshot this box.</div></div>
 <div id="list"></div>
 <p class="note">Headphones on. Rush is the intense version of whichever loop is playing. Hearts stay on this phone. The L / R test skips every effect and beeps the left ear, then the right. If you hear both in both ears, check iPhone Settings &gt; Accessibility &gt; Audio/Visual &gt; Mono Audio. <a href="../">nrl1 lab</a></p>
-<script src="../bed.js?v=nrl1-13"></script>
+<script src="../bed.js?v=nrl1-14"></script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
-const ORDER=["B","E","F","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10","v11","v12","v13","v14","v15","v16","v17","v18","v19","v20","v21","v22","v23","v24","v25","v26","v27","v28","v29","v30","v31","v32","v33","v34","v35"];
+const ORDER=["B","E","F","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10","v11","v12","v13","v14","v15","v16","v17","v18","v19","v20","v21","v22","v23","v24","v25","v26","v27","v28","v29","v30","v31","v32","v33","v34","v35","v36","v37","v38","v39","v40","v41","v42","v43","v44","v45","v46","v47","v48","v49","v50","v51","v52","v53","v54","v55"];
 const KEY="nrl_audition_picks";
 const tracks=ORDER.map(id=>window.NRLBed&&NRLBed.byId[id]).filter(Boolean);
 let ctx=null,session=null,master=null,playing=null,rush=false,timer=0,lastKey="",lastAt=0;

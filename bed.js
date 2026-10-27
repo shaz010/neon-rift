@@ -750,6 +750,181 @@
     tracks.push(tr);
   });
 
+  /* 39–58. The kept beds (Late Shift, Floor, Night Market, Shoreline) are
+     7ths and 9ths, a melody on the chord, and a bass that sits on the root
+     or the fifth with the kick. These twenty do that on purpose. */
+  const QUAL = { m7: [0, 3, 7, 10], maj7: [0, 4, 7, 11], "7": [0, 4, 7, 10], m9: [0, 3, 7, 10, 2], maj9: [0, 4, 7, 11, 2], "9": [0, 4, 7, 10, 2] };
+  const KICKV = {
+    late: { 0: 0.56, 7: 0.34, 10: 0.3 },
+    floor: { 0: 0.78, 4: 0.7, 8: 0.76, 12: 0.7 },
+    market: { 0: 0.64, 7: 0.4, 10: 0.36 },
+    shore: { 0: 0.48, 10: 0.28 }
+  };
+  function voiceLead(prev, root, q, same) {
+    const degs = QUAL[q];
+    if (prev && same) return prev.slice();
+    if (!prev) {
+      const v = [];
+      let floorN = 60;
+      degs.slice(0, 4).forEach(function (d) {
+        let n = root + d;
+        while (n < floorN) n += 12;
+        while (n >= floorN + 12) n -= 12;
+        v.push(n); floorN = n + 2;
+      });
+      return v;
+    }
+    const used = {};
+    return prev.slice(0, 4).map(function (p) {
+      const held = ((p - root) % 12 + 12) % 12;
+      if (degs.indexOf(held) >= 0 && p >= 55 && p <= 86 && !used[p]) { used[p] = 1; return p; }
+      let best = null, bd = 99;
+      for (let o = -2; o <= 3; o++) {
+        degs.forEach(function (d) {
+          const n = root + d + o * 12;
+          if (n < 55 || n > 86 || used[n]) return;
+          const dist = Math.abs(n - p);
+          if (dist < bd) { bd = dist; best = n; }
+        });
+      }
+      if (best == null) { best = p; while (degs.indexOf(((best - root) % 12 + 12) % 12) < 0) best++; }
+      used[best] = 1;
+      return best;
+    });
+  }
+  function melodyOf(root, q, phrase) {
+    const degs = QUAL[q], pool = [];
+    degs.forEach(function (d) {
+      let n = root + d;
+      while (n < 70) n += 12;
+      while (n > 84) n -= 12;
+      if (pool.indexOf(n) < 0) pool.push(n);
+    });
+    let tonic = root;
+    while (tonic < 72) tonic += 12;
+    while (tonic > 84) tonic -= 12;
+    if (pool.indexOf(tonic) < 0) pool.push(tonic);
+    pool.sort(function (a, b) { return a - b; });
+    const shapes = [[0, 1, 2, 1], [2, 1, 0, 1], [1, 2, 1, 0], [0, 1, 0, 0]];
+    const shape = shapes[phrase];
+    const slots = phrase === 3 ? [0, 4, 8] : [0, 4, 8, 12];
+    const mel = [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null];
+    slots.forEach(function (s, i) { mel[s] = pool[shape[i] % pool.length]; });
+    if (phrase === 0 && pool.length > 2) mel[6] = pool[2];
+    if (phrase === 2 && pool.length > 1) mel[10] = pool[1];
+    if (phrase === 3) mel[0] = tonic;
+    return mel;
+  }
+  function bassLine(root, pocket) {
+    let r = root - 12;
+    while (r > 50) r -= 12;
+    while (r < 36) r += 12;
+    let f = r + 7;
+    if (f > 57) f -= 12;
+    const line = [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null];
+    if (pocket === "late") { line[0] = r; line[7] = f; line[10] = r; }
+    else if (pocket === "floor") { line[0] = r; line[4] = f; line[8] = r; line[12] = f; }
+    else if (pocket === "market") { line[0] = r; line[7] = f; line[10] = r; }
+    else { line[0] = r; line[10] = f; }
+    return line;
+  }
+  function compileHuman(spec) {
+    const bars = [];
+    let prev = null, last = null;
+    spec.changes.forEach(function (ch) {
+      for (let i = 0; i < ch.bars; i++) {
+        const same = !!(last && last.n === ch.n && last.q === ch.q);
+        const voices = voiceLead(prev, ch.n, ch.q, same);
+        prev = voices; last = ch;
+        bars.push({ q: ch.q, root: ch.n, voices: voices, bass: bassLine(ch.n, spec.pocket), mel: melodyOf(ch.n, ch.q, bars.length % 4) });
+      }
+    });
+    return bars;
+  }
+  function humanPlay(spec, bars) {
+    const kicks = KICKV[spec.pocket];
+    const half = bars.length / 2;
+    return function (api, time, pos, rush, menu) {
+      const s = pos % 16, bar = (pos / 16) | 0, info = bars[bar % bars.length];
+      const B = (bar % bars.length) >= half;
+      const late = kicks[s] || s % 4 === 0 ? 0 : 0.012 + (s % 3) * 0.003;
+      const when = time + (menu ? 0 : late);
+      const human = 0.9 + ((bar + s) % 4) * 0.035;
+      if (kicks[s]) api.kick(when, kicks[s] * human * (menu ? 0.72 : 1) * (rush ? 1.08 : 1), spec.pocket === "floor" ? 50 : 56);
+      if (s === 4 || s === 12) api.snare(when, (spec.pocket === "shore" ? 0.1 : 0.16) * (B ? 1.12 : 1) * (menu ? 0.6 : 1));
+      if (spec.pocket === "floor") {
+        if (s % 4 === 2) api.hat(when, (rush ? 0.05 : 0.032) * human, true);
+        if (s % 4 === 0) api.duck(when);
+      } else if (spec.pocket === "shore") {
+        if (s % 4 === 0) api.hat(when, 0.016 * human, false);
+      } else {
+        if (s % 2 === 0) api.hat(when, (rush || B ? 0.03 : 0.02) * human, false);
+        if ((rush || B) && s % 2 === 1) api.hat(when, 0.012, false);
+      }
+      if (info.bass[s] != null) api.sine(hz(info.bass[s]), when, spec.pocket === "floor" ? 0.16 : 0.34, (menu ? 0.07 : 0.12) * human);
+      const stab = spec.pocket === "floor" || spec.pocket === "market";
+      if (s === 0 || (stab && s === 8)) {
+        const hold = s === 0 ? (spec.pocket === "floor" ? 0.7 : 1.45) : 0.36;
+        info.voices.forEach(function (n, i) {
+          const vol = (i ? 0.022 : 0.034) * (s === 8 ? 0.6 : 1) * (menu ? 0.5 : 1) * (B ? 1.12 : 0.86) * human;
+          api.sine(hz(n), when, hold, vol);
+          if (i < 3) api.tri(hz(n), when, hold * 0.8, vol * 0.4);
+        });
+        if (s === 0) api.room(hz(info.voices[Math.min(2, info.voices.length - 1)]), when, 1.3, 0.028 * (B ? 1.3 : 1));
+      }
+      if (!menu && info.mel[s] != null) api.sine(hz(info.mel[s]), when, 0.32, (B ? 0.05 : 0.036) * (s % 4 === 0 ? 1 : 0.7) * (rush ? 1.12 : 1));
+    };
+  }
+  const HUMAN = [
+    { id: "v36", num: "39", name: "LATE ROOM", bpm: 82, rush: 90, swing: 0.63, pocket: "late", line: "A late shift in C minor. Cm7, Abmaj7, Fm7, then home.",
+      changes: [{ n: 60, q: "m7", bars: 2 }, { n: 56, q: "maj7", bars: 2 }, { n: 53, q: "m7", bars: 2 }, { n: 55, q: "7", bars: 2 }, { n: 60, q: "m7", bars: 2 }, { n: 56, q: "maj7", bars: 2 }, { n: 53, q: "m7", bars: 2 }, { n: 60, q: "m7", bars: 2 }] },
+    { id: "v37", num: "40", name: "SOFT FLOOR", bpm: 120, rush: 126, pocket: "floor", line: "Floor kick, soft 7ths. Gm7 to Bbmaj7 and back.",
+      changes: [{ n: 55, q: "m7", bars: 2 }, { n: 60, q: "m7", bars: 2 }, { n: 53, q: "9", bars: 2 }, { n: 58, q: "maj7", bars: 2 }, { n: 55, q: "m7", bars: 2 }, { n: 60, q: "m7", bars: 2 }, { n: 53, q: "9", bars: 2 }, { n: 58, q: "maj7", bars: 2 }] },
+    { id: "v38", num: "41", name: "SEVEN MARKET", bpm: 102, rush: 110, pocket: "market", line: "Night-market funk. Dm7, Cmaj7, Fmaj7, Am7.",
+      changes: [{ n: 50, q: "m7", bars: 2 }, { n: 48, q: "maj7", bars: 2 }, { n: 53, q: "maj7", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 50, q: "m7", bars: 2 }, { n: 48, q: "maj7", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 50, q: "m7", bars: 2 }] },
+    { id: "v39", num: "42", name: "TIDE NINE", bpm: 94, rush: 102, pocket: "shore", line: "Shoreline 9ths. Fmaj9 falls through Dm9 and comes home.",
+      changes: [{ n: 53, q: "maj9", bars: 2 }, { n: 48, q: "maj7", bars: 2 }, { n: 50, q: "m9", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 53, q: "maj9", bars: 2 }, { n: 50, q: "m9", bars: 2 }, { n: 48, q: "maj7", bars: 2 }, { n: 53, q: "maj9", bars: 2 }] },
+    { id: "v40", num: "43", name: "SECOND LAMP", bpm: 86, rush: 94, swing: 0.6, pocket: "late", line: "ii–V–I with a 9th. Gm7, C9, Fmaj9, resolved.",
+      changes: [{ n: 55, q: "m7", bars: 2 }, { n: 60, q: "9", bars: 2 }, { n: 53, q: "maj9", bars: 2 }, { n: 50, q: "m7", bars: 2 }, { n: 55, q: "m7", bars: 2 }, { n: 60, q: "9", bars: 2 }, { n: 50, q: "m7", bars: 2 }, { n: 53, q: "maj9", bars: 2 }] },
+    { id: "v41", num: "44", name: "DUST POCKET", bpm: 80, rush: 88, swing: 0.64, pocket: "late", line: "Swung Am7 D9 Gm7 Cmaj7. The melody sits on the chord.",
+      changes: [{ n: 45, q: "m7", bars: 2 }, { n: 50, q: "9", bars: 2 }, { n: 55, q: "m7", bars: 2 }, { n: 60, q: "maj7", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 50, q: "9", bars: 2 }, { n: 55, q: "m7", bars: 2 }, { n: 60, q: "maj7", bars: 2 }] },
+    { id: "v42", num: "45", name: "WARM KICK", bpm: 118, rush: 124, pocket: "floor", line: "A warm floor. Fm7, Bbm7, Eb9, Abmaj7.",
+      changes: [{ n: 53, q: "m7", bars: 2 }, { n: 58, q: "m7", bars: 2 }, { n: 51, q: "9", bars: 2 }, { n: 56, q: "maj7", bars: 2 }, { n: 53, q: "m7", bars: 2 }, { n: 58, q: "m7", bars: 2 }, { n: 51, q: "9", bars: 2 }, { n: 56, q: "maj7", bars: 2 }] },
+    { id: "v43", num: "46", name: "NINE STREET", bpm: 98, rush: 106, pocket: "shore", line: "Cmaj9, Am7, Dm9, G9. A street that comes back to C.",
+      changes: [{ n: 60, q: "maj9", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 50, q: "m9", bars: 2 }, { n: 55, q: "9", bars: 2 }, { n: 60, q: "maj9", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 55, q: "9", bars: 2 }, { n: 60, q: "maj9", bars: 2 }] },
+    { id: "v44", num: "47", name: "AFTER SHIFT", bpm: 84, rush: 92, swing: 0.61, pocket: "late", line: "Two ii–V pairs, then it lands on Cmaj7.",
+      changes: [{ n: 52, q: "m7", bars: 2 }, { n: 57, q: "7", bars: 2 }, { n: 50, q: "m7", bars: 2 }, { n: 55, q: "7", bars: 2 }, { n: 60, q: "maj7", bars: 2 }, { n: 57, q: "m7", bars: 2 }, { n: 50, q: "m7", bars: 2 }, { n: 60, q: "maj7", bars: 2 }] },
+    { id: "v45", num: "48", name: "LOW SEVEN", bpm: 100, rush: 108, pocket: "market", line: "Dm9 to G7 to Cmaj7. The bass answers the kick.",
+      changes: [{ n: 50, q: "m9", bars: 2 }, { n: 55, q: "7", bars: 2 }, { n: 48, q: "maj7", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 50, q: "m9", bars: 2 }, { n: 55, q: "7", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 50, q: "m9", bars: 2 }] },
+    { id: "v46", num: "49", name: "CLOSING TIME", bpm: 90, rush: 98, swing: 0.56, pocket: "shore", line: "Closing chords. Bbmaj7, Gm7, Cm7, F9, home.",
+      changes: [{ n: 58, q: "maj7", bars: 2 }, { n: 55, q: "m7", bars: 2 }, { n: 60, q: "m7", bars: 2 }, { n: 53, q: "9", bars: 2 }, { n: 58, q: "maj7", bars: 2 }, { n: 55, q: "m7", bars: 2 }, { n: 53, q: "9", bars: 2 }, { n: 58, q: "maj7", bars: 2 }] },
+    { id: "v47", num: "50", name: "HEART KICK", bpm: 116, rush: 122, pocket: "floor", line: "Am7 Dm7 G9 Cmaj7, locked to a four-on-the-floor kick.",
+      changes: [{ n: 45, q: "m7", bars: 2 }, { n: 50, q: "m7", bars: 2 }, { n: 55, q: "9", bars: 2 }, { n: 48, q: "maj7", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 50, q: "m7", bars: 2 }, { n: 55, q: "9", bars: 2 }, { n: 48, q: "maj7", bars: 2 }] },
+    { id: "v48", num: "51", name: "VIOLET HOUR", bpm: 78, rush: 86, swing: 0.62, pocket: "late", line: "Fm9 and Abmaj7, a dominant, then the minor home.",
+      changes: [{ n: 53, q: "m9", bars: 2 }, { n: 56, q: "maj7", bars: 2 }, { n: 49, q: "maj7", bars: 2 }, { n: 48, q: "7", bars: 2 }, { n: 53, q: "m9", bars: 2 }, { n: 56, q: "maj7", bars: 2 }, { n: 48, q: "7", bars: 2 }, { n: 53, q: "m9", bars: 2 }] },
+    { id: "v49", num: "52", name: "OPEN WINDOW", bpm: 96, rush: 104, pocket: "shore", line: "Gmaj7 Em7 Am7 D9. An open window back to G.",
+      changes: [{ n: 55, q: "maj7", bars: 2 }, { n: 52, q: "m7", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 50, q: "9", bars: 2 }, { n: 55, q: "maj7", bars: 2 }, { n: 52, q: "m7", bars: 2 }, { n: 50, q: "9", bars: 2 }, { n: 55, q: "maj7", bars: 2 }] },
+    { id: "v50", num: "53", name: "NIGHT BUS", bpm: 88, rush: 96, swing: 0.6, pocket: "late", line: "vi–ii–V–I. Cm7 Fm7 Bb7 Ebmaj7, the long way home.",
+      changes: [{ n: 60, q: "m7", bars: 2 }, { n: 53, q: "m7", bars: 2 }, { n: 58, q: "7", bars: 2 }, { n: 51, q: "maj7", bars: 2 }, { n: 60, q: "m7", bars: 2 }, { n: 53, q: "m7", bars: 2 }, { n: 58, q: "7", bars: 2 }, { n: 51, q: "maj7", bars: 2 }] },
+    { id: "v51", num: "54", name: "FLOOR NINE", bpm: 122, rush: 128, pocket: "floor", line: "Dm7 G9 Cmaj9. The 9ths ride the kick.",
+      changes: [{ n: 50, q: "m7", bars: 2 }, { n: 55, q: "9", bars: 2 }, { n: 48, q: "maj9", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 50, q: "m7", bars: 2 }, { n: 55, q: "9", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 48, q: "maj9", bars: 2 }] },
+    { id: "v52", num: "55", name: "SEVEN MILE", bpm: 104, rush: 112, swing: 0.57, pocket: "market", line: "Em7 A7 Dm9 G7, and the mile ends on Cmaj7.",
+      changes: [{ n: 52, q: "m7", bars: 2 }, { n: 57, q: "7", bars: 2 }, { n: 50, q: "m9", bars: 2 }, { n: 55, q: "7", bars: 2 }, { n: 48, q: "maj7", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 55, q: "7", bars: 2 }, { n: 48, q: "maj7", bars: 2 }] },
+    { id: "v53", num: "56", name: "SHORE MAJOR", bpm: 92, rush: 100, pocket: "shore", line: "Cmaj9 Am9 Fmaj7 G9. Major colors, a soft tide.",
+      changes: [{ n: 48, q: "maj9", bars: 2 }, { n: 45, q: "m9", bars: 2 }, { n: 53, q: "maj7", bars: 2 }, { n: 55, q: "9", bars: 2 }, { n: 48, q: "maj9", bars: 2 }, { n: 45, q: "m9", bars: 2 }, { n: 55, q: "9", bars: 2 }, { n: 48, q: "maj9", bars: 2 }] },
+    { id: "v54", num: "57", name: "LAST CALL", bpm: 76, rush: 84, swing: 0.63, pocket: "late", line: "Last-call ii–V. Am7 D9 Gmaj7, and it stays there.",
+      changes: [{ n: 45, q: "m7", bars: 2 }, { n: 50, q: "9", bars: 2 }, { n: 55, q: "maj7", bars: 2 }, { n: 48, q: "maj7", bars: 2 }, { n: 45, q: "m7", bars: 2 }, { n: 50, q: "9", bars: 2 }, { n: 48, q: "maj7", bars: 2 }, { n: 55, q: "maj7", bars: 2 }] },
+    { id: "v55", num: "58", name: "HOME KEY", bpm: 98, rush: 106, pocket: "shore", line: "Fmaj7 Dm7 Gm7 C9. Eight bars out, eight bars home.",
+      changes: [{ n: 53, q: "maj7", bars: 2 }, { n: 50, q: "m7", bars: 2 }, { n: 55, q: "m7", bars: 2 }, { n: 48, q: "9", bars: 2 }, { n: 53, q: "maj7", bars: 2 }, { n: 50, q: "m7", bars: 2 }, { n: 48, q: "9", bars: 2 }, { n: 53, q: "maj7", bars: 2 }] }
+  ];
+  const HLP = { late: [2300, 4400], floor: [3200, 7600], market: [2600, 5800], shore: [2400, 5000] };
+  HUMAN.forEach(function (spec) {
+    const bars = compileHuman(spec);
+    const tr = { id: spec.id, tag: spec.num, name: spec.name, audition: true, bpm: spec.bpm, rush: spec.rush, bars: 16, lp: HLP[spec.pocket], line: spec.line, hit: humanPlay(spec, bars), humanBars: bars };
+    if (spec.swing) tr.swing = spec.swing;
+    tracks.push(tr);
+  });
+
   const byId = {};
   tracks.forEach(function (t) {
     t.loop = Math.round(t.bars * 4 * 60 / t.bpm);

@@ -31,10 +31,10 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1-13. Hits and flybys sit fully in the left or right ear. The music list "
-    "is still Original, Black Veil, Late Shift, and Floor. The flywheel, the knot, "
-    "the controls, and the enemies stay as they were. This is the lab game, "
-    "separate from Neon Rift 2."
+    "nrl1-14. Pickups bloom into the ship, and the hull shifts violet with power "
+    "or red when a hit is close. The music list is still Original, Black Veil, "
+    "Late Shift, and Floor. The flywheel, the knot, the controls, and the enemies "
+    "stay as they were. This is the lab game, separate from Neon Rift 2."
 )
 
 
