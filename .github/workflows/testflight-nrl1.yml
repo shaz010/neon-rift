@@ -2,19 +2,9 @@ name: TestFlight nrl1
 
 # Packages the lab web game on this branch as its own iOS app and uploads it
 # to TestFlight. It does not build Neon Rift 2.
+# Push uploads are paused. nrl1-8 ships on the web only until Shahbaz approves
+# the next TestFlight build. Run this workflow by hand when that approval is given.
 on:
-  push:
-    branches:
-      - neon-rift-lab
-    paths:
-      - "index.html"
-      - "manifest.json"
-      - "sw.js"
-      - "apple-touch-icon.png"
-      - "icon-512.png"
-      - "ios/**"
-      - "tools/asc.py"
-      - ".github/workflows/testflight-nrl1.yml"
   workflow_dispatch:
 
 concurrency:
@@ -49,11 +39,11 @@ jobs:
           sudo xcode-select -s "${latest}"
           xcodebuild -version
 
-      - name: Confirm this is the nrl1-7 web game
+      - name: Confirm this is the nrl1-8 web game
         run: |
           set -euo pipefail
-          grep -q 'nrl1-7' index.html
-          grep -q "CACHE = 'nrl1-7'" sw.js
+          grep -q 'nrl1-8' index.html
+          grep -q "CACHE = 'nrl1-8'" sw.js
           test -f ios/nrl1.xcodeproj/project.pbxproj
 
       - name: Install the App Store Connect client
@@ -154,8 +144,8 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.nrl1\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Web build: nrl1-7"
-            echo "- Changelog: the knot trap now closes while the thumb is still down. A circle that misses its start by about a thumb's width still cinches, with a bright loop, an implosion, KNOT xN, and a bass hit."
+            echo "- Web build: nrl1-8"
+            echo "- Changelog: six constellation sectors, each with a new enemy and a boss. The flywheel fight is unchanged. The last 15 seconds of a sector rush. Big knots get a PERFECT KNOT. Clears save one to three stars."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Remove the API key

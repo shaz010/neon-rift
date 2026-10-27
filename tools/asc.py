@@ -31,13 +31,12 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1-7. Draw a loop around enemies with the action thumb. A faint glow "
-    "follows the thread while the circle forms. When the end comes back within "
-    "about a thumb's width of the line, the loop snaps shut on its own: a bright "
-    "outline, a crush, KNOT xN, and a bass hit. You do not have to lift. A loop "
-    "around empty space does nothing special. Straight cuts, flick dashes, "
-    "double-tap torpedoes, and the two-thumb swap stay as they are. The left "
-    "thumb steers. This is the lab game, separate from Neon Rift 2."
+    "nrl1-8. Six short sectors on a star map. Each one has its own color, a new "
+    "enemy, and a boss. One sector is still the flywheel, fought the same way. "
+    "The last 15 seconds of a sector speed up. A big knot shows PERFECT KNOT. "
+    "Clearing a sector plays a fanfare and saves one to three stars, then lights "
+    "the next star. Endless is still there. Knot, flick, torpedo, and swap are "
+    "unchanged. This is the lab game, separate from Neon Rift 2."
 )
 
 
