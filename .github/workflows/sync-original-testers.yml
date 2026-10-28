@@ -1,0 +1,31 @@
+name: Sync original testers
+
+# One-shot. Copies nrl1 Internal's users onto Neon Rift Internal for build 1.
+# It does not archive or upload.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testers:
+    name: Copy internal testers
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      BUILD_NUMBER: "1"
+      ASC_APP_ID: "6828128963"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the client and copy testers
+        run: |
+          set -euo pipefail
+          python3 -m venv "${RUNNER_TEMP}/asc-venv"
+          "${RUNNER_TEMP}/asc-venv/bin/pip" install --disable-pip-version-check PyJWT cryptography
+          "${RUNNER_TEMP}/asc-venv/bin/python" tools/asc.py install-key
+          "${RUNNER_TEMP}/asc-venv/bin/python" tools/asc.py note
