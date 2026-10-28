@@ -2,7 +2,7 @@ name: TestFlight nrl1
 
 # Packages the lab web game on this branch as its own iOS app and uploads it
 # to TestFlight. It does not build Neon Rift 2.
-# Push uploads are paused. nrls-1 is the glyph-spell experiment and is not the frozen nrl1-25 app.
+# Push uploads are paused. nrls-2 is the glyph-spell experiment and is not the frozen nrl1-25 app.
 # the next TestFlight build. Run this workflow by hand when that approval is given.
 on:
   workflow_dispatch:
@@ -39,11 +39,11 @@ jobs:
           sudo xcode-select -s "${latest}"
           xcodebuild -version
 
-      - name: Confirm this is the nrls-1 web game
+      - name: Confirm this is the nrls-2 web game
         run: |
           set -euo pipefail
-          grep -q 'nrls-1' index.html
-          grep -q "CACHE = 'nrls-1'" sw.js
+          grep -q 'nrls-2' index.html
+          grep -q "CACHE = 'nrls-2'" sw.js
           test -f ios/nrl1.xcodeproj/project.pbxproj
 
       - name: Install the App Store Connect client
@@ -144,7 +144,7 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.nrl1\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Web build: nrls-1"
+            echo "- Web build: nrls-2"
             echo "- Changelog: Glyph spells. Circle, zigzag, spiral, and line."
           } >> "${GITHUB_STEP_SUMMARY}"
 

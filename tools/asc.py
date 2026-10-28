@@ -31,7 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrls-1. Draw a circle for a bubble, a zigzag for a bolt, a spiral for a well, or a line to dash. "
+    "nrls-2. Draw a circle for a bubble, a zigzag for a bolt, a spiral for a well, or a line to dash. "
     "The hull still turns ultraviolet on a streak or a prize, and deep red "
     "when you are on your last life with no shield and something is close. "
     "The flywheel, the knot, the controls, and the enemies stay as they were. "
