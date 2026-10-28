@@ -7,9 +7,9 @@
 <meta name="apple-mobile-web-app-title" content="nrl1">
 <meta name="theme-color" content="#c2185b">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<link rel="icon" href="apple-touch-icon.png?v=nrl1-19">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=nrl1-19" sizes="180x180">
-<link rel="manifest" href="manifest.json?v=nrl1-19">
+<link rel="icon" href="apple-touch-icon.png?v=nrl1-20">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=nrl1-20" sizes="180x180">
+<link rel="manifest" href="manifest.json?v=nrl1-20">
 <title>nrl1</title>
 <style>
 :root{--bg:#16243a;--teal:#5ef2d6;--mint:#9ff0c0;--sky:#8ec5ff;--lav:#c9a0ff;--coral:#ff9e8a;--amber:#ffd27a;--ink:#e6f4ff;--dim:#8fb3c9}
@@ -18,7 +18,13 @@ body.playing:not(.paused){touch-action:none}
 canvas{display:block;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;width:100vw;height:100vh}
 .ui{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom);box-sizing:border-box;opacity:0;pointer-events:none;visibility:hidden;z-index:0;transition:opacity .28s ease;touch-action:manipulation}
 .ui.on{opacity:1;pointer-events:auto;visibility:visible;z-index:6}
-body.playing:not(.paused) .ui{pointer-events:none !important}
+body.playing:not(.paused) .ui,
+body.playing:not(.paused) .ui *,
+body.playing:not(.paused) label,
+body.playing:not(.paused) a,
+body.playing:not(.paused) input,
+body.playing:not(.paused) textarea,
+body.playing:not(.paused) select{pointer-events:none !important}
 body.touching #pauseBtn{pointer-events:none !important}
 .rm .ui{transition:opacity .12s linear}
 .panel{width:min(460px,100%);max-height:calc(100% - 8px);display:flex;flex-direction:column;overflow:hidden;background:rgba(18,32,52,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(142,197,255,.22);border-radius:20px;padding:20px 18px;box-sizing:border-box;box-shadow:0 20px 60px rgba(0,0,0,.35)}
@@ -63,7 +69,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
 #mapcv{width:100%;height:100%;display:block;touch-action:manipulation;background:transparent}
 </style></head><body><canvas id="c"></canvas>
 <button id="pauseBtn" aria-label="pause">II</button>
-<div id="ver" aria-hidden="true">nrl1-19</div>
+<div id="ver" aria-hidden="true">nrl1-20</div>
 <div id="dbg" hidden></div>
 
 <div class="ui on" id="menu"><div class="panel clear">
@@ -158,7 +164,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
   <div class="row"><button class="btn" id="rHangar">HANGAR</button><button class="btn" id="rMenu">MENU</button></div>
 </div></div>
 
-<script src="bed.js?v=nrl1-19"></script>
+<script src="bed.js?v=nrl1-20"></script>
 <script>
 "use strict";
 let listenN=0;
@@ -581,7 +587,7 @@ const seenTouch=new WeakSet();
 const playIds=new Set();
 const uiArm=new Map();
 let multiGuard=false,mapPickAt=0,synthBtn=null;
-let pointer=null,helm=null,thread=null,mouseAim=null,pendTap=null,swapFlash=0,bodyCutOpen=true;
+let pointer=null,helm=null,thread=null,mouseAim=null,pendTap=null,swapFlash=0,bodyCutOpen=true,inputWhy='ok';
 function wake(){audioInit();if(A.ctx&&A.ctx.state==='suspended')A.ctx.resume();}
 function twoThumb(){return !!SV.set.two}
 addEventListener('keydown',e=>{K[e.code]=true;wake();
@@ -668,13 +674,56 @@ function releaseSlot(id,how){
   touchSnap.delete(id);touchSnap.delete('ptr'+id);pointerSnap.delete(id);
   if(how==='up')endContact(id);else cancelContact(id);
 }
-function touchUi(node){
-  if(!node||node.nodeType!==1||!node.closest)return null;
-  if(node.id==='mapcv'||node.closest('#mapcv'))return {btn:null,map:true};
-  const btn=node.closest('button');
-  if(btn)return {btn,map:false};
-  if(node.closest('.ui,label,a,input,textarea,select'))return {btn:null,map:false};
-  return null;
+function hitAt(x,y){
+  if(x==null||y==null||!document.elementFromPoint)return null;
+  const el=document.elementFromPoint(x,y);
+  return el&&el.nodeType===1?el:null;
+}
+function pointIn(el,x,y){
+  if(!el||!el.getBoundingClientRect)return false;
+  const r=el.getBoundingClientRect();
+  return x>=r.left-4&&y>=r.top-4&&x<=r.right+4&&y<=r.bottom+4;
+}
+function describeHit(el){
+  if(!el||el===cv||el===document.body||el===document.documentElement)return '';
+  const tag=(el.tagName||'?').toLowerCase();
+  const id=el.id?('#'+el.id):'';
+  let text='';
+  try{text=(el.textContent||'').replace(/\s+/g,' ').trim().slice(0,16);}catch(e){}
+  return tag+id+(text?' "'+text+'"':'');
+}
+function realControl(el,x,y){
+  if(!el||el.nodeType!==1||!el.closest)return null;
+  const map=el.id==='mapcv'?el:el.closest('#mapcv');
+  if(map){
+    if(!pointIn(map,x,y))return null;
+    const ui=map.closest('.ui');
+    if(!ui||!ui.classList.contains('on')||ui.hasAttribute('inert'))return null;
+    const st=getComputedStyle(map);
+    if(st.pointerEvents==='none'||st.visibility==='hidden'||st.display==='none')return null;
+    return {btn:null,map:true};
+  }
+  const btn=el.closest('button');
+  if(!btn||btn.disabled||!pointIn(btn,x,y)||btn.closest('[inert]'))return null;
+  const ui=btn.closest('.ui');
+  if(ui&&!ui.classList.contains('on'))return null;
+  const st=getComputedStyle(btn);
+  if(st.pointerEvents==='none'||st.visibility==='hidden'||st.display==='none')return null;
+  return {btn,map:false};
+}
+function classifyStart(t){
+  const el=hitAt(t.clientX,t.clientY);
+  const ui=realControl(el,t.clientX,t.clientY);
+  if(ui){
+    playIds.delete(t.identifier);
+    uiArm.set(t.identifier,{id:t.identifier,x:t.clientX,y:t.clientY,btn:ui.btn,map:ui.map});
+    inputWhy=ui.map?'map':('button '+((ui.btn&&(ui.btn.id||ui.btn.textContent))||'tap').toString().replace(/\s+/g,' ').trim().slice(0,16));
+    return true;
+  }
+  uiArm.delete(t.identifier);
+  const odd=describeHit(el);
+  if(playingTouch()&&odd)inputWhy='steer hit '+odd;
+  return false;
 }
 function tapButton(btn){
   if(!btn||btn.disabled)return;
@@ -804,7 +853,7 @@ function adoptListed(list){
   }
 }
 function notePointer(e){
-  if(!e||e.pointerType!=='touch'||buried(e.pointerId)||touchUi(e.target))return;
+  if(!e||e.pointerType!=='touch'||buried(e.pointerId)||uiArm.has(e.pointerId))return;
   const now=performance.now();
   pointerSnap.set(e.pointerId,{x:e.clientX,y:e.clientY,seen:now});
   for(const [k,p] of ptrs){
@@ -816,23 +865,27 @@ function touchWatchdog(){
   if(!playingTouch())return;
   const now=performance.now();
   for(const [key,s] of [...touchSnap]){
-    if(s.orphan!=null||buried(key)){touchSnap.delete(key);continue;}
+    if(s.orphan!=null||buried(key)||uiArm.has(key)){if(s.orphan!=null||buried(key))touchSnap.delete(key);continue;}
     const p=ptrs.get(key);
     if(!p){if(now-s.seen>500)touchSnap.delete(key);continue;}
-    if(s.seen>(p.lastTouchAt||0)&&now-(p.lastProc||0)>100&&Math.hypot(s.x-p.x,s.y-p.y)>0.75)moveContact(key,s.x,s.y);
+    if(now-s.seen>160){if(now-(p.lastProc||0)>350)inputWhy='stale-snap';continue;}
+    if(s.seen<=(p.lastProc||0))continue;
+    if(now-(p.lastProc||0)>100&&Math.hypot(s.x-p.x,s.y-p.y)>0.75)moveContact(key,s.x,s.y);
   }
   for(const [id,p] of ptrs){
-    if(p.kind==='mouse'||buried(id))continue;
+    if(p.kind==='mouse'||buried(id)||uiArm.has(id))continue;
     const touchAt=p.lastTouchAt||0;
     if(now-touchAt<100)continue;
     const ps=pointerSnap.get(p.ptr!=null?p.ptr:id);
-    if(!ps||now-ps.seen>150||ps.seen<=touchAt)continue;
+    if(!ps||now-ps.seen>150||ps.seen<=(p.lastProc||0))continue;
     if(Math.hypot(ps.x-p.x,ps.y-p.y)>0.75)moveContact(id,ps.x,ps.y);
   }
+  const stick=twoThumb()?helm:pointer;
+  if(stick&&now-(stick.lastProc||0)>350&&(inputWhy==='steer'||inputWhy==='ok'))inputWhy='no-move';
   markTouching();
 }
 function firstTouch(e){if(seenTouch.has(e))return false;seenTouch.add(e);return true;}
-let debugOn=/[?&]debug=1(?:&|$)/.test(location.search),threeArmed=true,fpsS=0,fpsN=0,fpsShow=0;
+let debugOn=/[?&]debug=1(?:&|$)/.test(location.search),threeArmed=true,fpsS=0,fpsN=0,fpsShow=0,maxFrameMs=0;
 function toggleDebug(){debugOn=!debugOn;const d=$('dbg');if(d)d.hidden=!debugOn;}
 function paintDebug(dt){
   const d=$('dbg');if(!d)return;
@@ -842,61 +895,82 @@ function paintDebug(dt){
   if(fpsS>=.45){fpsShow=fpsN/fpsS;fpsN=0;fpsS=0;}
   const stick=twoThumb()?helm:pointer;
   const ts=(slow||0)*((P&&P.slowmo>0)?.55:1);
+  const age=stick?performance.now()-(stick.lastProc||0):0;
+  const steerState=!stick?'idle':age<280?'on':'OFF';
   const ids=trackedTouchIds().map(id=>{const p=ptrs.get(id);return id+(p?p.kind[0]:'?');}).join(' ')||'-';
   d.textContent='ids '+ids
     +'\nhelm '+(helm?helm.id:'-')+'  thread '+(thread?thread.id:'-')+'  one '+(pointer?pointer.id:'-')
-    +'\nsteer '+(stick?Math.round(stick.x)+','+Math.round(stick.y):'-')
+    +'\nsteer '+steerState+'  '+(stick?Math.round(stick.x)+','+Math.round(stick.y):'-')
+    +'\nwhy '+inputWhy
     +'\nscale '+ts.toFixed(2)+'  slow '+(slow||0).toFixed(2)+'  dash '+((P&&P.dashT>0)?P.dashT.toFixed(2):'0')
-    +'\nfps '+(fpsShow?fpsShow.toFixed(0):'-')+'  listen '+listenN
-    +'\nsnap '+touchSnap.size+'  ignore '+ignoreTouch.size+'  tomb '+tomb.size+'  ui '+uiArm.size;
+    +'\nfps '+(fpsShow?fpsShow.toFixed(0):'-')+'  frame '+Math.round(maxFrameMs)
+    +'\nparts '+(parts?parts.length:0)+'  play '+playIds.size+'  ui '+uiArm.size+'  tomb '+tomb.size;
 }
 function onTouchStart(e){
   if(!firstTouch(e))return;
   wake();syncPlayPointer();
   if(e.touches&&e.touches.length>=3){if(threeArmed){threeArmed=false;toggleDebug();}multiGuard=true;}
   else threeArmed=true;
-  const ui=touchUi(e.target);
+  let anyPlay=false;
   if(e.changedTouches){
-    for(let i=0;i<e.changedTouches.length;i++){
-      const t=e.changedTouches[i];
-      if(ui){playIds.delete(t.identifier);uiArm.set(t.identifier,{id:t.identifier,x:t.clientX,y:t.clientY,btn:ui.btn,map:ui.map});}
-      else uiArm.delete(t.identifier);
-    }
+    for(let i=0;i<e.changedTouches.length;i++)if(!classifyStart(e.changedTouches[i]))anyPlay=true;
   }
   if(e.touches&&trackedTouchIds().length>e.touches.length)purgeToTouches(e.touches,'cancel');
   else reconcileIds(touchListIds(e.touches));
-  if(!playingTouch()||ui)return;
-  if(e.cancelable)e.preventDefault();
-  for(let i=0;i<e.changedTouches.length;i++){const t=e.changedTouches[i];playIds.add(t.identifier);exhume(t.identifier);beginContact(t.identifier,t.clientX,t.clientY,'touch');}
+  if(!playingTouch())return;
+  if(e.changedTouches){
+    for(let i=0;i<e.changedTouches.length;i++){
+      const t=e.changedTouches[i];
+      if(uiArm.has(t.identifier))continue;
+      playIds.add(t.identifier);exhume(t.identifier);beginContact(t.identifier,t.clientX,t.clientY,'touch');
+    }
+  }
   adoptListed(e.touches);
   rememberTouches(e.touches);
   syncTouchMoves(e.touches);
   markTouching();
+  if(anyPlay&&e.cancelable)e.preventDefault();
 }
 function onTouchMove(e){
   if(!firstTouch(e))return;
-  if(!playingTouch()||touchUi(e.target))return;
-  if(e.changedTouches){for(let i=0;i<e.changedTouches.length;i++)if(uiArm.has(e.changedTouches[i].identifier))return;}
-  if(e.touches){for(let i=0;i<e.touches.length;i++){const id=e.touches[i].identifier;if(!uiArm.has(id))playIds.add(id);}}
-  if(e.cancelable)e.preventDefault();
+  if(!playingTouch())return;
+  let play=false;
+  if(e.touches){
+    for(let i=0;i<e.touches.length;i++){
+      const id=e.touches[i].identifier;
+      if(uiArm.has(id))continue;
+      playIds.add(id);play=true;
+    }
+  }
+  if(play&&e.cancelable)e.preventDefault();
   rememberTouches(e.touches);
   adoptListed(e.touches);
   syncTouchMoves(e.touches);
   markTouching();
+  if(play){
+    let odd='';
+    const sample=e.touches;
+    if(sample){for(let i=0;i<sample.length;i++){if(uiArm.has(sample[i].identifier))continue;odd=describeHit(hitAt(sample[i].clientX,sample[i].clientY));break;}}
+    inputWhy=odd?('steer hit '+odd):'steer';
+  }else if(uiArm.size)inputWhy='button-hold';
 }
 function onTouchEnd(e){
   if(!firstTouch(e))return;
   const taps=uiTapsFrom(e);
-  let eat=playingTouch()&&e.cancelable&&!touchUi(e.target);
-  if(eat&&e.changedTouches){for(let i=0;i<e.changedTouches.length;i++)if(uiArm.has(e.changedTouches[i].identifier))eat=false;}
-  if(taps.length&&e.cancelable)eat=true;
-  if(eat)e.preventDefault();
+  let playUp=false;
+  if(e.changedTouches){
+    for(let i=0;i<e.changedTouches.length;i++){
+      const id=e.changedTouches[i].identifier;
+      if(playIds.has(id)||ptrs.has(id))playUp=true;
+    }
+  }
+  if(e.cancelable&&(taps.length||(playingTouch()&&playUp)))e.preventDefault();
   const tapIds=new Set(taps.map(a=>a.id));
   if(e.changedTouches){for(let i=0;i<e.changedTouches.length;i++){const id=e.changedTouches[i].identifier;uiArm.delete(id);releaseSlot(id,tapIds.has(id)?'cancel':'up');}}
   purgeToTouches(e.touches,'cancel');
   rememberTouches(e.touches);
   markTouching();
-  if(!e.touches||!e.touches.length){multiGuard=false;threeArmed=true;}
+  if(!e.touches||!e.touches.length){multiGuard=false;threeArmed=true;if(inputWhy.startsWith('steer'))inputWhy='ok';}
   runUiTaps(taps);
 }
 function onTouchCancel(e){
@@ -917,7 +991,7 @@ for(const el of [window,document,cv]){
 window.addEventListener('pointerdown',notePointer,{capture:true,passive:true});
 window.addEventListener('pointermove',notePointer,{capture:true,passive:true});
 cv.addEventListener('dblclick',e=>{e.preventDefault();});
-['gesturestart','gesturechange'].forEach(t=>window.addEventListener(t,e=>{if(playingTouch()&&!touchUi(e.target)&&e.cancelable)e.preventDefault();},{capture:true,passive:false}));
+['gesturestart','gesturechange'].forEach(t=>window.addEventListener(t,e=>{if(playingTouch()&&e.cancelable)e.preventDefault();},{capture:true,passive:false}));
 document.addEventListener('click',e=>{
   const btn=e.target&&e.target.closest&&e.target.closest('button');
   if(!btn||btn===synthBtn)return;
@@ -1916,10 +1990,10 @@ function movePlayer(rdt){
   let px=P.x,py=P.y,direct=false;
   if(ax&&ay){ax*=Math.SQRT1_2;ay*=Math.SQRT1_2;}
   const stick=twoThumb()?helm:pointer;
-  if(P.dashT>0){P.x+=P.vx*rdt;P.y+=P.vy*rdt;P.vx*=Math.pow(.02,rdt);P.vy*=Math.pow(.02,rdt);if(stick){stick.dx=0;stick.dy=0;}}
-  else if(stick){const f=1-Math.exp(-(hull.follow||45)*rdt),mx=stick.dx*f,my=stick.dy*f;stick.dx-=mx;stick.dy-=my;P.x+=mx*1.15*hull.spd;P.y+=my*1.15*hull.spd*grav;direct=true;}
-  else if(!twoThumb()&&mouseAim&&!ax&&!ay){const f=1-Math.exp(-22*rdt);P.x+=(mouseAim.x-P.x)*f;P.y+=(mouseAim.y-P.y)*f;direct=true;}
-  else{P.vx+=(ax*MS-P.vx)*KR;P.vy+=(ay*MS-P.vy)*KR;if(!ax&&Math.abs(P.vx)<8)P.vx=0;if(!ay&&Math.abs(P.vy)<8)P.vy=0;P.x+=P.vx*rdt;P.y+=P.vy*rdt;}
+  if(P.dashT>0){P.x+=P.vx*rdt;P.y+=P.vy*rdt;P.vx*=Math.pow(.02,rdt);P.vy*=Math.pow(.02,rdt);}
+  if(stick){const f=1-Math.exp(-(hull.follow||45)*rdt),mx=stick.dx*f,my=stick.dy*f;stick.dx-=mx;stick.dy-=my;P.x+=mx*1.15*hull.spd;P.y+=my*1.15*hull.spd*grav;if(!(P.dashT>0))direct=true;}
+  else if(!twoThumb()&&mouseAim&&!ax&&!ay&&!(P.dashT>0)){const f=1-Math.exp(-22*rdt);P.x+=(mouseAim.x-P.x)*f;P.y+=(mouseAim.y-P.y)*f;direct=true;}
+  else if(!(P.dashT>0)){P.vx+=(ax*MS-P.vx)*KR;P.vy+=(ay*MS-P.vy)*KR;if(!ax&&Math.abs(P.vx)<8)P.vx=0;if(!ay&&Math.abs(P.vy)<8)P.vy=0;P.x+=P.vx*rdt;P.y+=P.vy*rdt;}
   if(direct&&rdt>0){P.vx=(P.x-px)/rdt;P.vy=(P.y-py)/rdt;}
   P.tilt+=(clamp(P.vx/700,-1,1)-P.tilt)*(1-Math.exp(-12*rdt));
 }
@@ -2640,7 +2714,7 @@ function refreshMenu(){
   $('bDaily').textContent='DAILY RIFT · '+(dd.done?'✓ ':'')+'#'+String(dk).slice(4)+(dd.best?' · BEST '+dd.best.toLocaleString():'');
   const lit=(SV.sectors.stars||[]).filter(n=>n>0).length;
   const mt=musicChoices().find(t=>t.id===trackId());
-  $('mHint').innerHTML=(HS?'BEST '+HS.toLocaleString()+' · ':'')+'MISSIONS '+done+'/'+ACH.length+' · STARS '+lit+'/6<br>'+controlBlurb()+'<br>Endless is the classic run. Constellation is six short sectors.<br>Music: '+(mt?mt.name:'ORIGINAL')+'. Switch it any time in Music.<br><span style="letter-spacing:1px;opacity:.75">nrl1-19</span>';
+  $('mHint').innerHTML=(HS?'BEST '+HS.toLocaleString()+' · ':'')+'MISSIONS '+done+'/'+ACH.length+' · STARS '+lit+'/6<br>'+controlBlurb()+'<br>Endless is the classic run. Constellation is six short sectors.<br>Music: '+(mt?mt.name:'ORIGINAL')+'. Switch it any time in Music.<br><span style="letter-spacing:1px;opacity:.75">nrl1-20</span>';
 }
 function paintConstellation(){
   const c=$('mapcv');if(!c)return;
@@ -2745,12 +2819,12 @@ sCtl.onclick=()=>{SV.set.two=!SV.set.two;save();sfx.ui();syncSet();if(G.screen==
 if(matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches&&!localStorage.getItem('neonrift_lab_save'))SV.set.rm=true;
 syncSet();
 (function(){const d=document.createElement('div');d.style.cssText='position:fixed;top:env(safe-area-inset-top);visibility:hidden';document.body.appendChild(d);document.documentElement.style.setProperty('--sat',d.getBoundingClientRect().top+'px');d.remove();})();
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js?v=nrl1-19',{scope:'./'}).catch(()=>{});}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js?v=nrl1-20',{scope:'./'}).catch(()=>{});}
 
 let last=performance.now();reset();refreshMenu();
-function loop(now){let rdt=clamp((now-last)/1000,0,.05);last=now;syncPlayPointer();touchWatchdog();if(!G.paused)update(rdt);render(G.paused?0:rdt);paintDebug(rdt);musicTick();sectorLayerTick();requestAnimationFrame(loop);}
+function loop(now){const raw=now-last;if(raw>maxFrameMs)maxFrameMs=raw;else maxFrameMs=maxFrameMs*0.98+raw*0.02;let rdt=clamp(raw/1000,0,.05);last=now;syncPlayPointer();touchWatchdog();if(!G.paused)update(rdt);render(G.paused?0:rdt);paintDebug(rdt);musicTick();sectorLayerTick();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
-function snap(){return {state:G.state,score,streak,heat,grav,zone:zoneIdx,mode:G.mode,sector:sectorIdx,sectorT:+(sectorT||0).toFixed(2),sectorRush:sectorRush?1:0,sectorPhase,perfects:perfects||0,event:evt&&evt.k,boss:boss?{kind:boss.kind||'flywheel',phase:boss.phase,hp:Math.round(boss.hp*10)/10,max:boss.max,frac:+(boss.hp/boss.max).toFixed(3),plates:boss.plateGone&&boss.plateGone.filter(Boolean).length,broken:boss.broken,clock:+(boss.clock||0).toFixed(2)}:null,finale:finale?{t:+finale.t.toFixed(2),shattered:!!finale.shattered,shards:finale.shards.length}:null,torp:{ammo:P?P.torpAmmo:0,cd:P?+P.torpCd.toFixed(2):0},boons:P?{shield:P.shield,chrono:+(P.slowmo||0).toFixed(2),magnet:+(P.magnet||0).toFixed(2),surge:+(P.surge||0).toFixed(2),over:+(P.over||0).toFixed(2)}:null,controls:twoThumb()?'two':'one',flip:!!SV.set.flip,ver:'nrl1-19',track:trackId(),hull:SV.hull,weapon:SV.weapon,paint:SV.skin,x:P?Math.round(P.x):0,y:P?Math.round(P.y):0,haz:haz.filter(h=>!h.dead).map(h=>({k:h.k,x:Math.round(h.x),y:Math.round(h.y)})),torps:torps.length,elapsed,stageT,dashArm,dashing:!!(P&&P.dashT>0),swapFlash:+swapFlash.toFixed(2),stars:SV.sectors.stars.slice(),unlocked:SV.sectors.u};}
+function snap(){return {state:G.state,score,streak,heat,grav,zone:zoneIdx,mode:G.mode,sector:sectorIdx,sectorT:+(sectorT||0).toFixed(2),sectorRush:sectorRush?1:0,sectorPhase,perfects:perfects||0,event:evt&&evt.k,boss:boss?{kind:boss.kind||'flywheel',phase:boss.phase,hp:Math.round(boss.hp*10)/10,max:boss.max,frac:+(boss.hp/boss.max).toFixed(3),plates:boss.plateGone&&boss.plateGone.filter(Boolean).length,broken:boss.broken,clock:+(boss.clock||0).toFixed(2)}:null,finale:finale?{t:+finale.t.toFixed(2),shattered:!!finale.shattered,shards:finale.shards.length}:null,torp:{ammo:P?P.torpAmmo:0,cd:P?+P.torpCd.toFixed(2):0},boons:P?{shield:P.shield,chrono:+(P.slowmo||0).toFixed(2),magnet:+(P.magnet||0).toFixed(2),surge:+(P.surge||0).toFixed(2),over:+(P.over||0).toFixed(2)}:null,controls:twoThumb()?'two':'one',flip:!!SV.set.flip,ver:'nrl1-20',track:trackId(),hull:SV.hull,weapon:SV.weapon,paint:SV.skin,x:P?Math.round(P.x):0,y:P?Math.round(P.y):0,haz:haz.filter(h=>!h.dead).map(h=>({k:h.k,x:Math.round(h.x),y:Math.round(h.y)})),torps:torps.length,elapsed,stageT,dashArm,dashing:!!(P&&P.dashT>0),swapFlash:+swapFlash.toFixed(2),stars:SV.sectors.stars.slice(),unlocked:SV.sectors.u};}
 window.__G={G,SV,get score(){return score},get state(){return G.state},get zone(){return zoneIdx},get streak(){return streak},start:startRun,startSector,show,
   setControls(v){SV.set.two=!!v;save();},
   forceBoss(){if(G.state==='play')startBoss();},
@@ -2779,7 +2853,7 @@ window.__G={G,SV,get score(){return score},get state(){return G.state},get zone(
     const prev={state:G.state,paused:G.paused,two:!!SV.set.two,flip:!!SV.set.flip,slow,inv:P?P.inv:0,slowmo:P?P.slowmo:0,mode:G.mode,lives,shield:P?P.shield:0};
     if(!P)reset();
     G.state='play';G.paused=false;SV.set.two=true;SV.set.flip=false;P.inv=1e6;slow=1;P.slowmo=0;
-    syncPlayPointer();resetContacts();
+    show(null);syncPlayPointer();resetContacts();
     const x0=P.x;
     beginContact(1,40,400,'touch');moveContact(1,90,400);movePlayer(.05);
     check('steer moves',P.x>x0+5&&helm&&helm.id===1);
@@ -2923,12 +2997,51 @@ window.__G={G,SV,get score(){return score},get state(){return G.state},get zone(
     sx=P.x;touchWatchdog();movePlayer(.05);
     check('watchdog resyncs a held finger',helm&&helm.id===60&&P.x>sx+5);
     check('pause control is inert while a finger is down',document.body.classList.contains('touching')&&getComputedStyle(document.getElementById('pauseBtn')).pointerEvents==='none');
+    P.dashT=.14;P.vx=0;P.vy=0;
+    const xDash=P.x;moveContact(60,helm.x+36,helm.y);movePlayer(.05);
+    check('dash does not lock steer',P.x>xDash+5&&helm&&helm.id===60);
+    P.dashT=0;
     endContact(60);endContact(61);
     check('lift lets the pause control receive taps',!document.body.classList.contains('touching'));
     }catch(e){fails.push('held '+e);}finally{
     boss=null;evt=null;finale=null;perfectT=0;sectorRush=0;G.mode=prev.mode;sectorIdx=-1;sectorPhase='wave';
     haz.splice(0,haz.length);pups.splice(0,pups.length);lives=prev.lives;if(P)P.shield=prev.shield;
     }
+    try{
+      G.state='play';G.paused=false;SV.set.two=true;SV.set.flip=false;syncPlayPointer();resetContacts();
+      const lab=document.createElement('label');
+      lab.id='knotBanner';lab.textContent='KNOT';
+      lab.style.cssText='position:fixed;inset:0;z-index:20;display:block;background:transparent';
+      lab.style.setProperty('pointer-events','auto','important');
+      document.body.appendChild(lab);
+      const mid=document.elementFromPoint(Math.min(W*.5,innerWidth-8),Math.min(H*.45,innerHeight-8));
+      check('banner label is the hit target',!!(mid&&(mid===lab||mid.closest&&mid.closest('#knotBanner'))));
+      const mk=(id,x,y)=>new Touch({identifier:id,target:lab,clientX:x,clientY:y});
+      const fire=(type,changed,touches)=>lab.dispatchEvent(new TouchEvent(type,{bubbles:true,cancelable:true,touches,changedTouches:changed}));
+      const xB=P.x;
+      fire('touchstart',[mk(70,36,240)],[mk(70,36,240)]);
+      fire('touchmove',[mk(70,150,240)],[mk(70,150,240)]);
+      movePlayer(.05);
+      check('knot label still steers',helm&&helm.id===70&&P.x>xB+5&&!uiArm.has(70));
+      fire('touchstart',[mk(71,W-36,180)],[mk(70,150,240),mk(71,W-36,180)]);
+      fire('touchmove',[mk(71,W-36,340)],[mk(70,150,240),mk(71,W-36,340)]);
+      check('knot label still draws',thread&&thread.id===71&&thread.moved>100);
+      const xC=P.x;
+      fire('touchmove',[mk(70,230,250)],[mk(70,230,250),mk(71,W-20,380)]);
+      movePlayer(.05);
+      check('retargeted move still steers',helm.id===70&&thread.id===71&&P.x>xC+5);
+      uiArm.set(77,{id:77,x:8,y:8,btn:$('pauseBtn'),map:false});
+      const xD=P.x;
+      fire('touchmove',[mk(70,300,250),mk(77,10,80)],[mk(70,300,250),mk(71,W-20,400),mk(77,10,80)]);
+      movePlayer(.05);
+      check('button finger does not freeze steer',helm&&helm.id===70&&thread&&thread.id===71&&P.x>xD+5&&uiArm.has(77));
+      helm.lastProc=performance.now();helm.dx=0;helm.dy=0;
+      touchSnap.set(70,{x:helm.x-90,y:helm.y,seen:performance.now()-400});
+      const xE=P.x;touchWatchdog();movePlayer(.05);
+      check('stale snap does not yank steer',Math.abs(P.x-xE)<2);
+      lab.remove();uiArm.delete(77);resetContacts();
+    }catch(err){fails.push('banner '+err);}
+    finally{const left=document.getElementById('knotBanner');if(left)left.remove();uiArm.delete(77);}
     check('overlay ignores pointers while playing',document.body.classList.contains('playing')&&getComputedStyle(document.getElementById('menu')).pointerEvents==='none');
     SV.set.two=prev.two;SV.set.flip=prev.flip;save();
     G.state=prev.state;G.paused=prev.paused;slow=prev.slow;if(P){P.inv=prev.inv;P.slowmo=prev.slowmo;}
