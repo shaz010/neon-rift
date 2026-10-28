@@ -80,8 +80,40 @@
       api.tri(hz(root + 12 + shape[(s >> 1) % 8]), t, 0.22, rush ? 0.055 : 0.04);
     }
   }
+  function layerOf(rush) {
+    if (typeof rush !== "number") return null;
+    const d = rush < 0 ? 0 : rush > 1 ? 1 : rush;
+    const fade = function (a, b) {
+      if (d <= a) return 0;
+      if (d >= b) return 1;
+      const u = (d - a) / (b - a);
+      return u * u * (3 - 2 * u);
+    };
+    return { d: d, hats: fade(0.02, 0.34), snare: fade(0.28, 0.64), full: fade(0.58, 0.94) };
+  }
   function hitB(api, t, pos, rush, menu) {
     const s = pos % 16, bar = (pos / 16) | 0;
+    const L = layerOf(rush);
+    if (L) {
+      const roots = [50, 46, 43, 57], maj = [0, 1, 0, 1];
+      const bi = bar % 4, root = roots[bi];
+      if (s === 0) api.kick(t, 0.7 + 0.16 * L.hats, 40);
+      if (s === 10) api.kick(t, 0.36 + 0.14 * L.hats, 36);
+      if (s % 4 === 0) api.hat(t, 0.01 + 0.035 * L.hats, false);
+      if (L.full > 0.04 && s % 2 === 0) api.hat(t, 0.03 * L.full, false);
+      if (L.snare > 0.04 && (s === 4 || s === 12)) api.snare(t, 0.2 * L.snare);
+      if (s === 0) {
+        const n = root - 24;
+        api.sine(hz(n), t, 3.1, 0.16 + 0.1 * L.full, hz(Math.max(24, n - 2)));
+        if (L.full > 0.04) api.saw(hz(root + 12), t, 2.4, 0.028 * L.full, 0, { type: "lowpass", f: 520, q: 0.5 });
+      }
+      if ((s === 0 || s === 12) && !menu) api.tri(hz(root + (maj[bi] ? 11 : 10)), t, 0.8, 0.04 + 0.02 * L.hats);
+      if (s === 0 && !menu) {
+        const mel = [0, 3, 7, 10, 12, 10, 8, 7, 5, 3, 2, 0];
+        api.sine(hz(62 + mel[bar % 12]), t, 2.2, 0.035 + 0.025 * L.full, hz(62 + mel[bar % 12] - 1));
+      }
+      return;
+    }
     const roots = [50, 46, 43, 57], maj = [0, 1, 0, 1];
     const bi = bar % 4, root = roots[bi];
     if (s === 0) api.kick(t, 0.86, 40);
@@ -152,6 +184,34 @@
   }
   function hitE(api, t, pos, rush, menu) {
     const s = pos % 16, bar = (pos / 16) | 0;
+    const L = layerOf(rush);
+    if (L) {
+      const chords = [
+        [60, 63, 67, 70],
+        [56, 60, 63, 67],
+        [53, 56, 60, 63],
+        [55, 59, 62, 65],
+        [60, 63, 67, 70],
+        [56, 60, 63, 67]
+      ];
+      const chord = chords[(bar >> 1) % 6];
+      if (s === 0 || s === 7 || s === 10) api.kick(t, (s === 0 ? 0.48 : 0.3) * (0.55 + 0.45 * L.hats), 58);
+      if (s % 2 === 0) api.hat(t, 0.01 + 0.02 * L.hats, false);
+      if (L.full > 0.04 && s % 2 === 1) api.hat(t, 0.018 * L.full, false);
+      if (L.snare > 0.04 && (s === 4 || s === 12)) api.snare(t, 0.2 * L.snare);
+      if (s % 4 === 0) api.noise(t, 0.04, 0.008 + 0.006 * L.hats, "highpass", 5000);
+      if (s === 0 || (L.full > 0.35 && s === 8)) chord.forEach(function (n, i) {
+        api.sine(hz(n), t, 1.15, i === 0 ? 0.04 : 0.028);
+        if (i < 3) api.tri(hz(n), t, 0.9, 0.016);
+      });
+      if (s === 0) api.sine(hz(chord[0] - 24), t, 0.85, 0.15);
+      if (s === 8) api.sine(hz(chord[2] - 24), t, 0.42, 0.09);
+      if (!menu && bar % 2 === 1 && s % 4 === 0) {
+        const mel = [0, 3, 7, 10, 7, 3, 0, -2, 0, 3, 7, 3];
+        api.sine(hz(72 + mel[bar % 12]), t, 0.36, 0.03 + 0.02 * L.full);
+      }
+      return;
+    }
     const chords = [
       [60, 63, 67, 70],
       [56, 60, 63, 67],
@@ -179,6 +239,34 @@
   }
   function hitF(api, t, pos, rush, menu) {
     const s = pos % 16, bar = (pos / 16) | 0;
+    const L = layerOf(rush);
+    if (L) {
+      let root = 55, third = 3;
+      if (bar >= 8 && bar < 12) { root = 48; third = 3; }
+      else if (bar >= 12 && bar < 16) { root = 51; third = 4; }
+      else if (bar >= 16) { root = 50; third = 4; }
+      if (s % 4 === 0) { api.kick(t, 0.62 + 0.16 * L.hats, 49); api.duck(t); }
+      if (s % 4 === 2) api.hat(t, 0.02 + 0.045 * L.hats, true);
+      if (L.snare > 0.04 && (s === 4 || s === 12)) api.snare(t, 0.22 * L.snare);
+      if (L.full > 0.04 && (s === 6 || s === 14)) api.snare(t, 0.07 * L.full);
+      const on = [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0];
+      const deg = [0, 0, 0, 7, 0, 10, 7, 0, 0, 3, 0, 7, 10, 7, 3, 0];
+      if (on[s]) {
+        const jump = (bar % 4 === 3 && s >= 8) ? 12 : 0;
+        api.saw(hz(root - 12 + deg[s] + jump), t, 0.11, 0.07 + 0.03 * L.full, 0, { type: "lowpass", f: 400 + 480 * L.d, q: 0.8 });
+      }
+      if (s === 2 || s === 6 || s === 10 || s === 14) {
+        [0, third, 7].forEach(function (d) {
+          api.saw(hz(root + 12 + d), t, 0.08, 0.012 + 0.016 * L.full, 0, { type: "bandpass", f: 860 + 840 * L.d, q: 0.7 }, "pump");
+        });
+      }
+      if (!menu && s % 2 === 0 && (L.full > 0.2 || bar >= 8)) {
+        const hook = [0, 3, 7, 10, 7, 3, 5, 7];
+        const amp = bar >= 8 ? 1 : L.full;
+        api.saw(hz(root + 12 + hook[(s >> 1) % 8]), t, 0.14, 0.038 * amp, 0, { type: "bandpass", f: 780 + 720 * L.d, q: 3.2 });
+      }
+      return;
+    }
     let root = 55, third = 3;
     if (bar >= 8 && bar < 12) { root = 48; third = 3; }
     else if (bar >= 12 && bar < 16) { root = 51; third = 4; }
@@ -529,21 +617,24 @@
       const tr = byId[id];
       if (!tr) return;
       if (id !== cur) { cur = id; arm(); }
-      const bpm = opts.rush ? tr.rush : tr.bpm;
+      const numeric = opts.drive != null;
+      const drive = numeric ? Math.max(0, Math.min(1, +opts.drive || 0)) : (opts.rush ? 1 : 0);
+      const bpm = numeric ? (tr.bpm + (tr.rush - tr.bpm) * drive) : (opts.rush ? tr.rush : tr.bpm);
       const per = tr.grid === "8" ? 8 : 16;
       const loop = tr.bars * per;
       const ahead = Math.min(2.5, opts.ahead || 0.16);
-      const cap = opts.ahead ? 500 : 8;
-      if (next < ctx.currentTime - 0.4) next = ctx.currentTime + 0.04;
+      const cap = opts.ahead ? 80 : 3;
+      if (next < ctx.currentTime - 0.12) next = ctx.currentTime + 0.02;
       const horizon = ctx.currentTime + ahead;
       let guard = 0;
       const pair = tr.lp || [7200, 11000];
-      lp.frequency.setTargetAtTime(opts.rush ? pair[1] : pair[0], ctx.currentTime, 0.25);
+      const open = numeric ? (pair[0] + (pair[1] - pair[0]) * drive) : (opts.rush ? pair[1] : pair[0]);
+      lp.frequency.setTargetAtTime(open, ctx.currentTime, numeric ? 1.1 : 0.25);
       try {
         while (next < horizon && guard++ < cap) {
           const pos = step % loop;
           const down = step % 2 === 0;
-          tr.hit(api, next, pos, !!opts.rush, !!opts.menu);
+          tr.hit(api, next, pos, numeric ? drive : !!opts.rush, !!opts.menu);
           let sp;
           if (tr.swing && tr.grid === "8") {
             const quarter = 60 / bpm;
@@ -558,7 +649,7 @@
       } catch (err) {
         lastError = String(err && err.message || err);
       }
-      info.id = id; info.step = step; info.rush = !!opts.rush; info.bpm = bpm;
+      info.id = id; info.step = step; info.rush = numeric ? drive > 0.9 : !!opts.rush; info.bpm = bpm; info.drive = drive;
     }
     return {
       tick: tick,

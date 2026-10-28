@@ -148,7 +148,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nDEST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/web\"\nmkdir -p \"${DEST}\"\nfor f in index.html manifest.json sw.js bed.js apple-touch-icon.png icon-512.png; do\n  test -f \"${SRCROOT}/../${f}\"\n  cp \"${SRCROOT}/../${f}\" \"${DEST}/${f}\"\ndone\ngrep -q 'nrl1-22' \"${DEST}/index.html\"\n";
+			shellScript = "set -e\nDEST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/web\"\nmkdir -p \"${DEST}\"\nfor f in index.html manifest.json sw.js bed.js apple-touch-icon.png icon-512.png; do\n  test -f \"${SRCROOT}/../${f}\"\n  cp \"${SRCROOT}/../${f}\" \"${DEST}/${f}\"\ndone\ngrep -q 'nrl1-24' \"${DEST}/index.html\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
