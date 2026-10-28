@@ -857,7 +857,14 @@ def nrl1_internal_testers(token: str) -> list:
         return []
     testers = collection(token, f"/v1/betaGroups/{source['id']}/betaTesters?limit=200")
     ids = [row["id"] for row in testers if row.get("id")]
-    print(f"{NRL1_GROUP} has {len(ids)} tester(s).")
+    if ids:
+        print(f"{NRL1_GROUP} has {len(ids)} tester(s).")
+        return ids
+    # nrl1's upload added every App Store Connect user. That list is the
+    # internal set when the betaTesters relation is still empty.
+    users = collection(token, "/v1/users?limit=200")
+    ids = [row["id"] for row in users if row.get("id")]
+    print(f"{NRL1_GROUP} listed no betaTesters. Using {len(ids)} App Store Connect user(s), the same set nrl1 Internal was given.")
     return ids
 
 
