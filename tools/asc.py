@@ -31,7 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1-20. A knot, rush, or sector label can no longer freeze the thumbs. A finger on the playfield keeps steering and drawing. "
+    "nrl1-21. The drums build in layers instead of jumping to full, and a kill prize is a bright gem. "
     "The hull still turns ultraviolet on a streak or a prize, and deep red "
     "when you are on your last life with no shield and something is close. "
     "The flywheel, the knot, the controls, and the enemies stay as they were. "
