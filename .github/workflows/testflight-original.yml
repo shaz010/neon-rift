@@ -2,14 +2,9 @@ name: TestFlight original
 
 # Packages the original Neon Rift web game as the free iOS app and uploads it
 # to TestFlight. It does not build nrl1 or Neon Rift 2.
-# Manual only after the corrected upload is queued.
+# Manual only. The corrected upload is already queued.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - neon-rift-original-app
-    paths:
-      - tools/asc.py
 
 concurrency:
   group: testflight-original
