@@ -302,15 +302,20 @@ def stop(message: str) -> None:
 
 
 def find_bundle(token: str) -> dict | None:
-    data = api("GET", f"/v1/bundleIds?filter[identifier]={BUNDLE_ID}&limit=5", token=token)
+    data = api("GET", f"/v1/bundleIds?filter[identifier]={BUNDLE_ID}&limit=20", token=token)
     rows = data.get("data") or []
-    return rows[0] if rows else None
+    for row in rows:
+        ident = ((row.get("attributes") or {}).get("identifier") or "")
+        if ident == BUNDLE_ID:
+            return row
+    return None
 
 
 def ensure_bundle(token: str) -> tuple[dict, bool]:
     existing = find_bundle(token)
     if existing:
-        print(f"Bundle ID already registered: {BUNDLE_ID}")
+        ident = ((existing.get("attributes") or {}).get("identifier") or BUNDLE_ID)
+        print(f"Bundle ID already registered: {ident} ({existing.get('id')})")
         return existing, False
     attributes = {
         "identifier": BUNDLE_ID,
@@ -351,9 +356,13 @@ def ensure_bundle(token: str) -> tuple[dict, bool]:
 
 
 def find_app(token: str) -> dict | None:
-    data = api("GET", f"/v1/apps?filter[bundleId]={BUNDLE_ID}&limit=5", token=token)
+    data = api("GET", f"/v1/apps?filter[bundleId]={BUNDLE_ID}&limit=20", token=token)
     rows = data.get("data") or []
-    return rows[0] if rows else None
+    for row in rows:
+        ident = ((row.get("attributes") or {}).get("bundleId") or "")
+        if ident == BUNDLE_ID:
+            return row
+    return None
 
 
 def ensure_app(token: str, bundle: dict) -> dict:
