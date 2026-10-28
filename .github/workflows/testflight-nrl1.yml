@@ -2,8 +2,8 @@ name: TestFlight nrl1
 
 # Packages the lab web game on this branch as its own iOS app and uploads it
 # to TestFlight. It does not build Neon Rift 2.
-# Push uploads are paused. nrls-2 is the glyph-spell experiment and is not the frozen nrl1-25 app.
-# the next TestFlight build. Run this workflow by hand when that approval is given.
+# Manual only. Shahbaz approved the nrls-2 upload as the paid nrl1 app.
+# This does not build the frozen nrl1-25 keeper. Run it by hand for the next build.
 on:
   workflow_dispatch:
 
@@ -145,7 +145,7 @@ jobs:
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
             echo "- Web build: nrls-2"
-            echo "- Changelog: Glyph spells. Circle, zigzag, spiral, and line."
+            echo "- Changelog: Glyph spells (circle shield, zigzag lightning, spiral well, line dash), the spectrum life bar, iridescent prize gems, the gradual music build-up, haptics, and a check for steering sticks."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Remove the API key

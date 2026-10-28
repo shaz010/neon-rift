@@ -31,11 +31,14 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrls-2. Draw a circle for a bubble, a zigzag for a bolt, a spiral for a well, or a line to dash. "
-    "The hull still turns ultraviolet on a streak or a prize, and deep red "
-    "when you are on your last life with no shield and something is close. "
-    "The flywheel, the knot, the controls, and the enemies stay as they were. "
-    "This is the lab game, separate from Neon Rift 2."
+    "nrl1 web build nrls-2. Please test glyph spells: a circle casts a shield bubble, "
+    "a zigzag casts lightning that chains between enemies, a spiral casts a well that pulls enemies in, "
+    "and a line casts a dash. "
+    "Also check the thin spectrum life bar along the top, the iridescent prize gems, "
+    "and the music building up gradually as you draw and fight. "
+    "Haptics are on. Please watch for any steering sticks, especially at the start of a section "
+    "and while one thumb steers and the other draws. "
+    "This is the nrl1 app, separate from Neon Rift 2."
 )
 
 
