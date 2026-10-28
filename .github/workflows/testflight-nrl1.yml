@@ -6,6 +6,12 @@ name: TestFlight nrl1
 # This does not build the frozen nrl1-25 keeper. Run it by hand for the next build.
 on:
   workflow_dispatch:
+  # One approved upload of nrls-2. Removed after this run starts so later pushes do not upload.
+  push:
+    branches:
+      - neon-rift-spells
+    paths:
+      - .github/workflows/testflight-nrl1.yml
 
 concurrency:
   group: testflight-nrl1
