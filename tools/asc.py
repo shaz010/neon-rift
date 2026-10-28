@@ -31,7 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1-21. The drums build in layers instead of jumping to full, and a kill prize is a bright gem. "
+    "nrl1-22. The ship keeps steering while you draw. Gems and the music ramp stay, and they cost less. "
     "The hull still turns ultraviolet on a streak or a prize, and deep red "
     "when you are on your last life with no shield and something is close. "
     "The flywheel, the knot, the controls, and the enemies stay as they were. "
