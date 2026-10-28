@@ -623,8 +623,8 @@
       const per = tr.grid === "8" ? 8 : 16;
       const loop = tr.bars * per;
       const ahead = Math.min(2.5, opts.ahead || 0.16);
-      const cap = opts.ahead ? 500 : 8;
-      if (next < ctx.currentTime - 0.4) next = ctx.currentTime + 0.04;
+      const cap = opts.ahead ? 80 : 3;
+      if (next < ctx.currentTime - 0.12) next = ctx.currentTime + 0.02;
       const horizon = ctx.currentTime + ahead;
       let guard = 0;
       const pair = tr.lp || [7200, 11000];
