@@ -31,7 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1-19. Constellation and Resume respond on the first tap. A finger that stays down still keeps steering through a knot and slow motion. "
+    "nrl1-20. A knot, rush, or sector label can no longer freeze the thumbs. A finger on the playfield keeps steering and drawing. "
     "The hull still turns ultraviolet on a streak or a prize, and deep red "
     "when you are on your last life with no shield and something is close. "
     "The flywheel, the knot, the controls, and the enemies stay as they were. "
