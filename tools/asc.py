@@ -31,7 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1-24. Gems and the layered music are back. Steering is the nrl1-20 touch code. "
+    "nrl1-25. A finger held through a new section keeps steering. The top-left HUD is gone. A thin life bar sits under the notch. "
     "The hull still turns ultraviolet on a streak or a prize, and deep red "
     "when you are on your last life with no shield and something is close. "
     "The flywheel, the knot, the controls, and the enemies stay as they were. "
