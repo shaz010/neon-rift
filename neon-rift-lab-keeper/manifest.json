@@ -1,0 +1,25 @@
+{
+  "id": "/neon-rift/neon-rift-lab-keeper/?app=nrl1",
+  "name": "nrl1",
+  "short_name": "nrl1",
+  "start_url": "/neon-rift/neon-rift-lab-keeper/",
+  "scope": "/neon-rift/neon-rift-lab-keeper/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2a0a24",
+  "theme_color": "#c2185b",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png?v=nrl1-25",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png?v=nrl1-25",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
