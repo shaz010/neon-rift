@@ -4,13 +4,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="nrl1">
-<meta name="theme-color" content="#c2185b">
+<meta name="apple-mobile-web-app-title" content="NR Spells">
+<meta name="theme-color" content="#0f766e">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<link rel="icon" href="apple-touch-icon.png?v=nrls-1">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=nrls-1" sizes="180x180">
-<link rel="manifest" href="manifest.json?v=nrls-1">
-<title>nrl1</title>
+<link rel="icon" href="apple-touch-icon.png?v=nrls-2">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=nrls-2" sizes="180x180">
+<link rel="manifest" href="manifest.json?v=nrls-2">
+<title>NR Spells</title>
 <style>
 :root{--bg:#16243a;--teal:#5ef2d6;--mint:#9ff0c0;--sky:#8ec5ff;--lav:#c9a0ff;--coral:#ff9e8a;--amber:#ffd27a;--ink:#e6f4ff;--dim:#8fb3c9}
 html,body{margin:0;height:100%;background:#05060c;overflow:hidden;touch-action:manipulation;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;position:fixed;width:100%;color:var(--ink);-webkit-tap-highlight-color:transparent}
@@ -32,7 +32,9 @@ body.touching #pauseBtn{pointer-events:none !important}
 .panel>h2,.panel>.row,.panel>.hint,.panel>.tabs,.panel>.sub,.panel>.btn{flex:none}
 .ui button,.ui input,.ui label{touch-action:manipulation}
 .clear{background:none;border:none;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;text-align:center}
-h1{margin:0;white-space:nowrap;font-size:clamp(32px,8.4vw,64px);font-weight:900;letter-spacing:1px;color:#fff;text-shadow:3px 0 rgba(255,150,170,.55),-3px 0 rgba(110,240,215,.55),0 0 24px rgba(94,242,214,.35)}
+h1{margin:0;white-space:nowrap;font-size:clamp(26px,7.1vw,52px);font-weight:900;letter-spacing:.5px;color:#f7fff8;text-shadow:3px 0 rgba(255,210,122,.72),-3px 0 rgba(20,180,168,.7),0 0 26px rgba(255,210,122,.4)}
+#menu .sub.spell{color:#ffd27a;letter-spacing:3px}
+#menu .btn.pri{background:linear-gradient(135deg,rgba(255,210,122,.4),rgba(20,168,156,.28));border-color:rgba(255,210,122,.85)}
 h2{margin:0 0 12px;font-size:22px;font-weight:900;letter-spacing:3px;color:var(--teal);display:flex;justify-content:space-between;align-items:center}
 .sub{color:var(--dim);font-size:12px;letter-spacing:5px;margin:6px 0 22px}
 .btn{display:block;width:100%;margin:8px 0;padding:14px 16px;border-radius:14px;border:1px solid rgba(142,197,255,.25);background:rgba(142,197,255,.08);color:var(--ink);font:800 16px inherit;font-family:inherit;letter-spacing:2px;cursor:pointer;transition:background .15s,border-color .15s;flex:none}
@@ -69,14 +71,14 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
 #mapcv{width:100%;height:100%;display:block;touch-action:manipulation;background:transparent}
 </style></head><body><canvas id="c"></canvas>
 <button id="pauseBtn" aria-label="pause">II</button>
-<div id="ver" aria-hidden="true">nrls-1</div>
+<div id="ver" aria-hidden="true">nrls-2</div>
 <div id="dbg" hidden></div>
 
 <div class="ui on" id="menu"><div class="panel clear">
   <div class="scroller">
-  <div class="sub">Y E A R &nbsp;2 1 9 9 &nbsp;·&nbsp; T H E &nbsp;R I F T</div>
-  <h1>NEON RIFT LAB</h1>
-  <div class="sub" style="margin-top:10px;letter-spacing:2px">Weave. Graze. Survive the storm.</div>
+  <div class="sub" style="letter-spacing:3px;white-space:nowrap">YEAR 2199 · THE RIFT</div>
+  <h1>NEON RIFT · SPELLS</h1>
+  <div class="sub spell" style="margin-top:10px;letter-spacing:2px">Circle. Bolt. Well. Dash.</div>
   <div class="cr" id="mCr" style="margin-bottom:14px"></div>
   <div style="max-width:340px;margin:auto">
   <button class="btn pri" id="bMap">CONSTELLATION</button>
@@ -164,7 +166,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
   <div class="row"><button class="btn" id="rHangar">HANGAR</button><button class="btn" id="rMenu">MENU</button></div>
 </div></div>
 
-<script src="bed.js?v=nrls-1"></script>
+<script src="bed.js?v=nrls-2"></script>
 <script>
 "use strict";
 let listenN=0;
@@ -2996,7 +2998,7 @@ function drawSwapFlash(){
 function drawMenuBG(){
   const x=W/2+Math.sin(G.t*.7)*40,y=H*.78;
   drawShip(x,y,Math.sin(G.t)*.2,1);
-  cx.fillStyle='rgba(255,244,252,.4)';cx.font='700 12px sans-serif';cx.textAlign='center';cx.fillText('LAB UPGRADE · SHAHBAZ',W/2,H-28);
+  cx.fillStyle='rgba(255,244,252,.4)';cx.font='700 12px sans-serif';cx.textAlign='center';cx.fillText('GLYPH SPELLS',W/2,H-28);
 }
 
 /* ---------- UI ---------- */
@@ -3060,7 +3062,7 @@ function refreshMenu(){
   $('bDaily').textContent='DAILY RIFT · '+(dd.done?'✓ ':'')+'#'+String(dk).slice(4)+(dd.best?' · BEST '+dd.best.toLocaleString():'');
   const lit=(SV.sectors.stars||[]).filter(n=>n>0).length;
   const mt=musicChoices().find(t=>t.id===trackId());
-  $('mHint').innerHTML=(HS?'BEST '+HS.toLocaleString()+' · ':'')+'MISSIONS '+done+'/'+ACH.length+' · STARS '+lit+'/6<br>'+controlBlurb()+'<br>Endless is the classic run. Constellation is six short sectors.<br>Music: '+(mt?mt.name:'ORIGINAL')+'. Switch it any time in Music.<br><span style="letter-spacing:1px;opacity:.75">nrls-1</span>';
+  $('mHint').innerHTML=(HS?'BEST '+HS.toLocaleString()+' · ':'')+'MISSIONS '+done+'/'+ACH.length+' · STARS '+lit+'/6<br>'+controlBlurb()+'<br>Endless is the classic run. Constellation is six short sectors.<br>Music: '+(mt?mt.name:'ORIGINAL')+'. Switch it any time in Music.<br><span style="letter-spacing:1px;opacity:.75">nrls-2</span>';
 }
 function paintConstellation(){
   const c=$('mapcv');if(!c)return;
@@ -3166,12 +3168,12 @@ if(matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches&&!localSto
 syncSet();
 function measureSafeTop(){const d=document.createElement('div');d.style.cssText='position:fixed;top:env(safe-area-inset-top);height:0;visibility:hidden;pointer-events:none';document.body.appendChild(d);safeTop=d.getBoundingClientRect().top||0;document.documentElement.style.setProperty('--sat',safeTop+'px');d.remove();}
 measureSafeTop();addEventListener('resize',measureSafeTop);
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js?v=nrls-1',{scope:'./'}).catch(()=>{});}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js?v=nrls-2',{scope:'./'}).catch(()=>{});}
 
 let last=performance.now();reset();gemSprites();lifeBitmap();wellSprite();refreshMenu();
 function loop(now){const raw=now-last;lastFrameMs=raw;if(raw>maxFrameMs)maxFrameMs=raw;else maxFrameMs=maxFrameMs*0.98+raw*0.02;let rdt=clamp(raw/1000,0,.05);last=now;syncPlayPointer();touchWatchdog();if(!G.paused)update(rdt);render(G.paused?0:rdt);paintDebug(rdt);musicTick();sectorLayerTick();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
-function snap(){return {state:G.state,score,streak,heat,grav,zone:zoneIdx,mode:G.mode,sector:sectorIdx,sectorT:+(sectorT||0).toFixed(2),sectorRush:sectorRush?1:0,sectorPhase,perfects:perfects||0,event:evt&&evt.k,boss:boss?{kind:boss.kind||'flywheel',phase:boss.phase,hp:Math.round(boss.hp*10)/10,max:boss.max,frac:+(boss.hp/boss.max).toFixed(3),plates:boss.plateGone&&boss.plateGone.filter(Boolean).length,broken:boss.broken,clock:+(boss.clock||0).toFixed(2)}:null,finale:finale?{t:+finale.t.toFixed(2),shattered:!!finale.shattered,shards:finale.shards.length}:null,torp:{ammo:P?P.torpAmmo:0,cd:P?+P.torpCd.toFixed(2):0},boons:P?{shield:P.shield,chrono:+(P.slowmo||0).toFixed(2),magnet:+(P.magnet||0).toFixed(2),surge:+(P.surge||0).toFixed(2),over:+(P.over||0).toFixed(2)}:null,controls:twoThumb()?'two':'one',flip:!!SV.set.flip,ver:'nrls-1',track:trackId(),hull:SV.hull,weapon:SV.weapon,paint:SV.skin,x:P?Math.round(P.x):0,y:P?Math.round(P.y):0,haz:haz.filter(h=>!h.dead).map(h=>({k:h.k,x:Math.round(h.x),y:Math.round(h.y)})),torps:torps.length,elapsed,stageT,dashArm,dashing:!!(P&&P.dashT>0),swapFlash:+swapFlash.toFixed(2),stars:SV.sectors.stars.slice(),unlocked:SV.sectors.u};}
+function snap(){return {state:G.state,score,streak,heat,grav,zone:zoneIdx,mode:G.mode,sector:sectorIdx,sectorT:+(sectorT||0).toFixed(2),sectorRush:sectorRush?1:0,sectorPhase,perfects:perfects||0,event:evt&&evt.k,boss:boss?{kind:boss.kind||'flywheel',phase:boss.phase,hp:Math.round(boss.hp*10)/10,max:boss.max,frac:+(boss.hp/boss.max).toFixed(3),plates:boss.plateGone&&boss.plateGone.filter(Boolean).length,broken:boss.broken,clock:+(boss.clock||0).toFixed(2)}:null,finale:finale?{t:+finale.t.toFixed(2),shattered:!!finale.shattered,shards:finale.shards.length}:null,torp:{ammo:P?P.torpAmmo:0,cd:P?+P.torpCd.toFixed(2):0},boons:P?{shield:P.shield,chrono:+(P.slowmo||0).toFixed(2),magnet:+(P.magnet||0).toFixed(2),surge:+(P.surge||0).toFixed(2),over:+(P.over||0).toFixed(2)}:null,controls:twoThumb()?'two':'one',flip:!!SV.set.flip,ver:'nrls-2',track:trackId(),hull:SV.hull,weapon:SV.weapon,paint:SV.skin,x:P?Math.round(P.x):0,y:P?Math.round(P.y):0,haz:haz.filter(h=>!h.dead).map(h=>({k:h.k,x:Math.round(h.x),y:Math.round(h.y)})),torps:torps.length,elapsed,stageT,dashArm,dashing:!!(P&&P.dashT>0),swapFlash:+swapFlash.toFixed(2),stars:SV.sectors.stars.slice(),unlocked:SV.sectors.u};}
 window.__G={G,SV,get score(){return score},get state(){return G.state},get zone(){return zoneIdx},get streak(){return streak},start:startRun,startSector,show,
   setControls(v){SV.set.two=!!v;save();},
   forceBoss(){if(G.state==='play')startBoss();},

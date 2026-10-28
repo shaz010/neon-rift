@@ -1,22 +1,22 @@
 {
-  "id": "/neon-rift/neon-rift-spells/?app=nrls",
-  "name": "nrls",
-  "short_name": "nrls",
+  "id": "/neon-rift/neon-rift-spells/?app=nr-spells",
+  "name": "NR Spells",
+  "short_name": "NR Spells",
   "start_url": "/neon-rift/neon-rift-spells/",
   "scope": "/neon-rift/neon-rift-spells/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#2a0a24",
-  "theme_color": "#c2185b",
+  "background_color": "#042428",
+  "theme_color": "#0f766e",
   "icons": [
     {
-      "src": "apple-touch-icon.png?v=nrls-1",
+      "src": "apple-touch-icon.png?v=nrls-2",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon-512.png?v=nrls-1",
+      "src": "icon-512.png?v=nrls-2",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
