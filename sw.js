@@ -1,5 +1,5 @@
-const CACHE = 'nrl1-25';
-const SCOPE = '/neon-rift/neon-rift-lab/';
+const CACHE = 'nrls-1';
+const SCOPE = '/neon-rift/neon-rift-spells/';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -8,7 +8,7 @@ self.addEventListener('install', () => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('nrls-') && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

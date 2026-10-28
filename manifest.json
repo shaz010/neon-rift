@@ -1,22 +1,22 @@
 {
-  "id": "/neon-rift/neon-rift-lab/?app=nrl1",
-  "name": "nrl1",
-  "short_name": "nrl1",
-  "start_url": "/neon-rift/neon-rift-lab/",
-  "scope": "/neon-rift/neon-rift-lab/",
+  "id": "/neon-rift/neon-rift-spells/?app=nrls",
+  "name": "nrls",
+  "short_name": "nrls",
+  "start_url": "/neon-rift/neon-rift-spells/",
+  "scope": "/neon-rift/neon-rift-spells/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#2a0a24",
   "theme_color": "#c2185b",
   "icons": [
     {
-      "src": "apple-touch-icon.png?v=nrl1-25",
+      "src": "apple-touch-icon.png?v=nrls-1",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon-512.png?v=nrl1-25",
+      "src": "icon-512.png?v=nrls-1",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
