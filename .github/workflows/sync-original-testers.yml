@@ -4,11 +4,6 @@ name: Sync original testers
 # It does not archive or upload.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - neon-rift-original-app
-    paths:
-      - .github/workflows/sync-original-testers.yml
 
 permissions:
   contents: read
