@@ -1,0 +1,25 @@
+{
+  "id": "/neon-rift/neon-rift-spells-keeper/?app=nr-spells-keeper",
+  "name": "NR Spells",
+  "short_name": "NR Spells",
+  "start_url": "/neon-rift/neon-rift-spells-keeper/",
+  "scope": "/neon-rift/neon-rift-spells-keeper/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#042428",
+  "theme_color": "#0f766e",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png?v=nrls-2",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png?v=nrls-2",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
