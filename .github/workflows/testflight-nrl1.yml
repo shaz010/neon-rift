@@ -39,11 +39,11 @@ jobs:
           sudo xcode-select -s "${latest}"
           xcodebuild -version
 
-      - name: Confirm this is the nrls-7 web game
+      - name: Confirm this is the nrls-8 web game
         run: |
           set -euo pipefail
-          grep -q 'nrls-7' index.html
-          grep -q "CACHE = 'nrls-7'" sw.js
+          grep -q 'nrls-8' index.html
+          grep -q "CACHE = 'nrls-8'" sw.js
           test -f ios/nrl1.xcodeproj/project.pbxproj
 
       - name: Install the App Store Connect client
@@ -144,7 +144,7 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.nrl1\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Web build: nrls-7"
+            echo "- Web build: nrls-8"
             echo "- Changelog: Glyph spells (circle shield, zigzag lightning, spiral well, line dash), the spectrum life bar, iridescent prize gems, the gradual music build-up, haptics, and a check for steering sticks."
           } >> "${GITHUB_STEP_SUMMARY}"
 

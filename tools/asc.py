@@ -31,7 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1 web build nrls-7. Please test glyph spells: a circle casts a shield bubble, "
+    "nrl1 web build nrls-8. Please test glyph spells: a circle casts a shield bubble, "
     "a zigzag casts lightning that chains between enemies, a spiral casts a well that pulls enemies in, "
     "and a line casts a dash. "
     "Also check the thin spectrum life bar along the top, the iridescent prize gems, "
