@@ -101,7 +101,7 @@
       if (s === 10) api.kick(t, 0.36 + 0.14 * L.hats, 36);
       if (s % 4 === 0) api.hat(t, 0.01 + 0.035 * L.hats, false);
       if (L.full > 0.04 && s % 2 === 0) api.hat(t, 0.03 * L.full, false);
-      if (L.snare > 0.04 && (s === 4 || s === 12)) api.snare(t, 0.14 * L.snare);
+      if (L.snare > 0.04 && (s === 4 || s === 12)) api.snare(t, 0.2 * L.snare);
       if (s === 0) {
         const n = root - 24;
         api.sine(hz(n), t, 3.1, 0.16 + 0.1 * L.full, hz(Math.max(24, n - 2)));
@@ -198,7 +198,7 @@
       if (s === 0 || s === 7 || s === 10) api.kick(t, (s === 0 ? 0.48 : 0.3) * (0.55 + 0.45 * L.hats), 58);
       if (s % 2 === 0) api.hat(t, 0.01 + 0.02 * L.hats, false);
       if (L.full > 0.04 && s % 2 === 1) api.hat(t, 0.018 * L.full, false);
-      if (L.snare > 0.04 && (s === 4 || s === 12)) api.snare(t, 0.14 * L.snare);
+      if (L.snare > 0.04 && (s === 4 || s === 12)) api.snare(t, 0.2 * L.snare);
       if (s % 4 === 0) api.noise(t, 0.04, 0.008 + 0.006 * L.hats, "highpass", 5000);
       if (s === 0 || (L.full > 0.35 && s === 8)) chord.forEach(function (n, i) {
         api.sine(hz(n), t, 1.15, i === 0 ? 0.04 : 0.028);
@@ -222,7 +222,7 @@
     ];
     const chord = chords[(bar >> 1) % 6];
     if (s === 0 || s === 7 || s === 10) api.kick(t, s === 0 ? 0.52 : 0.36, 58);
-    if (s === 4 || s === 12) api.snare(t, 0.126);
+    if (s === 4 || s === 12) api.snare(t, 0.18);
     if (s % 2 === 0) api.hat(t, 0.028, false);
     if (rush && s % 2 === 1) api.hat(t, 0.018, false);
     if (s % 4 === 0) api.noise(t, 0.04, 0.012, "highpass", 5000);
@@ -247,8 +247,8 @@
       else if (bar >= 16) { root = 50; third = 4; }
       if (s % 4 === 0) { api.kick(t, 0.62 + 0.16 * L.hats, 49); api.duck(t); }
       if (s % 4 === 2) api.hat(t, 0.02 + 0.045 * L.hats, true);
-      if (L.snare > 0.04 && (s === 4 || s === 12)) api.snare(t, 0.154 * L.snare);
-      if (L.full > 0.04 && (s === 6 || s === 14)) api.snare(t, 0.049 * L.full);
+      if (L.snare > 0.04 && (s === 4 || s === 12)) api.snare(t, 0.22 * L.snare);
+      if (L.full > 0.04 && (s === 6 || s === 14)) api.snare(t, 0.07 * L.full);
       const on = [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0];
       const deg = [0, 0, 0, 7, 0, 10, 7, 0, 0, 3, 0, 7, 10, 7, 3, 0];
       if (on[s]) {
@@ -273,8 +273,8 @@
     else if (bar >= 16) { root = 50; third = 4; }
     if (s % 4 === 0) { api.kick(t, 0.76, 49); api.duck(t); }
     if (s % 4 === 2) api.hat(t, rush ? 0.065 : 0.046, true);
-    if (s === 4 || s === 12) api.snare(t, 0.14);
-    if (rush && (s === 6 || s === 14)) api.snare(t, 0.049);
+    if (s === 4 || s === 12) api.snare(t, 0.2);
+    if (rush && (s === 6 || s === 14)) api.snare(t, 0.07);
     const on = [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0];
     const deg = [0, 0, 0, 7, 0, 10, 7, 0, 0, 3, 0, 7, 10, 7, 3, 0];
     if (on[s]) {
