@@ -7,9 +7,9 @@
 <meta name="apple-mobile-web-app-title" content="NR Spells">
 <meta name="theme-color" content="#0f766e">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<link rel="icon" href="apple-touch-icon.png?v=nrls-2">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=nrls-2" sizes="180x180">
-<link rel="manifest" href="manifest.json?v=nrls-2">
+<link rel="icon" href="apple-touch-icon.png?v=nrls-8">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=nrls-8" sizes="180x180">
+<link rel="manifest" href="manifest.json?v=nrls-8">
 <title>NR Spells</title>
 <style>
 :root{--bg:#16243a;--teal:#5ef2d6;--mint:#9ff0c0;--sky:#8ec5ff;--lav:#c9a0ff;--coral:#ff9e8a;--amber:#ffd27a;--ink:#e6f4ff;--dim:#8fb3c9}
@@ -71,7 +71,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
 #mapcv{width:100%;height:100%;display:block;touch-action:manipulation;background:transparent}
 </style></head><body><canvas id="c"></canvas>
 <button id="pauseBtn" aria-label="pause">II</button>
-<div id="ver" aria-hidden="true">nrls-2</div>
+<div id="ver" aria-hidden="true">nrls-8</div>
 <div id="dbg" hidden></div>
 
 <div class="ui on" id="menu"><div class="panel clear">
@@ -166,7 +166,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
   <div class="row"><button class="btn" id="rHangar">HANGAR</button><button class="btn" id="rMenu">MENU</button></div>
 </div></div>
 
-<script src="bed.js?v=nrls-2"></script>
+<script src="bed.js?v=nrls-8"></script>
 <script>
 "use strict";
 let listenN=0;
@@ -480,7 +480,7 @@ function originalMusic(){
     const t=A.next,s=A.step%16,bar=Math.floor(A.step/16)%4,root=45+(zoneIdx%3)*2,I=A.intensity;
     const sub=musicHeat>.45||I>.72?42:55;
     if(s%4==0)tone(sub+(I>.8?0:sub),t,.32,'sine',.95,A.music,sub*.62);
-    if(I>.25&&(s==4||s==12))noise(t,.18,.45,1600,A.music);
+    if(I>.25&&(s==4||s==12))noise(t,.18,.225,1600,A.music);
     if(s%2==1||I>.55)noise(t,.04,.1+I*.12,7000,A.music);
     const bn=root+PROG[bar][0]+BASS[s%8]*(s%2?1:0);
     tone(440*Math.pow(2,(bn-69)/12),t,sp*.9,'sawtooth',.16,A.music);
@@ -3062,7 +3062,7 @@ function refreshMenu(){
   $('bDaily').textContent='DAILY RIFT · '+(dd.done?'✓ ':'')+'#'+String(dk).slice(4)+(dd.best?' · BEST '+dd.best.toLocaleString():'');
   const lit=(SV.sectors.stars||[]).filter(n=>n>0).length;
   const mt=musicChoices().find(t=>t.id===trackId());
-  $('mHint').innerHTML=(HS?'BEST '+HS.toLocaleString()+' · ':'')+'MISSIONS '+done+'/'+ACH.length+' · STARS '+lit+'/6<br>'+controlBlurb()+'<br>Endless is the classic run. Constellation is six short sectors.<br>Music: '+(mt?mt.name:'ORIGINAL')+'. Switch it any time in Music.<br><span style="letter-spacing:1px;opacity:.75">nrls-2</span>';
+  $('mHint').innerHTML=(HS?'BEST '+HS.toLocaleString()+' · ':'')+'MISSIONS '+done+'/'+ACH.length+' · STARS '+lit+'/6<br>'+controlBlurb()+'<br>Endless is the classic run. Constellation is six short sectors.<br>Music: '+(mt?mt.name:'ORIGINAL')+'. Switch it any time in Music.<br><span style="letter-spacing:1px;opacity:.75">nrls-8</span>';
 }
 function paintConstellation(){
   const c=$('mapcv');if(!c)return;
@@ -3168,12 +3168,12 @@ if(matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches&&!localSto
 syncSet();
 function measureSafeTop(){const d=document.createElement('div');d.style.cssText='position:fixed;top:env(safe-area-inset-top);height:0;visibility:hidden;pointer-events:none';document.body.appendChild(d);safeTop=d.getBoundingClientRect().top||0;document.documentElement.style.setProperty('--sat',safeTop+'px');d.remove();}
 measureSafeTop();addEventListener('resize',measureSafeTop);
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js?v=nrls-2',{scope:'./'}).catch(()=>{});}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js?v=nrls-8',{scope:'./'}).catch(()=>{});}
 
 let last=performance.now();reset();gemSprites();lifeBitmap();wellSprite();refreshMenu();
 function loop(now){const raw=now-last;lastFrameMs=raw;if(raw>maxFrameMs)maxFrameMs=raw;else maxFrameMs=maxFrameMs*0.98+raw*0.02;let rdt=clamp(raw/1000,0,.05);last=now;syncPlayPointer();touchWatchdog();if(!G.paused)update(rdt);render(G.paused?0:rdt);paintDebug(rdt);musicTick();sectorLayerTick();requestAnimationFrame(loop);}
 requestAnimationFrame(loop);
-function snap(){return {state:G.state,score,streak,heat,grav,zone:zoneIdx,mode:G.mode,sector:sectorIdx,sectorT:+(sectorT||0).toFixed(2),sectorRush:sectorRush?1:0,sectorPhase,perfects:perfects||0,event:evt&&evt.k,boss:boss?{kind:boss.kind||'flywheel',phase:boss.phase,hp:Math.round(boss.hp*10)/10,max:boss.max,frac:+(boss.hp/boss.max).toFixed(3),plates:boss.plateGone&&boss.plateGone.filter(Boolean).length,broken:boss.broken,clock:+(boss.clock||0).toFixed(2)}:null,finale:finale?{t:+finale.t.toFixed(2),shattered:!!finale.shattered,shards:finale.shards.length}:null,torp:{ammo:P?P.torpAmmo:0,cd:P?+P.torpCd.toFixed(2):0},boons:P?{shield:P.shield,chrono:+(P.slowmo||0).toFixed(2),magnet:+(P.magnet||0).toFixed(2),surge:+(P.surge||0).toFixed(2),over:+(P.over||0).toFixed(2)}:null,controls:twoThumb()?'two':'one',flip:!!SV.set.flip,ver:'nrls-2',track:trackId(),hull:SV.hull,weapon:SV.weapon,paint:SV.skin,x:P?Math.round(P.x):0,y:P?Math.round(P.y):0,haz:haz.filter(h=>!h.dead).map(h=>({k:h.k,x:Math.round(h.x),y:Math.round(h.y)})),torps:torps.length,elapsed,stageT,dashArm,dashing:!!(P&&P.dashT>0),swapFlash:+swapFlash.toFixed(2),stars:SV.sectors.stars.slice(),unlocked:SV.sectors.u};}
+function snap(){return {state:G.state,score,streak,heat,grav,zone:zoneIdx,mode:G.mode,sector:sectorIdx,sectorT:+(sectorT||0).toFixed(2),sectorRush:sectorRush?1:0,sectorPhase,perfects:perfects||0,event:evt&&evt.k,boss:boss?{kind:boss.kind||'flywheel',phase:boss.phase,hp:Math.round(boss.hp*10)/10,max:boss.max,frac:+(boss.hp/boss.max).toFixed(3),plates:boss.plateGone&&boss.plateGone.filter(Boolean).length,broken:boss.broken,clock:+(boss.clock||0).toFixed(2)}:null,finale:finale?{t:+finale.t.toFixed(2),shattered:!!finale.shattered,shards:finale.shards.length}:null,torp:{ammo:P?P.torpAmmo:0,cd:P?+P.torpCd.toFixed(2):0},boons:P?{shield:P.shield,chrono:+(P.slowmo||0).toFixed(2),magnet:+(P.magnet||0).toFixed(2),surge:+(P.surge||0).toFixed(2),over:+(P.over||0).toFixed(2)}:null,controls:twoThumb()?'two':'one',flip:!!SV.set.flip,ver:'nrls-8',track:trackId(),hull:SV.hull,weapon:SV.weapon,paint:SV.skin,x:P?Math.round(P.x):0,y:P?Math.round(P.y):0,haz:haz.filter(h=>!h.dead).map(h=>({k:h.k,x:Math.round(h.x),y:Math.round(h.y)})),torps:torps.length,elapsed,stageT,dashArm,dashing:!!(P&&P.dashT>0),swapFlash:+swapFlash.toFixed(2),stars:SV.sectors.stars.slice(),unlocked:SV.sectors.u};}
 window.__G={G,SV,get score(){return score},get state(){return G.state},get zone(){return zoneIdx},get streak(){return streak},start:startRun,startSector,show,
   setControls(v){SV.set.two=!!v;save();},
   forceBoss(){if(G.state==='play')startBoss();},

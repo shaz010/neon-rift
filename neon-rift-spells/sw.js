@@ -1,4 +1,4 @@
-const CACHE = 'nrls-2r3';
+const CACHE = 'nrls-8';
 const SCOPE = '/neon-rift/neon-rift-spells/';
 
 self.addEventListener('install', () => {
