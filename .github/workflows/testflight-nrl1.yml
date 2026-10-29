@@ -2,7 +2,7 @@ name: TestFlight nrl1
 
 # Packages the lab web game on this branch as its own iOS app and uploads it
 # to TestFlight. It does not build Neon Rift 2.
-# Manual only. nrls-3 is the web page; do not upload it unless Shahbaz asks.
+# Manual only. Shahbaz approved the nrls-2 upload as the paid nrl1 app.
 # This does not build the frozen nrl1-25 keeper. Run it by hand for the next build.
 on:
   workflow_dispatch:
@@ -39,11 +39,11 @@ jobs:
           sudo xcode-select -s "${latest}"
           xcodebuild -version
 
-      - name: Confirm this is the nrls-3 web game
+      - name: Confirm this is the nrls-2 web game
         run: |
           set -euo pipefail
-          grep -q 'nrls-3' index.html
-          grep -q "CACHE = 'nrls-3'" sw.js
+          grep -q 'nrls-2' index.html
+          grep -q "CACHE = 'nrls-2'" sw.js
           test -f ios/nrl1.xcodeproj/project.pbxproj
 
       - name: Install the App Store Connect client
@@ -144,7 +144,7 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.nrl1\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Web build: nrls-3"
+            echo "- Web build: nrls-2"
             echo "- Changelog: Glyph spells (circle shield, zigzag lightning, spiral well, line dash), the spectrum life bar, iridescent prize gems, the gradual music build-up, haptics, and a check for steering sticks."
           } >> "${GITHUB_STEP_SUMMARY}"
 
