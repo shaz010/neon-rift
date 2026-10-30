@@ -31,14 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1 web build nrls-9. Please test glyph spells: a circle casts a shield bubble, "
-    "a zigzag casts lightning that chains between enemies, a spiral casts a well that pulls enemies in, "
-    "and a line casts a dash. "
-    "Also check the thin spectrum life bar along the top, the iridescent prize gems, "
-    "and the music building up gradually as you draw and fight. "
-    "Haptics are on. Please watch for any steering sticks, especially at the start of a section "
-    "and while one thumb steers and the other draws. "
-    "This is the nrl1 app, separate from Neon Rift 2."
+    "nrls-9: nrls-2 results page, glyph spells, snare 50% quieter, ship-stuck tap tip, haptics in app."
 )
 
 

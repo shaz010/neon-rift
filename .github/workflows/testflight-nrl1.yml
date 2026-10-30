@@ -64,9 +64,44 @@ jobs:
         run: |
           "${ASC_PYTHON}" tools/asc.py prepare
 
-      - name: Create the distribution certificate and App Store profile
+      # Install-only signing: one fixed NRL1 certificate (TB4K2QATUT) and profile from secrets.
+      # This workflow never creates or revokes certificates or profiles.
+      - name: Install the fixed NRL1 certificate and profile from secrets
+        env:
+          NRL_DIST_P12: ${{ secrets.NRL_DIST_P12 }}
+          NRL_DIST_P12_PASSWORD: ${{ secrets.NRL_DIST_P12_PASSWORD }}
+          NRL_PROFILE: ${{ secrets.NRL_PROFILE }}
         run: |
-          "${ASC_PYTHON}" tools/asc.py provision
+          set -euo pipefail
+          d="${RUNNER_TEMP}/signing"; mkdir -p "$d"; chmod 700 "$d"
+          printf '%s' "${NRL_DIST_P12}" | base64 -D > "$d/distribution.p12"
+          printf '%s' "${NRL_DIST_P12_PASSWORD}" > "$d/password.txt"
+          printf '%s' "${NRL_PROFILE}" | base64 -D > "$d/profile.mobileprovision"
+          chmod 600 "$d"/*
+          security cms -D -i "$d/profile.mobileprovision" > "$d/profile.plist"
+          uuid=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$d/profile.plist")
+          name=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$d/profile.plist")
+          cat > "$d/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>method</key><string>app-store-connect</string>
+          <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+          <key>signingStyle</key><string>manual</string>
+          <key>signingCertificate</key><string>Apple Distribution</string>
+          <key>provisioningProfiles</key><dict><key>com.shaz010.nrl1</key><string>${name}</string></dict>
+          <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          {
+            echo "SIGNING_P12_PATH=$d/distribution.p12"
+            echo "SIGNING_PASSWORD_PATH=$d/password.txt"
+            echo "SIGNING_PROFILE_PATH=$d/profile.mobileprovision"
+            echo "SIGNING_PROFILE_UUID=${uuid}"
+            echo "SIGNING_PROFILE_NAME=${name}"
+            echo "SIGNING_IDENTITY=Apple Distribution"
+            echo "EXPORT_OPTIONS_PLIST=$d/ExportOptions.plist"
+          } >> "${GITHUB_ENV}"
 
       - name: Install the signing assets
         run: |
@@ -145,7 +180,7 @@ jobs:
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
             echo "- Web build: nrls-9"
-            echo "- Changelog: Glyph spells (circle shield, zigzag lightning, spiral well, line dash), the spectrum life bar, iridescent prize gems, the gradual music build-up, haptics, and a check for steering sticks."
+            echo "- Changelog: nrls-2 results page, glyph spells, snare 50% quieter, ship-stuck tap tip, haptics in app."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Remove the API key
