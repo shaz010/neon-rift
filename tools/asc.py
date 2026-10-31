@@ -31,7 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "NR-spell-0: Rift Echo — race a ghost of your best run (toggle in Settings). Includes all nrls-11 fixes."
+    "NR-spell-1: sound now recovers on its own after notifications, calls or Siri. Includes Rift Echo."
 )
 
 

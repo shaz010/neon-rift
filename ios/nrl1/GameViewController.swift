@@ -60,17 +60,38 @@ final class GameViewController: UIViewController, WKScriptMessageHandler, WKNavi
         NotificationCenter.default.addObserver(
             self, selector: #selector(nudgeAudio),
             name: UIApplication.didBecomeActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(nudgeAudio),
+            name: AVAudioSession.routeChangeNotification, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(mediaReset),
+            name: AVAudioSession.mediaServicesWereResetNotification, object: nil)
     }
 
     @objc private func audioInterrupted(_ note: Notification) {
-        guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
-              AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
+        // Began or ended: always try to bring the web audio back.
         nudgeAudio()
     }
 
     @objc private func nudgeAudio() {
-        AudioSession.engage()
-        webView?.evaluateJavaScript("try{if(typeof rewake==='function')rewake();}catch(e){}", completionHandler: nil)
+        DispatchQueue.main.async { [weak self] in
+            self?.pokeJS("try{if(typeof rewake==='function')rewake(true);}catch(e){}")
+        }
+    }
+
+    @objc private func mediaReset() {
+        DispatchQueue.main.async { [weak self] in
+            self?.pokeJS("try{if(typeof audioRebuild==='function')audioRebuild();else if(typeof rewake==='function')rewake(true);}catch(e){}")
+        }
+    }
+
+    private func pokeJS(_ fn: String) {
+        for delay in [0.0, 0.3, 1.0, 2.5] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                AudioSession.engage()
+                self?.webView?.evaluateJavaScript(fn, completionHandler: nil)
+            }
+        }
     }
 
     private func loadGame() {
