@@ -1,3 +1,4 @@
+import AVFoundation
 import UIKit
 import WebKit
 
@@ -50,6 +51,23 @@ final class GameViewController: UIViewController, WKScriptMessageHandler, WKNavi
         view.addSubview(web)
         webView = web
         loadGame()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(audioInterrupted(_:)),
+            name: AVAudioSession.interruptionNotification, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(nudgeAudio),
+            name: UIApplication.didBecomeActiveNotification, object: nil)
+    }
+
+    @objc private func audioInterrupted(_ note: Notification) {
+        guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
+        nudgeAudio()
+    }
+
+    @objc private func nudgeAudio() {
+        AudioSession.engage()
+        webView?.evaluateJavaScript("try{if(typeof rewake==='function')rewake();}catch(e){}", completionHandler: nil)
     }
 
     private func loadGame() {

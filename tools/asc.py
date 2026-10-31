@@ -31,7 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrls-9: nrls-2 results page, glyph spells, snare 50% quieter, ship-stuck tap tip, haptics in app."
+    "nrls-10: fixes sound and results page dropping out on the second run in the app."
 )
 
 
