@@ -1,4 +1,4 @@
-const CACHE = 'nr-spell-0';
+const CACHE = 'nr-spell-1';
 const SCOPE = '/neon-rift/nr-spell-0/';
 
 self.addEventListener('install', () => {
