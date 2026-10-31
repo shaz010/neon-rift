@@ -1,3 +1,4 @@
+import AVFoundation
 import UIKit
 import WebKit
 
@@ -11,6 +12,7 @@ final class GameViewController: UIViewController, WKScriptMessageHandler, WKNavi
 
     override var prefersStatusBarHidden: Bool { true }
     override var prefersHomeIndicatorAutoHidden: Bool { true }
+    override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -50,6 +52,25 @@ final class GameViewController: UIViewController, WKScriptMessageHandler, WKNavi
         view.addSubview(web)
         webView = web
         loadGame()
+        setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
+        setNeedsUpdateOfHomeIndicatorAutoHidden()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(audioInterrupted(_:)),
+            name: AVAudioSession.interruptionNotification, object: nil)
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(nudgeAudio),
+            name: UIApplication.didBecomeActiveNotification, object: nil)
+    }
+
+    @objc private func audioInterrupted(_ note: Notification) {
+        guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
+        nudgeAudio()
+    }
+
+    @objc private func nudgeAudio() {
+        AudioSession.engage()
+        webView?.evaluateJavaScript("try{if(typeof rewake==='function')rewake();}catch(e){}", completionHandler: nil)
     }
 
     private func loadGame() {
@@ -57,6 +78,23 @@ final class GameViewController: UIViewController, WKScriptMessageHandler, WKNavi
               let page = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "web")
         else { return }
         webView.loadFileURL(page, allowingReadAccessTo: page.deletingLastPathComponent())
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        relaxGestures(in: webView.scrollView)
+    }
+
+    private func relaxGestures(in root: UIView) {
+        for gr in root.gestureRecognizers ?? [] {
+            gr.delaysTouchesBegan = false
+            gr.cancelsTouchesInView = false
+            if gr is UILongPressGestureRecognizer {
+                gr.isEnabled = false
+            } else if let tap = gr as? UITapGestureRecognizer, tap.numberOfTapsRequired == 2 {
+                tap.isEnabled = false
+            }
+        }
+        for sub in root.subviews { relaxGestures(in: sub) }
     }
 
     func webView(

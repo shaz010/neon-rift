@@ -31,11 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrl1-25. A finger held through a new section keeps steering. The top-left HUD is gone. A thin life bar sits under the notch. "
-    "The hull still turns ultraviolet on a streak or a prize, and deep red "
-    "when you are on your last life with no shield and something is close. "
-    "The flywheel, the knot, the controls, and the enemies stay as they were. "
-    "This is the lab game, separate from Neon Rift 2."
+    "nrls-11: full-length results count-up, fewer app freezes, whole-number best score, new Reset progress option in Settings."
 )
 
 

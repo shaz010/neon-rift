@@ -2,8 +2,8 @@ name: TestFlight nrl1
 
 # Packages the lab web game on this branch as its own iOS app and uploads it
 # to TestFlight. It does not build Neon Rift 2.
-# Push uploads are paused. nrl1-25 ships on the web only until Shahbaz approves
-# the next TestFlight build. Run this workflow by hand when that approval is given.
+# Manual only. Shahbaz approved the nrls-2 upload as the paid nrl1 app.
+# This does not build the frozen nrl1-25 keeper. Run it by hand for the next build.
 on:
   workflow_dispatch:
 
@@ -39,11 +39,11 @@ jobs:
           sudo xcode-select -s "${latest}"
           xcodebuild -version
 
-      - name: Confirm this is the nrl1-25 web game
+      - name: Confirm this is the nrls-11 web game
         run: |
           set -euo pipefail
-          grep -q 'nrl1-25' index.html
-          grep -q "CACHE = 'nrl1-25'" sw.js
+          grep -q 'nrls-11' index.html
+          grep -q "CACHE = 'nrls-11'" sw.js
           test -f ios/nrl1.xcodeproj/project.pbxproj
 
       - name: Install the App Store Connect client
@@ -64,9 +64,44 @@ jobs:
         run: |
           "${ASC_PYTHON}" tools/asc.py prepare
 
-      - name: Create the distribution certificate and App Store profile
+      # Install-only signing: one fixed NRL1 certificate (TB4K2QATUT) and profile from secrets.
+      # This workflow never creates or revokes certificates or profiles.
+      - name: Install the fixed NRL1 certificate and profile from secrets
+        env:
+          NRL_DIST_P12: ${{ secrets.NRL_DIST_P12 }}
+          NRL_DIST_P12_PASSWORD: ${{ secrets.NRL_DIST_P12_PASSWORD }}
+          NRL_PROFILE: ${{ secrets.NRL_PROFILE }}
         run: |
-          "${ASC_PYTHON}" tools/asc.py provision
+          set -euo pipefail
+          d="${RUNNER_TEMP}/signing"; mkdir -p "$d"; chmod 700 "$d"
+          printf '%s' "${NRL_DIST_P12}" | base64 -D > "$d/distribution.p12"
+          printf '%s' "${NRL_DIST_P12_PASSWORD}" > "$d/password.txt"
+          printf '%s' "${NRL_PROFILE}" | base64 -D > "$d/profile.mobileprovision"
+          chmod 600 "$d"/*
+          security cms -D -i "$d/profile.mobileprovision" > "$d/profile.plist"
+          uuid=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$d/profile.plist")
+          name=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$d/profile.plist")
+          cat > "$d/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>method</key><string>app-store-connect</string>
+          <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+          <key>signingStyle</key><string>manual</string>
+          <key>signingCertificate</key><string>Apple Distribution</string>
+          <key>provisioningProfiles</key><dict><key>com.shaz010.nrl1</key><string>${name}</string></dict>
+          <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          {
+            echo "SIGNING_P12_PATH=$d/distribution.p12"
+            echo "SIGNING_PASSWORD_PATH=$d/password.txt"
+            echo "SIGNING_PROFILE_PATH=$d/profile.mobileprovision"
+            echo "SIGNING_PROFILE_UUID=${uuid}"
+            echo "SIGNING_PROFILE_NAME=${name}"
+            echo "SIGNING_IDENTITY=Apple Distribution"
+            echo "EXPORT_OPTIONS_PLIST=$d/ExportOptions.plist"
+          } >> "${GITHUB_ENV}"
 
       - name: Install the signing assets
         run: |
@@ -144,8 +179,8 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.nrl1\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Web build: nrl1-25"
-            echo "- Changelog: A finger held through a new section keeps steering. The top-left HUD is gone. A thin life bar sits under the notch."
+            echo "- Web build: nrls-11"
+            echo "- Changelog: nrls-2 results page, glyph spells, snare 50% quieter, ship-stuck tap tip, haptics in app."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Remove the API key
