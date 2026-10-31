@@ -31,7 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrls-11: full-length results count-up, fewer app freezes, whole-number best score, new Reset progress option in Settings."
+    "NR-spell-0: Rift Echo — race a ghost of your best run (toggle in Settings). Includes all nrls-11 fixes."
 )
 
 

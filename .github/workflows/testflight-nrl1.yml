@@ -39,11 +39,11 @@ jobs:
           sudo xcode-select -s "${latest}"
           xcodebuild -version
 
-      - name: Confirm this is the nrls-11 web game
+      - name: Confirm this is the NR-spell-0 web game
         run: |
           set -euo pipefail
-          grep -q 'nrls-11' index.html
-          grep -q "CACHE = 'nrls-11'" sw.js
+          grep -q 'NR-spell-0' index.html
+          grep -q "CACHE = 'nr-spell-0'" sw.js
           test -f ios/nrl1.xcodeproj/project.pbxproj
 
       - name: Install the App Store Connect client
@@ -179,7 +179,7 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.nrl1\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Web build: nrls-11"
+            echo "- Web build: NR-spell-0"
             echo "- Changelog: nrls-2 results page, glyph spells, snare 50% quieter, ship-stuck tap tip, haptics in app."
           } >> "${GITHUB_STEP_SUMMARY}"
 
