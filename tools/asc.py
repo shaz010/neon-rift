@@ -31,7 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "nrls-10: fixes sound and results page dropping out on the second run in the app."
+    "nrls-11: full-length results count-up, fewer app freezes, whole-number best score, new Reset progress option in Settings."
 )
 
 
