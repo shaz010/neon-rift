@@ -71,7 +71,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
 #mapcv{width:100%;height:100%;display:block;touch-action:manipulation;background:transparent}
 </style></head><body><canvas id="c"></canvas>
 <button id="pauseBtn" aria-label="pause">II</button>
-<div id="ver" aria-hidden="true">nr-sfx-1</div>
+<div id="ver" aria-hidden="true">nr-sfx-2</div>
 <div id="dbg" hidden></div>
 
 <div class="ui on" id="menu"><div class="panel clear">
@@ -79,7 +79,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
   <div class="sub" style="letter-spacing:3px;white-space:nowrap">YEAR 2199 · THE RIFT</div>
   <h1>NEON RIFT · SPELLS</h1>
   <div class="sub spell" style="margin-top:10px;letter-spacing:2px">Circle. Bolt. Well. Dash.</div>
-  <div style="margin:8px 0 2px"><span id="verPill" style="display:inline-block;padding:3px 10px;border-radius:999px;border:1px solid #2ee6ff;color:#2ee6ff;background:rgba(46,230,255,.12);font:800 12.5px -apple-system,sans-serif;letter-spacing:1.5px">nr-sfx-1</span></div>
+  <div style="margin:8px 0 2px"><span id="verPill" style="display:inline-block;padding:3px 10px;border-radius:999px;border:1px solid #2ee6ff;color:#2ee6ff;background:rgba(46,230,255,.12);font:800 12.5px -apple-system,sans-serif;letter-spacing:1.5px">nr-sfx-2</span></div>
   <div class="cr" id="mCr" style="margin-bottom:14px"></div>
   <div style="max-width:340px;margin:auto">
   <button class="btn pri" id="bMap">CONSTELLATION</button>
@@ -127,6 +127,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
   <label class="set">HAPTICS <input type="checkbox" id="sHap"></label>
   <label class="set">REDUCED MOTION <input type="checkbox" id="sRm"></label>
   <label class="set">RIFT ECHO <input type="checkbox" id="sEcho"></label>
+  <div class="set"><span>SOUND FX</span><button type="button" id="sFxMode" class="buy ok">RIFT</button></div>
   <div class="set"><span>CONTROLS</span><button type="button" id="sCtl" class="buy"></button></div>
   <div class="hint" id="ctlHint"></div>
   <div class="set"><span>RESET PROGRESS</span><button type="button" id="sReset" class="buy">RESET</button></div>
@@ -2868,7 +2869,7 @@ function render(rdt){
   cx.save();
   const sx=RM()?0:R(-1,1)*shake,sy=RM()?0:R(-1,1)*shake;
   cx.translate(W/2+sx+camX,H/2+sy+camY);cx.scale(camZ,camZ);cx.translate(-W/2,-H/2);
-  cx.globalCompositeOperation='lighter';if(typeof drawEcho==='function')drawEcho();
+  cx.globalCompositeOperation='lighter';
   if(evt&&evt.k==='web'){cx.strokeStyle=evt.snapped?'#ff9e8a':'#8ec5ff';cx.lineWidth=2;cx.globalAlpha=evt.snapped?.45:.8;const ns=evt.nodes.filter(n=>!n.dead);
     for(let i=0;i<ns.length;i++)for(let j=i+1;j<ns.length;j++){if(Math.abs(ns[i].i-ns[j].i)===1||Math.abs(ns[i].i-ns[j].i)===2){cx.beginPath();cx.moveTo(ns[i].x,ns[i].y);cx.lineTo(ns[j].x,ns[j].y);cx.stroke();}}cx.globalAlpha=1;}
   for(const h of haz){const col=COLORS[h.k]||'#c9a0ff';
@@ -2895,6 +2896,7 @@ function render(rdt){
   for(const k of knots){if(!k.pts.length)continue;cx.beginPath();cx.moveTo(k.pts[0].x,k.pts[0].y);for(let i=1;i<k.pts.length;i++)cx.lineTo(k.pts[i].x,k.pts[i].y);cx.closePath();const a=clamp(k.life*2.2,0,1);if(!RM()){cx.globalAlpha=a*.55;cx.fillStyle=sheen(k.cx,94,72);cx.fill();}cx.globalAlpha=a;cx.strokeStyle='#fff';cx.lineWidth=16;cx.stroke();cx.strokeStyle=sheen(k.cy,96,78);cx.lineWidth=7;cx.stroke();cx.strokeStyle='#fff';cx.lineWidth=3;cx.stroke();}cx.globalAlpha=1;
   if(thread&&!thread.knotted&&thread.loop&&thread.loop.length>2){cx.beginPath();cx.moveTo(thread.loop[0].x,thread.loop[0].y);for(let i=1;i<thread.loop.length;i++)cx.lineTo(thread.loop[i].x,thread.loop[i].y);cx.lineTo(thread.x,thread.y);cx.globalAlpha=.42;cx.strokeStyle='#fff';cx.lineWidth=3.5;cx.stroke();cx.globalAlpha=.24;cx.strokeStyle=sheen((thread.x+thread.y)|0,92,74);cx.lineWidth=8;cx.stroke();cx.globalAlpha=1;}
   if(thread&&thread.moved>10){const w=P&&P.surge>0?8:5;cx.strokeStyle='rgba(7,16,24,.85)';cx.lineWidth=w+4;cx.beginPath();cx.moveTo(P.x,P.y);cx.lineTo(thread.x,thread.y);cx.stroke();cx.strokeStyle='#fff';cx.lineWidth=2.3;cx.stroke();cx.strokeStyle=P&&P.surge>0?'#ff4fa3':paintCol();cx.lineWidth=w;cx.globalAlpha=.65;cx.stroke();cx.strokeStyle=sheen(160,96,74);cx.lineWidth=2.2;cx.globalAlpha=1;cx.stroke();cx.fillStyle='#fff';cx.beginPath();cx.arc(thread.x,thread.y,5,0,TAU);cx.fill();}
+  if(typeof drawEcho==='function'){cx.save();drawEcho();cx.restore();}
   if(G.state==='play'){
     const mood=heroCol();
     const trailCol=mood.mode==='calm'?null:mood.fill;
@@ -3972,4 +3974,58 @@ function smpPlay(k,x){
 for(const k in SMP.cues)smpFetch(SMP.cues[k].f);
 addEventListener('pointerdown',()=>{if(A.ctx)smpSync();},{passive:true});
 window.SMP=SMP;window.smpPlay=smpPlay;
+/* ---------- nr-sfx-2: visible Rift Echo + SOUND FX setting ---------- */
+let echoBannerT=0,echoHintT=0,echoSavedNew=false;
+drawEcho=function(){
+  if(!ECHO.on||!echoGhost||G.state!=='play'&&G.state!=='dead')return;
+  const rm=RM(),t=elapsed,g=echoAt(t);
+  if(g){echoTrail.push({x:g.x,y:g.y});if(echoTrail.length>22)echoTrail.shift();}else if(echoTrail.length)echoTrail.shift();
+  while(echoCastI<echoGhost.c.length&&echoGhost.c[echoCastI][1]<=t){const c=echoGhost.c[echoCastI++];echoFx.push({k:c[0],x:c[2]/1000*W,y:c[3]/1000*H,life:1});}
+  cx.save();cx.globalCompositeOperation='lighter';
+  if(echoTrail.length>1){cx.lineCap='round';cx.lineJoin='round';
+    for(let i=1;i<echoTrail.length;i++){const a=i/echoTrail.length;cx.strokeStyle='rgba(80,235,255,'+(a*.45).toFixed(3)+')';cx.lineWidth=2.5+a*6;cx.beginPath();cx.moveTo(echoTrail[i-1].x,echoTrail[i-1].y);cx.lineTo(echoTrail[i].x,echoTrail[i].y);cx.stroke();}}
+  if(g){const pulse=rm?.65:.6+.06*Math.sin(G.t*3),s=1.3;cx.translate(g.x,g.y);cx.scale(s,s);
+    cx.shadowColor='#2ee6ff';cx.shadowBlur=rm?8:12;cx.globalAlpha=pulse;cx.strokeStyle='#5ff0ff';cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(0,-15);cx.lineTo(11,11);cx.lineTo(0,5);cx.lineTo(-11,11);cx.closePath();cx.stroke();
+    cx.fillStyle='rgba(46,230,255,.18)';cx.fill();cx.shadowBlur=0;cx.setTransform(cx.getTransform().scale(1/s,1/s));
+    cx.globalAlpha=.8;cx.fillStyle='#bff8ff';cx.font='800 11.5px sans-serif';cx.textAlign='center';cx.textBaseline='top';cx.fillText('ECHO',0,22);
+    const m=cx.getTransform(),dpr=m.a?Math.hypot(m.a,m.b):1;cx.restore();
+    /* off-screen edge arrow, in screen space */
+    const cw=cv.width,ch=cv.height,px=m.e,py=m.f,pad=18*(cw/W);
+    if(px<0||py<0||px>cw||py>ch){const ax=clamp(px,pad,cw-pad),ay=clamp(py,pad,ch-pad),ang=Math.atan2(py-ay,px-ax);
+      cx.save();cx.setTransform(1,0,0,1,0,0);cx.translate(ax,ay);cx.rotate(ang);const k=cw/W;cx.scale(k,k);
+      cx.globalAlpha=.8;cx.fillStyle='#5ff0ff';cx.beginPath();cx.moveTo(10,0);cx.lineTo(-6,-7);cx.lineTo(-6,7);cx.closePath();cx.fill();cx.restore();}
+  }else cx.restore();
+  if(echoFx.length){cx.save();cx.globalCompositeOperation='lighter';cx.textAlign='center';cx.textBaseline='middle';
+    for(const f of echoFx){f.life-=1/60;const a=Math.max(0,f.life)*.45;cx.globalAlpha=a;cx.strokeStyle='#5ff0ff';cx.lineWidth=1.5;cx.beginPath();cx.arc(f.x,f.y,14+(rm?10:(1-f.life)*26),0,TAU);cx.stroke();cx.fillStyle='#8ef6ff';cx.font='700 18px sans-serif';cx.fillText(ECHO_GLYPH[f.k]||'·',f.x,f.y);}
+    echoFx=echoFx.filter(f=>f.life>0);cx.restore();}
+};
+drawEchoHUD=function(){
+  if(!ECHO.on||G.state!=='play')return;
+  const rdt=1/60;cx.save();cx.textAlign='center';cx.textBaseline='middle';
+  if(echoBannerT>0){echoBannerT-=rdt;const a=RM()?1:clamp(Math.min(echoBannerT*3,1),0,1);cx.globalAlpha=a*.95;cx.fillStyle='#5ff0ff';cx.shadowColor='#2ee6ff';cx.shadowBlur=RM()?0:10;cx.font='900 22px sans-serif';cx.fillText('YOUR ECHO JOINS',W/2,H*.28);cx.shadowBlur=0;}
+  if(echoHintT>0){echoHintT-=rdt;cx.globalAlpha=clamp(Math.min(echoHintT*2,1),0,1)*.85;cx.fillStyle='#bff8ff';cx.font='700 13px sans-serif';cx.fillText('Finish this run to create your Echo',W/2,H*.28+30);}
+  cx.globalAlpha=1;
+  if(echoGhost){const es=echoScoreAt(elapsed);if(es!=null){const d=Math.floor(score)-es,ah=d>=0;
+    const txt='vs ECHO '+(ah?'+':'−')+Math.abs(d).toLocaleString();cx.font='800 13px sans-serif';const w=cx.measureText(txt).width+20,h=24,x=W-16-w,y=(safeTop||0)+106;
+    cx.globalAlpha=.9;cx.fillStyle=ah?'rgba(30,140,70,.55)':'rgba(170,70,20,.55)';cx.strokeStyle=ah?'#4dff8f':'#ff8a3d';cx.lineWidth=1.5;
+    cx.beginPath();if(cx.roundRect)cx.roundRect(x,y,w,h,12);else cx.rect(x,y,w,h);cx.fill();cx.stroke();
+    cx.fillStyle=ah?'#c8ffd9':'#ffd9bf';cx.textAlign='center';cx.fillText(txt,x+w/2,y+h/2+1);}}
+  cx.restore();
+};
+{ const _eb=echoBegin;echoBegin=function(){_eb.apply(this,arguments);echoBannerT=0;echoHintT=0;if(!ECHO.on)return;if(echoGhost)echoBannerT=1.5;else echoHintT=2.6;};
+  const _ef=echoFinish;echoFinish=function(){const before=echoRec&&ECHO.runs[echoRec.m];const o=_ef.apply(this,arguments);echoSavedNew=!!(o&&echoRec&&ECHO.runs[echoRec.m]!==before);if(o)o.saved=echoSavedNew;return o;};
+  const _rs3=showResults;showResults=function(){_rs3.apply(this,arguments);const el=$('rEcho'),b=$('rRetry');if(b)b.classList.remove('echoRace');
+    if(!el||!ECHO.on||!echoSavedNew)return;
+    const line=document.createElement('div');line.textContent='Echo saved — Replay to race it';line.style.cssText='color:#5ff0ff;margin-top:4px';el.appendChild(line);
+    if(b&&/ONE MORE RUN|RETRY SECTOR/.test(b.textContent)){b.textContent='↻ REPLAY — RACE YOUR ECHO';b.classList.add('echoRace');}};
+  const st=document.createElement('style');st.textContent='#rRetry.echoRace{box-shadow:0 0 0 2px #2ee6ff,0 0 16px rgba(46,230,255,.55)}';document.head.appendChild(st);
+}
+/* SOUND FX: RIFT (Logic samples, default) / CLASSIC (synth only) */
+SMP.mode=(()=>{try{return localStorage.getItem('nr-sfx-mode')==='classic'?'classic':'rift';}catch(e){return 'rift';}})();
+{ const _sp=smpPlay;smpPlay=function(k,x){if(SMP.mode==='classic')return false;return _sp(k,x);};window.smpPlay=smpPlay;
+  const sf=$('sFxMode');const paint=()=>{if(sf)sf.textContent=SMP.mode==='classic'?'CLASSIC':'RIFT';};paint();
+  if(sf)sf.onclick=()=>{SMP.mode=SMP.mode==='classic'?'rift':'classic';try{localStorage.setItem('nr-sfx-mode',SMP.mode);}catch(e){}paint();wake();
+    if(SMP.mode==='rift'){SMP.last.cast=0;if(!smpPlay('cast'))sfx.bubble();}else sfx.bubble();};
+}
 </script></body></html>
