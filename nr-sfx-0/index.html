@@ -71,7 +71,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
 #mapcv{width:100%;height:100%;display:block;touch-action:manipulation;background:transparent}
 </style></head><body><canvas id="c"></canvas>
 <button id="pauseBtn" aria-label="pause">II</button>
-<div id="ver" aria-hidden="true">nr-sfx-0</div>
+<div id="ver" aria-hidden="true">nr-sfx-1</div>
 <div id="dbg" hidden></div>
 
 <div class="ui on" id="menu"><div class="panel clear">
@@ -79,7 +79,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
   <div class="sub" style="letter-spacing:3px;white-space:nowrap">YEAR 2199 · THE RIFT</div>
   <h1>NEON RIFT · SPELLS</h1>
   <div class="sub spell" style="margin-top:10px;letter-spacing:2px">Circle. Bolt. Well. Dash.</div>
-  <div style="margin:8px 0 2px"><span id="verPill" style="display:inline-block;padding:3px 10px;border-radius:999px;border:1px solid #2ee6ff;color:#2ee6ff;background:rgba(46,230,255,.12);font:800 12.5px -apple-system,sans-serif;letter-spacing:1.5px">nr-sfx-0</span></div>
+  <div style="margin:8px 0 2px"><span id="verPill" style="display:inline-block;padding:3px 10px;border-radius:999px;border:1px solid #2ee6ff;color:#2ee6ff;background:rgba(46,230,255,.12);font:800 12.5px -apple-system,sans-serif;letter-spacing:1.5px">nr-sfx-1</span></div>
   <div class="cr" id="mCr" style="margin-bottom:14px"></div>
   <div style="max-width:340px;margin:auto">
   <button class="btn pri" id="bMap">CONSTELLATION</button>
@@ -3916,10 +3916,10 @@ const sEcho=$('sEcho');if(sEcho){sEcho.checked=!!ECHO.on;sEcho.onchange=()=>{ECH
    audioRebuild (new A.ctx) re-decodes from the kept bytes. Any cue whose file
    fails to load or decode falls back to the original synth sound. */
 const SMP={v:'nr-sfx-0',cues:{
-  echo:{f:'echo',gap:4000,vol:.7},start:{f:'start',gap:800,vol:.75},
-  cast:{f:'cast',gap:140,vol:.6},castbig:{f:'castbig',gap:400,vol:.7},
-  warn:{f:'warn',gap:1500,vol:.8},bosshit:{f:'bosshit',gap:110,vol:.55},
-  bosskill:{f:'bosskill',gap:900,vol:.9},best:{f:'best',gap:4000,vol:.8}},
+  echo:{f:'echo',gap:4000,vol:.44},start:{f:'start',gap:800,vol:.47},
+  cast:{f:'cast',gap:140,vol:.38},castbig:{f:'castbig',gap:400,vol:.44},
+  warn:{f:'warn',gap:1500,vol:.42},bosshit:{f:'bosshit',gap:110,vol:.35},
+  bosskill:{f:'bosskill',gap:900,vol:.57},best:{f:'best',gap:4000,vol:.42}},
   raw:{},buf:{},ctx:null,last:{},log:[],fail:{},fmt:null};
 SMP.fmt=(()=>{try{const a=document.createElement('audio');const m=a.canPlayType('audio/mp4; codecs="mp4a.40.2"'),o=a.canPlayType('audio/ogg; codecs="vorbis"');return m&&(m==='probably'||!o)?['m4a','ogg']:['ogg','m4a'];}catch(e){return ['m4a','ogg'];}})();
 function smpFetch(f){
