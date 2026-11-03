@@ -9,7 +9,7 @@ name: TestFlight
 on:
   push:
     branches:
-      - neon-rift-2-3d
+      - nr2-b17
   workflow_dispatch:
     inputs:
       record:
@@ -18,7 +18,7 @@ on:
         default: false
 
 concurrency:
-  group: testflight-neon-rift-2-3d
+  group: testflight-nr2-b17
   cancel-in-progress: true
 
 permissions:
@@ -102,9 +102,19 @@ jobs:
         run: |
           "${ASC_PYTHON}" tools/asc.py prepare
 
-      - name: Create the distribution certificate and App Store profile
+      - name: Use the existing distribution certificate (no cert create or revoke)
+        env:
+          NRL_DIST_P12: ${{ secrets.NRL_DIST_P12 }}
+          NRL_DIST_P12_PASSWORD: ${{ secrets.NRL_DIST_P12_PASSWORD }}
         run: |
-          "${ASC_PYTHON}" tools/asc.py provision
+          set -euo pipefail
+          d="${RUNNER_TEMP}/signing"; mkdir -p "$d"; chmod 700 "$d"
+          printf '%s' "${NRL_DIST_P12}" | base64 -D > "$d/distribution.p12"
+          printf '%s' "${NRL_DIST_P12_PASSWORD}" > "$d/password.txt"
+          chmod 600 "$d"/*
+          echo "SIGNING_P12_PATH=$d/distribution.p12" >> "${GITHUB_ENV}"
+          echo "SIGNING_PASSWORD_PATH=$d/password.txt" >> "${GITHUB_ENV}"
+          "${ASC_PYTHON}" tools/asc.py fixed-profile
 
       - name: Install the signing assets
         run: |
@@ -175,6 +185,11 @@ jobs:
         if: success()
         run: |
           "${ASC_PYTHON}" tools/asc.py note
+
+      - name: Add to the internal Family group only
+        if: success()
+        run: |
+          "${ASC_PYTHON}" tools/asc.py add-family
 
       - name: Write the build summary
         if: success()

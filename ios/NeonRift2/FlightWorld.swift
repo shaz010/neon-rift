@@ -214,7 +214,33 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     private var markedWarden = false
     private var firstKill: Float = -1
     private var boostLeft: Float = 0
-    private var spreadLevel = 0
+    private var spreadLevel = 0  // b17: SPREAD is a damage + fire-rate boost, never a fan.
+    private var lockedEnemy: Enemy?
+    private lazy var whiteCore: SCNMaterial = {
+        let m = SCNMaterial()
+        m.lightingModel = .constant
+        m.diffuse.contents = UIColor.white
+        m.emission.contents = UIColor.white
+        m.blendMode = .add
+        m.writesToDepthBuffer = false
+        return m
+    }()
+    private lazy var hotDebris: SCNMaterial = {
+        let m = SCNMaterial()
+        m.lightingModel = .constant
+        m.diffuse.contents = UIColor(red: 1, green: 0.55, blue: 0.18, alpha: 1)
+        m.emission.contents = UIColor(red: 1, green: 0.6, blue: 0.2, alpha: 1)
+        return m
+    }()
+    private lazy var shockMat: SCNMaterial = {
+        let m = SCNMaterial()
+        m.lightingModel = .constant
+        m.diffuse.contents = UIColor(red: 0.75, green: 0.92, blue: 1, alpha: 1)
+        m.emission.contents = UIColor(red: 0.75, green: 0.92, blue: 1, alpha: 1)
+        m.blendMode = .add
+        m.writesToDepthBuffer = false
+        return m
+    }()
     private var missileLevel = 0
     private var missileClock: Float = 0
     private var trick: Trick?
@@ -431,6 +457,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     }
 
     func requestFace() {
+        return  // b17: FACE removed; targeting is auto-lock only.
         guard phase == .combat, !died else { return }
         cycled = nearestHostile()
         faceLeft = 0.85
@@ -515,6 +542,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     }
 
     func cycleTarget() {
+        return  // b17: CYCLE removed; targeting is auto-lock only.
         let list = enemies.filter { $0.alive }
         guard !list.isEmpty else { return }
         if let current = cycled, let index = list.firstIndex(where: { $0 === current }) {
@@ -688,7 +716,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let wantFire = fire && weapon > 4
         if wantFire && fireClock <= 0 {
             weapon = max(0, weapon - 5)
-            fireClock = showcase ? 0.16 : 0.13
+            fireClock = (showcase ? 0.16 : 0.15) * (spreadLevel >= 2 ? 0.7 : (spreadLevel == 1 ? 0.82 : 1))
             shootPlayer()
         }
     }
@@ -834,7 +862,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 for enemy in enemies where enemy.alive && !enemy.disabled {
                     if segmentHits(bolt.position, next, enemy.position, radius: 3.6) {
                         bolt.alive = false
-                        let bite: Float = bolt.missile ? (showcase ? 48 : 40) : (showcase ? 30 : 18)
+                        let bite: Float = bolt.missile ? (showcase ? 48 : 40) : (showcase ? 52 : 34) * (1 + 0.3 * Float(spreadLevel))
                         enemy.hull -= bite
                         if enemy.hull <= 0 {
                             if enemy.role == .bandit { disable(enemy) } else { destroy(enemy) }
@@ -871,7 +899,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             return (boom.0, delay, boom.2)
         }
         for boom in ripe {
-            explode(at: boom.0, power: boom.1, chain: false)
+            explode(at: boom.0, power: boom.1, chain: false, sound: false)
         }
         for effect in effects {
             effect.age += dt
@@ -894,9 +922,9 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             popups[i].age += dt
             popups[i].position.y += dt * 3
         }
-        popups.removeAll { $0.age > 0.95 }
+        popups.removeAll { $0.age > 1.4 }
         flash = max(0, flash - dt * 2.4)
-        shake = max(0, shake - dt * 1.6)
+        shake = max(0, shake - dt * 3.5)
     }
 
     private func stepDebris() {
@@ -916,7 +944,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let wide = viewportAspect > 1.05
         let base: CGFloat = wide ? 46 : 56
         let boostGain: CGFloat = wide ? 6 : 8
-        return base + CGFloat(boost) * boostGain + CGFloat(shake) * 2
+        return base + CGFloat(boost) * boostGain * 0.35  // b17: no shake FOV pump, subtle boost.
     }
 
     /// Fits the canopy and the instrument panel to the current field of view.
@@ -981,7 +1009,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let chaseLook = position + fwd * 24 + simd_float3(0, 0.4, 0)
         var desired = chasePos
         var look = chaseLook
-        var rollCam = roll * 0.38
+        var rollCam: Float = 0  // b17: chase camera never rolls with the ship.
 
         if cockpitOn && phase == .combat {
             let eye = position + simd_float3(0, 0.55, 0) + fwd * 0.8
@@ -1004,23 +1032,16 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             look = mix3(chaseLook, wideLook, u)
             rollCam *= (1 - u)
         } else if trick != nil {
+            // b17: steady straight-back view through loops and rolls, no swing.
             let back = simd_float3(sin(trickCamYaw), 0, -cos(trickCamYaw))
-            let right = simd_float3(cos(trickCamYaw), 0, sin(trickCamYaw))
-            let duration: Float = trick == .loop ? 1.25 : 0.72
-            let u = min(1, trickAge / duration)
-            desired = position - back * 20 + simd_float3(0, 5.5, 0)
-            if trick == .roll {
-                desired += right * sin(u * .pi) * 12 * trickDir
-                rollCam = sin(u * .pi) * trickDir * 0.45
-            } else {
-                desired += right * sin(u * 2 * .pi) * 5 + simd_float3(0, sin(u * .pi) * 7, 0)
-                rollCam = sin(u * 2 * .pi) * 0.2
-            }
-            look = position + simd_float3(0, 0.8, 0)
+            desired = position - back * 15.5 + simd_float3(0, 3.7, 0)
+            look = position + back * 24 + simd_float3(0, 0.4, 0)
         }
 
-        let kPos = 1 - exp(-4.2 * raw)
-        let kLook = 1 - exp(-6.5 * raw)
+        // b17: rock-steady chase. Fixed offset, near-instant critically damped follow.
+        let chaseLocked = !(cockpitOn && phase == .combat) && phase != .cinema && phase != .warden
+        let kPos = chaseLocked ? 1 - exp(-28 * raw) : 1 - exp(-4.2 * raw)
+        let kLook = chaseLocked ? 1 - exp(-32 * raw) : 1 - exp(-6.5 * raw)
         if !camReady {
             camPos = desired
             camLook = look
@@ -1030,7 +1051,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             camLook = mix3(camLook, look, kLook)
         }
         let t = missionTime
-        let jitter = simd_float3(sin(t * 41), cos(t * 37), sin(t * 23) * 0.3) * shake * 0.45
+        let jitter = simd_float3(sin(t * 41), cos(t * 37), 0) * shake * 0.18
         cameraNode.simdPosition = camPos + jitter
         let camFwd = safeNorm(camLook - camPos)
         cameraNode.simdOrientation = lookOrientation(forward: camFwd, up: simd_float3(0, 1, 0), roll: rollCam)
@@ -1077,27 +1098,17 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         }
     }
 
+    /// b17: one strong bolt per shot from the nose, slight homing toward the lock.
     private func shootPlayer() {
         let hard = aimEnemy()
-        var dirs = [forward()]
-        if spreadLevel > 0 {
-            let yawL = yaw - 0.08
-            let yawR = yaw + 0.08
-            dirs.append(simd_normalize(simd_float3(sin(yawL) * cos(pitch), sin(pitch), -cos(yawL) * cos(pitch))))
-            dirs.append(simd_normalize(simd_float3(sin(yawR) * cos(pitch), sin(pitch), -cos(yawR) * cos(pitch))))
+        let origin = worldPoint(simd_float3(0, 0, -1.6)) + forward() * 2.0
+        var dir = forward()
+        if let hard {
+            let to = safeNorm(hard.position - origin)
+            let blend: Float = 0.55
+            dir = safeNorm(dir * (1 - blend) + to * blend)
         }
-        for dir0 in dirs {
-            for local in [ShipPoints.gunL, ShipPoints.gunR] {
-                let origin = worldPoint(local) + forward() * 1.2
-                var dir = dir0
-                if let hard {
-                    let to = safeNorm(hard.position - origin)
-                    let blend: Float = 0.68
-                    dir = safeNorm(dir * (1 - blend) + to * blend)
-                }
-                spawnBolt(origin: origin, direction: dir, speed: 250, life: 1.15, player: true, home: hard, mat: art.boltPlayer, missile: false)
-            }
-        }
+        spawnBolt(origin: origin, direction: dir, speed: 280, life: 1.15, player: true, home: hard, mat: art.boltPlayer, missile: false)
         if missileLevel > 0 && missileClock <= 0, let hard {
             missileClock = 1.35
             let origin = worldPoint(simd_float3(0, -0.2, -1)) + forward() * 2
@@ -1115,8 +1126,9 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     }
 
     private func spawnBolt(origin: simd_float3, direction: simd_float3, speed: Float, life: Float, player: Bool, home: Enemy?, mat: SCNMaterial, missile: Bool) {
-        let length: CGFloat = missile ? 6.4 : (player ? 4.8 : 3.2)
-        let box = SCNBox(width: missile ? 0.28 : 0.14, height: missile ? 0.28 : 0.14, length: length, chamferRadius: 0)
+        let length: CGFloat = missile ? 6.4 : (player ? 6.0 : 3.2)
+        let thick: CGFloat = missile ? 0.28 : (player ? 0.3 : 0.14)
+        let box = SCNBox(width: thick, height: thick, length: length, chamferRadius: 0)
         box.materials = [mat]
         let node = SCNNode(geometry: box)
         node.simdPosition = origin
@@ -1179,11 +1191,11 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         bestStreak = max(bestStreak, streak)
         streakLeft = 4.5
         if streak >= 2 { say("\(streak)x STREAK") }
+        killBurst(at: enemy.position, enemy: enemy)
         explode(at: enemy.position, power: 1.15, chain: true)
         let dist = simd_distance(enemy.position, position)
         if dist < 120 {
-            slowmo = max(slowmo, 0.42)
-            shake = min(1.6, shake + 1.05)
+            shake = min(0.25, shake + 0.2)
         }
         dropPrize(at: enemy.position + simd_float3(-5, 2, 3))
     }
@@ -1201,7 +1213,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         if left > 0 { hull -= left }
         haptics.hit()
         flash = max(flash, 0.35)
-        shake = min(1.2, shake + 0.4)
+        shake = min(0.25, shake + 0.15)
         if hull <= 0 {
             hull = 0
             died = true
@@ -1211,14 +1223,50 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         }
     }
 
-    private func explode(at point: simd_float3, power: Float, chain: Bool) {
-        audio.explosion()
+    /// b17: the satisfying part of a kill. White flash core, big fireball, glowing
+    /// hull chunks, a shockwave ring, a punchy haptic and a clear score popup.
+    private func killBurst(at point: simd_float3, enemy: Enemy) {
+        haptics.kill()
+        flash = min(1, flash + 0.6)
+        let core = SCNSphere(radius: 1)
+        core.segmentCount = 16
+        core.materials = [whiteCore]
+        let coreNode = SCNNode(geometry: core)
+        coreNode.simdPosition = point
+        scene.rootNode.addChildNode(coreNode)
+        effects.append(Effect(node: coreNode, life: 0.22, start: 1.5, end: 5.5, spark: false, velocity: .zero))
+        billboard(art.fire, at: point, life: 0.9, start: 1.6, end: 9.5)
+        billboard(art.fire, at: point, life: 0.5, start: 1.0, end: 6.5)
+        let wave = SCNTorus(ringRadius: 1.4, pipeRadius: 0.12)
+        wave.ringSegmentCount = 40
+        wave.pipeSegmentCount = 8
+        wave.materials = [shockMat]
+        let waveNode = SCNNode(geometry: wave)
+        waveNode.simdPosition = point
+        waveNode.simdOrientation = cameraNode.simdOrientation * simd_quatf(angle: .pi / 2, axis: simd_float3(1, 0, 0))
+        scene.rootNode.addChildNode(waveNode)
+        effects.append(Effect(node: waveNode, life: 0.6, start: 1, end: 16, spark: false, velocity: .zero))
+        for _ in 0..<10 {
+            let s = CGFloat(Float.random(in: 0.5...1.3))
+            let chunk = SCNBox(width: s, height: s * 0.5, length: s * 1.3, chamferRadius: 0.03)
+            chunk.materials = [hotDebris]
+            let node = SCNNode(geometry: chunk)
+            node.simdPosition = point
+            node.simdOrientation = simd_quatf(angle: Float.random(in: 0...6.28), axis: safeNorm(simd_float3(Float.random(in: -1...1), Float.random(in: -1...1), 0.3)))
+            scene.rootNode.addChildNode(node)
+            let dir = safeNorm(simd_float3(Float.random(in: -1...1), Float.random(in: -0.6...1), Float.random(in: -1...1)))
+            effects.append(Effect(node: node, life: 1.1, start: 1, end: 0.35, spark: true, velocity: dir * Float.random(in: 10...28)))
+        }
+        popups.append(Popup(position: point + simd_float3(0, 3, 0), text: "KILL", age: 0))
+    }
+
+    private func explode(at point: simd_float3, power: Float, chain: Bool, sound: Bool = true) {
+        if sound { audio.explosion(volume: power > 0.9 ? 0.62 : 0.4) }
         haptics.boom()
         flash = min(1, flash + 0.85 * power)
         flashLight.simdPosition = point
         flashLight.light?.attenuationEndDistance = CGFloat(70 + 80 * power)
-        shake = min(1.6, shake + 0.75 * power)
-        if power > 0.9 { slowmo = max(slowmo, 0.28) }
+        shake = min(0.25, shake + 0.12 * power)
         billboard(art.fire, at: point, life: 0.22, start: 0.3, end: 2.2 * power)
         billboard(art.fire, at: point, life: 0.7, start: 0.8, end: 5.5 * power)
         billboard(art.smoke, at: point + simd_float3(0, 0.6, 0), life: 1.6, start: 1.1, end: 7 * power)
@@ -1357,7 +1405,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         say("DELIVERED  \(deliveries)/\(captureGoal)")
         popups.append(Popup(position: dropoff, text: "DELIVERED", age: 0))
         flash = 1
-        shake = min(1.4, shake + 0.7)
+        shake = min(0.25, shake + 0.15)
         haptics.launch()
         audio.titleHit()
     }
@@ -1438,9 +1486,24 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             .min { simd_distance($0.position, position) < simd_distance($1.position, position) }
     }
 
+    /// b17: one targeting system. Nearest enemy inside the forward cone, auto-locked.
+    static let lockCone: Float = 0.82
     private func aimEnemy() -> Enemy? {
-        if let cycled, cycled.alive { return cycled }
-        return lockTarget(cone: 0.45)
+        if let lockedEnemy, lockedEnemy.alive, !lockedEnemy.disabled { return lockedEnemy }
+        return nil
+    }
+
+    private func updateLock() {
+        var next = (phase == .combat && !died) ? lockTarget(cone: FlightWorld.lockCone) : nil
+        if phase == .combat, !died, let current = lockedEnemy, current.alive, !current.disabled {
+            let to = current.position - position
+            let dist = simd_length(to)
+            if dist < 280 && dist > 0.01 && simd_dot(forward(), to / dist) > FlightWorld.lockCone - 0.08 { next = current }
+        }
+        if let next, next !== lockedEnemy {
+            audio.lockOn()
+        }
+        lockedEnemy = next
     }
 
     private func updateBeam() {
@@ -1562,7 +1625,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         heading.formTruncatingRemainder(dividingBy: 360)
         if heading < 0 { heading += 360 }
         hud.heading = heading
-        let locked = (phase == .combat && !died) ? (cycled ?? lockTarget(cone: 0.15)) : nil
+        updateLock()
+        let locked = lockedEnemy
         hud.lockWorld = locked.map { $0.alive ? $0.position : nil } ?? nil
         if let locked, locked.alive {
             let kind = locked.disabled ? "DISABLED" : (locked.role == .bandit ? "BANDIT" : "BOGEY")
@@ -1575,7 +1639,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             hud.lockMissile = false
         }
         let tone: Float = (hud.lockMissile && phase == .combat) ? 1 : 0
-        audio.setLock(tone)
+        audio.setLock(0)  // b17: the Locking Target FX sample replaces the synth lock pulse.
         if tone > 0.5 && !hadLock { haptics.hit() }
         hadLock = tone > 0.5
         hud.pickups = phase == .combat ? pickups.filter(\.alive).map(\.node.simdPosition) : []

@@ -301,8 +301,8 @@ final class FlightViewController: UIViewController {
         beamButton.backgroundColor = beamHot ? UIColor(red: 0.35, green: 0.16, blue: 0.02, alpha: 0.8) : UIColor(white: 0, alpha: 0.35)
         viewButton.setTitle(m.cockpit ? "CHASE" : "COCKPIT", for: .normal)
         viewButton.isHidden = m.phase != .combat
-        cycleButton.isHidden = m.phase != .combat
-        faceButton.isHidden = m.phase != .combat
+        cycleButton.isHidden = true  // b17: auto-lock only
+        faceButton.isHidden = true  // b17: auto-lock only
         loopButton.isHidden = m.phase != .combat
         rollButton.isHidden = m.phase != .combat
         if m.showResults {
@@ -698,9 +698,10 @@ final class HudOverlay: UIView {
             ctx.strokePath()
         }
         for popup in popups {
-            let alpha = CGFloat(max(0, 1 - popup.age / 0.95))
+            let alpha = CGFloat(max(0, 1 - popup.age / 1.4))
+            let big = popup.text.hasPrefix("+") || popup.text == "KILL"
             let attrs: [NSAttributedString.Key: Any] = [
-                .font: UIFont.monospacedSystemFont(ofSize: 13 * s, weight: .light),
+                .font: UIFont.monospacedSystemFont(ofSize: (big ? 22 : 13) * s, weight: big ? .heavy : .light),
                 .foregroundColor: UIColor(red: 1, green: 0.86, blue: 0.55, alpha: alpha),
             ]
             let origin = CGPoint(x: popup.point.x - 22 * s, y: popup.point.y - 30 * s - CGFloat(popup.age) * 18 * s)

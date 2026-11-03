@@ -30,22 +30,21 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "Same in-engine fighter. The left thumb drives and strafes. The right thumb "
-    "aims and fires, so both hands share the turn. Swipe, or tap LOOP and ROLL, "
-    "for a somersault or a barrel roll. Guns have a low thump and a short zap. "
-    "A lock reticle names the target, and aim assist helps the shot. Pickups "
-    "pull in from farther away.\n\n"
-    "In the hangar, drag to tumble the ship all the way around, pinch to zoom, "
-    "and swap paint schemes. Medals, combo streaks, and rank stay on the hangar "
-    "card.\n\n"
-    "HANGAR and PAUSE stay on screen. A compass points at the job: the bandit, "
-    "then the freighter. The chase view keeps one crosshair, the locked target, "
-    "and a short objective. COCKPIT opens a canopy with speed, shields, hull, "
-    "weapons, a radar, and the target.\n\n"
-    "Disable a bandit and the prompt says DISABLED - BEAM NOW. The tow beam "
-    "stays locked until you deliver. One sun lights the ship and the planets. "
-    "Saturn, Earth, Mars, and the Moon use Solar System Scope maps (CC BY 4.0). "
-    "Full screen on iPhone and iPad. Same Neon Rift 2 app."
+    "Build 17 (b17 badge, bottom right of the hangar).\n\n"
+    "Shooting: one strong bolt from the nose per shot, no more twin guns or "
+    "spread fan. SPREAD is now a damage and fire-rate boost. Shots home in "
+    "slightly on the locked target.\n\n"
+    "Camera: rock steady chase view behind and above the ship. No roll, no "
+    "swing in loops and rolls, only a tiny kick on hits, no FOV pumping, no "
+    "slow motion on ordinary kills. Cockpit view unchanged.\n\n"
+    "Targeting: auto-lock on the nearest enemy ahead, one lock box, and the "
+    "Locking Target FX sound on each new lock. Hold fire to shoot. CYCLE and "
+    "FACE buttons are gone.\n\n"
+    "Kills: white flash core, bigger fireball, glowing debris chunks, a "
+    "shockwave ring, a punchy haptic, and a big score popup.\n\n"
+    "Sounds: Logic Sharp Laser Boomer (trimmed) for the shot, Strong "
+    "Connections Impact 02 for kills, Locking Target FX for lock, leveled "
+    "below the rest of the game audio. Ship and planets unchanged."
 )
 
 
@@ -877,6 +876,93 @@ def self_test() -> None:
     print("asc.py self-test passed")
 
 
+FIXED_CERT_ID = os.environ.get("NR2_CERT_ID", "TB4K2QATUT")
+FIXED_PROFILE_NAME = "Neon Rift 2 AppStore Fixed"
+
+
+def fixed_profile() -> None:
+    """Sign with the existing stored Apple Distribution certificate.
+
+    Never creates or revokes certificates. Reuses an ACTIVE App Store profile
+    for the bundle that contains the fixed certificate, or creates one profile
+    bound to it (profiles only; nothing is deleted).
+    """
+    team = require_env("APPLE_TEAM_ID").strip()
+    token = make_token()
+    bundle = find_bundle(token)
+    if not bundle:
+        stop("bundle id com.shaz010.neonrift2 not found")
+    chosen = None
+    for row in collection(token, f"/v1/bundleIds/{bundle['id']}/profiles?limit=50"):
+        attrs = row.get("attributes") or {}
+        if attrs.get("profileType") != "IOS_APP_STORE" or attrs.get("profileState") != "ACTIVE":
+            continue
+        certs = api("GET", f"/v1/profiles/{row['id']}/certificates", token=token).get("data") or []
+        if any(c.get("id") == FIXED_CERT_ID for c in certs):
+            chosen = api("GET", f"/v1/profiles/{row['id']}", token=token)["data"]
+            print(f"Reusing profile {attrs.get('name')}.")
+            break
+    if chosen is None:
+        body = {
+            "data": {
+                "type": "profiles",
+                "attributes": {"name": FIXED_PROFILE_NAME, "profileType": "IOS_APP_STORE"},
+                "relationships": {
+                    "bundleId": {"data": {"type": "bundleIds", "id": bundle["id"]}},
+                    "certificates": {"data": [{"type": "certificates", "id": FIXED_CERT_ID}]},
+                },
+            }
+        }
+        chosen = api("POST", "/v1/profiles", body, token=token)["data"]
+        print(f"Created profile {FIXED_PROFILE_NAME} on the existing certificate.")
+    attrs = chosen.get("attributes") or {}
+    name = attrs.get("name") or FIXED_PROFILE_NAME
+    blob = base64.b64decode(attrs.get("profileContent") or "")
+    info = embedded_plist(blob)
+    uuid = info.get("UUID") or chosen["id"]
+    out_dir = os.path.join(os.environ.get("RUNNER_TEMP", "/tmp"), "signing")
+    os.makedirs(out_dir, mode=0o700, exist_ok=True)
+    profile_path = os.path.join(out_dir, f"{uuid}.mobileprovision")
+    with open(profile_path, "wb") as handle:
+        handle.write(blob)
+    os.chmod(profile_path, 0o600)
+    plist_path = os.path.join(out_dir, "ExportOptions.plist")
+    write_export_plist(plist_path, team, "Apple Distribution", name)
+    emit("SIGNING_PROFILE_PATH", profile_path)
+    emit("SIGNING_PROFILE_UUID", str(uuid))
+    emit("SIGNING_PROFILE_NAME", name)
+    emit("SIGNING_IDENTITY", "Apple Distribution")
+    emit("EXPORT_OPTIONS_PLIST", plist_path)
+
+
+def add_family() -> None:
+    """Add the build to the internal Family group only. Never Friends, never review."""
+    app_id = require_env("ASC_APP_ID").strip()
+    version = require_env("BUILD_NUMBER").strip()
+    token = make_token()
+    build = None
+    for _ in range(40):
+        build = find_build(token, app_id, version)
+        if build and (build.get("attributes") or {}).get("processingState") == "VALID":
+            break
+        time.sleep(30)
+    if not build:
+        print(f"Build {version} not visible yet; Family not attached.")
+        return
+    groups = collection(token, f"/v1/apps/{app_id}/betaGroups?limit=50")
+    for g in groups:
+        attrs = g.get("attributes") or {}
+        if attrs.get("name") == "Family" and attrs.get("isInternalGroup"):
+            try:
+                api("POST", f"/v1/betaGroups/{g['id']}/relationships/builds",
+                    {"data": [{"type": "builds", "id": build["id"]}]}, token=token)
+                print(f"Build {version} added to Family.")
+            except ASCError as exc:
+                print(f"Family add: {exc}")
+            return
+    print("Family group not found.")
+
+
 def main(argv: list[str]) -> None:
     command = argv[1] if len(argv) > 1 else ""
     if command == "self-test":
@@ -889,6 +975,10 @@ def main(argv: list[str]) -> None:
         provision()
     elif command == "note":
         note()
+    elif command == "fixed-profile":
+        fixed_profile()
+    elif command == "add-family":
+        add_family()
     else:
         sys.exit("usage: asc.py self-test|install-key|prepare|provision|note")
 

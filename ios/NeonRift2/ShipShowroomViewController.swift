@@ -22,6 +22,7 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
     private var markers: [String: SCNNode] = [:]
 
     private let titleLabel = UILabel()
+    private let buildBadge = UILabel()
     private let hintLabel = UILabel()
     private let flyButton = UIButton(type: .system)
     private let inspectButton = UIButton(type: .system)
@@ -115,6 +116,13 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
         titleLabel.textAlignment = .center
         titleLabel.isUserInteractionEnabled = false
         view.addSubview(titleLabel)
+        buildBadge.text = "b17"
+        buildBadge.font = UIFont.monospacedSystemFont(ofSize: 11, weight: .medium)
+        buildBadge.textColor = UIColor(white: 1, alpha: 0.55)
+        buildBadge.textAlignment = .right
+        buildBadge.isUserInteractionEnabled = false
+        buildBadge.accessibilityLabel = "Build 17"
+        view.addSubview(buildBadge)
 
         hintLabel.font = UIFont.monospacedSystemFont(ofSize: 12, weight: .light)
         hintLabel.textColor = UIColor(white: 0.82, alpha: 0.95)
@@ -208,6 +216,8 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
             specStats.font = UIFont.monospacedSystemFont(ofSize: 12 * scale, weight: .regular)
         }
         titleLabel.frame = CGRect(x: 16 * scale, y: safe.top + 18 * scale, width: b.width - 32 * scale, height: 36 * scale)
+        buildBadge.frame = CGRect(x: b.width - safe.right - 60, y: b.height - safe.bottom - 22, width: 52, height: 16)
+        view.bringSubviewToFront(buildBadge)
         hintLabel.frame = CGRect(x: 24 * scale, y: titleLabel.frame.maxY + 4 * scale, width: b.width - 48 * scale, height: 40 * scale)
         let swatch = 34 * scale
         let gap = 8 * scale

@@ -7,6 +7,7 @@ final class FlightAudio {
     private let engine = AVAudioEngine()
     private let box = UnsafeMutablePointer<AudioBox>.allocate(capacity: 1)
     private var started = false
+    private let samples = SamplePool()
 
     init() {
         box.initialize(to: AudioBox())
@@ -130,6 +131,7 @@ final class FlightAudio {
         engine.attach(source)
         engine.connect(source, to: engine.mainMixerNode, format: format)
         engine.mainMixerNode.outputVolume = 0.9
+        samples.attach(to: engine)
         engine.prepare()
         do {
             try engine.start()
@@ -144,13 +146,12 @@ final class FlightAudio {
     func setMusic(_ value: Float) { box.pointee.music = min(1, max(0, value)) }
     func setBeam(_ value: Float) { box.pointee.beam = min(1, max(0, value)) }
     func setLock(_ value: Float) { box.pointee.lock = min(1, max(0, value)) }
-    func shot() {
-        box.pointee.shot = 1
-        box.pointee.zap = 1
-        box.pointee.shotPhase = 0
-        box.pointee.shotTone = Float.random(in: 0.92...1.08)
-    }
-    func explosion() { box.pointee.boom = 1 }
+    /// b17: Logic "Sharp Laser Boomer", trimmed to 0.32 s, peak -4 dBFS.
+    func shot() { samples.play(.shot, volume: 0.42) }
+    /// b17: Logic "Strong Connections Impact 02", trimmed to 1.6 s, peak -4 dBFS.
+    func explosion(volume: Float = 0.62) { samples.play(.kill, volume: volume) }
+    /// b17: Logic "Locking Target FX", trimmed, peak -4 dBFS.
+    func lockOn() { samples.play(.lock, volume: 0.34) }
     func titleHit() { box.pointee.sting = 1 }
     func chime() { box.pointee.chime = 1 }
 
@@ -214,8 +215,85 @@ final class FlightHaptics {
         heavy.prepare()
     }
 
+    /// b17: short punchy kill thump, a hard hit then a light tail tap.
+    func kill() {
+        heavy.impactOccurred(intensity: 1)
+        heavy.prepare()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.07) { [weak self] in
+            self?.rigid.impactOccurred(intensity: 0.55)
+            self?.rigid.prepare()
+        }
+    }
+
     func launch() {
         rigid.impactOccurred(intensity: 0.65)
         rigid.prepare()
+    }
+}
+
+/// Preloaded PCM buffers played through a round-robin pool of player nodes on
+/// the flight engine, so shots overlap with no file I/O at fire time.
+private final class SamplePool {
+    enum Clip: CaseIterable {
+        case shot, kill, lock
+        var file: String {
+            switch self {
+            case .shot: return "nr2-shot"
+            case .kill: return "nr2-kill"
+            case .lock: return "nr2-lock"
+            }
+        }
+        var voices: Int {
+            switch self {
+            case .shot: return 6
+            case .kill: return 4
+            case .lock: return 2
+            }
+        }
+    }
+
+    private var buffers: [Clip: AVAudioPCMBuffer] = [:]
+    private var players: [Clip: [AVAudioPlayerNode]] = [:]
+    private var next: [Clip: Int] = [:]
+    private weak var engine: AVAudioEngine?
+
+    init() {
+        for clip in Clip.allCases {
+            guard let url = Bundle.main.url(forResource: clip.file, withExtension: "wav"),
+                  let file = try? AVAudioFile(forReading: url),
+                  let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)) else {
+                NSLog("NR2 sample missing: \(clip.file)")
+                continue
+            }
+            do { try file.read(into: buffer) } catch { continue }
+            buffers[clip] = buffer
+        }
+    }
+
+    func attach(to engine: AVAudioEngine) {
+        self.engine = engine
+        for clip in Clip.allCases {
+            guard let buffer = buffers[clip] else { continue }
+            var list: [AVAudioPlayerNode] = []
+            for _ in 0..<clip.voices {
+                let node = AVAudioPlayerNode()
+                engine.attach(node)
+                engine.connect(node, to: engine.mainMixerNode, format: buffer.format)
+                list.append(node)
+            }
+            players[clip] = list
+            next[clip] = 0
+        }
+    }
+
+    func play(_ clip: Clip, volume: Float) {
+        guard let engine, engine.isRunning, let buffer = buffers[clip], let list = players[clip], !list.isEmpty else { return }
+        let index = next[clip] ?? 0
+        next[clip] = (index + 1) % list.count
+        let node = list[index]
+        node.stop()
+        node.volume = volume
+        node.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+        node.play()
     }
 }

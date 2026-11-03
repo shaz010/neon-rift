@@ -27,6 +27,9 @@
 		F3D2A1000000000000000039 /* saturn-normal.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A1000000000000000029 /* saturn-normal.jpg */; };
 		F3D2A100000000000000003A /* stars.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F3D2A100000000000000002A /* stars.jpg */; };
 		111111111111111111111202 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111106 /* Assets.xcassets */; };
+		AB1700000000000000000100 /* nr2-shot.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1700000000000000000200 /* nr2-shot.wav */; };
+		AB1700000000000000000111 /* nr2-kill.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1700000000000000000211 /* nr2-kill.wav */; };
+		AB1700000000000000000122 /* nr2-lock.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1700000000000000000222 /* nr2-lock.wav */; };
 		111111111111111111111204 /* silence.wav in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111108 /* silence.wav */; };
 /* End PBXBuildFile section */
 
@@ -53,6 +56,9 @@
 		F3D2A100000000000000002A /* stars.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "Sky/stars.jpg"; sourceTree = "<group>"; };
 		111111111111111111111105 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		111111111111111111111106 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AB1700000000000000000200 /* nr2-shot.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-shot.wav"; sourceTree = "<group>"; };
+		AB1700000000000000000211 /* nr2-kill.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-kill.wav"; sourceTree = "<group>"; };
+		AB1700000000000000000222 /* nr2-lock.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-lock.wav"; sourceTree = "<group>"; };
 		111111111111111111111108 /* silence.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = silence.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -108,6 +114,9 @@
 				111111111111111111111105 /* Info.plist */,
 				111111111111111111111106 /* Assets.xcassets */,
 				111111111111111111111108 /* silence.wav */,
+				AB1700000000000000000200 /* nr2-shot.wav */,
+				AB1700000000000000000211 /* nr2-kill.wav */,
+				AB1700000000000000000222 /* nr2-lock.wav */,
 			);
 			path = NeonRift2;
 			sourceTree = "<group>";
@@ -173,6 +182,9 @@
 			files = (
 				111111111111111111111202 /* Assets.xcassets in Resources */,
 				111111111111111111111204 /* silence.wav in Resources */,
+				AB1700000000000000000100 /* nr2-shot.wav in Resources */,
+				AB1700000000000000000111 /* nr2-kill.wav in Resources */,
+				AB1700000000000000000122 /* nr2-lock.wav in Resources */,
 				F3D2A1000000000000000019 /* fighter-hotspots.json in Resources */,
 				F3D2A1000000000000000031 /* earth-day.jpg in Resources */,
 				F3D2A1000000000000000032 /* earth-clouds.png in Resources */,
