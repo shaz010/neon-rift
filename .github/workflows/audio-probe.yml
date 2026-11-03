@@ -1,0 +1,15 @@
+name: Audio probe
+on:
+  push:
+    branches: [nr2-b19]
+    paths: [tools/audio-probe.swift, .github/workflows/audio-probe.yml]
+jobs:
+  probe:
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          swiftc -O tools/audio-probe.swift -o probe
+          ./probe ios/NeonRift2/Sfx b18 || echo "b18 crashed $?"
+          ./probe ios/NeonRift2/Sfx nobeds || echo "nobeds crashed $?"
