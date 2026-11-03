@@ -37,8 +37,6 @@ final class FlightViewController: UIViewController {
     private var flightPaused = false
     private var hangarAtBottom = false
     private let faceButton = UIButton(type: .system)
-    private let loopButton = UIButton(type: .system)
-    private let rollButton = UIButton(type: .system)
     private var creditScroll: CGFloat = 0
     private var grainIndex = 0
     private var letterboxAmount: CGFloat = 1
@@ -149,11 +147,17 @@ final class FlightViewController: UIViewController {
             self.world?.inputFire = self.touch.firing
             if self.touch.consumeBoost() { self.world?.requestBoost() }
             switch self.touch.consumeTrick() {
-            case 1: self.world?.requestLoop()
+            case 1: self.world?.requestLoop(direction: 1)
+            case 4: self.world?.requestLoop(direction: -1)
             case 2: self.world?.requestRoll(direction: 1)
             case 3: self.world?.requestRoll(direction: -1)
             default: break
             }
+        }
+        touch.onTap = { [weak self] point in
+            guard let self, let id = self.overlay.targetID(at: point) else { return false }
+            self.world?.selectTarget(id: id)
+            return true
         }
         view.addSubview(touch)
 
@@ -174,8 +178,6 @@ final class FlightViewController: UIViewController {
         configure(cycleButton, title: "CYCLE", action: #selector(cycleTarget))
         configure(beamButton, title: "BEAM", action: #selector(toggleBeam))
         configure(faceButton, title: "FACE", action: #selector(faceTarget))
-        configure(loopButton, title: "LOOP", action: #selector(doLoop))
-        configure(rollButton, title: "ROLL", action: #selector(doRoll))
         configure(pauseButton, title: "PAUSE", action: #selector(togglePause))
         pauseButton.isHidden = true
         beamButton.isHidden = true
@@ -283,7 +285,7 @@ final class FlightViewController: UIViewController {
         calloutLabel.text = m.callout
         calloutLabel.alpha = CGFloat(m.calloutAlpha)
         titleLabel.alpha = CGFloat(m.titleAlpha)
-        flashView.alpha = CGFloat(m.flash) * 0.45
+        flashView.alpha = min(0.6, CGFloat(m.flash) * 0.45 + CGFloat(m.trickShot) * 0.12)
         skipButton.isHidden = m.phase != .cinema
         let inFlight = m.phase == .combat || m.phase == .warden
         touch.isUserInteractionEnabled = combat && !flightPaused
@@ -299,12 +301,10 @@ final class FlightViewController: UIViewController {
         let beamHot = m.beamReady && !m.towing
         beamButton.layer.borderColor = (beamHot ? UIColor(red: 1, green: 0.72, blue: 0.28, alpha: 1) : UIColor(white: 0.75, alpha: 0.85)).cgColor
         beamButton.backgroundColor = beamHot ? UIColor(red: 0.35, green: 0.16, blue: 0.02, alpha: 0.8) : UIColor(white: 0, alpha: 0.35)
-        viewButton.setTitle(m.cockpit ? "CHASE" : "COCKPIT", for: .normal)
+        viewButton.setTitle("VIEW: \(m.viewName)", for: .normal)
         viewButton.isHidden = m.phase != .combat
         cycleButton.isHidden = true  // b17: auto-lock only
         faceButton.isHidden = true  // b17: auto-lock only
-        loopButton.isHidden = m.phase != .combat
-        rollButton.isHidden = m.phase != .combat
         if m.showResults {
             resultsLabel.text = "NEON RIFT 2\n\n" + m.resultsBody
             creditsLabel.text = m.credits
@@ -327,6 +327,17 @@ final class FlightViewController: UIViewController {
         overlay.lockHealth = CGFloat(m.lockHealth)
         overlay.lockMissile = m.lockMissile
         overlay.cockpit = m.cockpit
+        overlay.lockID = m.lockID
+        overlay.lockDistance = CGFloat(m.lockDistance)
+        overlay.lockChosen = m.lockChosen
+        overlay.lockAge = CGFloat(m.lockAge)
+        overlay.lockCritical = m.lockCritical
+        overlay.heat = CGFloat(m.heat)
+        overlay.overheated = m.overheated
+        overlay.overdrive = CGFloat(m.overdrive)
+        overlay.hintPoint = project(m.hintWorld)
+        overlay.bossTitle = m.bossTitle
+        overlay.bossHealth = CGFloat(m.bossHealth)
         overlay.guideTitle = m.guideTitle
         overlay.guideBearing = CGFloat(m.guideBearing)
         overlay.guideDistance = CGFloat(m.guideDistance)
@@ -336,9 +347,9 @@ final class FlightViewController: UIViewController {
             return (point, gem.1)
         }
         overlay.marks = m.contacts.map { contact in
-            HudMark(point: project(contact.world), kind: contact.kind, distance: contact.distance, bearing: contact.bearing)
+            HudMark(point: project(contact.world), kind: contact.kind, distance: contact.distance, bearing: contact.bearing, id: contact.id, health: contact.health)
         }
-        overlay.blips = m.blips.map { HudBlipView(x: CGFloat($0.x), y: CGFloat($0.y), kind: $0.kind) }
+        overlay.blips = m.blips.map { HudBlipView(x: CGFloat($0.x), y: CGFloat($0.y), kind: $0.kind, id: $0.id) }
         overlay.pickupPoints = m.pickups.compactMap { project($0) }
         overlay.sunPoint = project(m.sunWorld)
         overlay.popups = m.popups.compactMap { item in
@@ -388,8 +399,6 @@ final class FlightViewController: UIViewController {
         let buttonH = 32 * scale
         viewButton.frame = CGRect(x: safe.left + 16 * scale, y: safe.top + 8 * scale, width: buttonW, height: buttonH)
         faceButton.frame = CGRect(x: safe.left + 16 * scale, y: safe.top + 46 * scale, width: buttonW, height: buttonH)
-        loopButton.frame = CGRect(x: safe.left + 16 * scale, y: safe.top + 84 * scale, width: buttonW * 0.72, height: buttonH)
-        rollButton.frame = CGRect(x: safe.left + 16 * scale + buttonW * 0.78, y: safe.top + 84 * scale, width: buttonW * 0.72, height: buttonH)
         cycleButton.frame = CGRect(x: b.width - safe.right - buttonW - 16 * scale, y: safe.top + 48 * scale, width: buttonW, height: buttonH)
         beamButton.frame = CGRect(x: b.width - safe.right - buttonW * 1.2 - 16 * scale, y: b.height - safe.bottom - 210 * scale, width: buttonW * 1.2, height: buttonH)
         creditsLabel.frame = CGRect(x: 28 * scale, y: b.height * 0.72 - creditScroll * 34 * scale, width: b.width - 56 * scale, height: 520 * scale)
@@ -540,8 +549,6 @@ final class FlightViewController: UIViewController {
     @objc private func cycleTarget() { world?.cycleTarget() }
     @objc private func toggleBeam() { world?.toggleTractor() }
     @objc private func faceTarget() { world?.requestFace() }
-    @objc private func doLoop() { world?.requestLoop() }
-    @objc private func doRoll() { world?.requestRoll(direction: 1) }
 
     @objc private func skipCinema() { world?.skipCinema() }
 
@@ -597,12 +604,15 @@ struct HudMark {
     var kind: Int
     var distance: Float
     var bearing: Float
+    var id: Int = -1
+    var health: Float = 1
 }
 
 struct HudBlipView {
     var x: CGFloat
     var y: CGFloat
     var kind: Int
+    var id: Int = -1
 }
 
 final class HudOverlay: UIView {
@@ -613,6 +623,17 @@ final class HudOverlay: UIView {
     var lockTitle = ""
     var lockHealth: CGFloat = 0
     var lockMissile = false
+    var lockID = -1
+    var lockDistance: CGFloat = 0
+    var lockChosen = false
+    var lockAge: CGFloat = 0
+    var lockCritical = false
+    var heat: CGFloat = 0
+    var overheated = false
+    var overdrive: CGFloat = 0
+    var hintPoint: CGPoint?
+    var bossTitle = ""
+    var bossHealth: CGFloat = 0
     var cockpit = false
     var guideTitle = ""
     var guideBearing: CGFloat = 0
@@ -670,6 +691,17 @@ final class HudOverlay: UIView {
             if !cockpit { drawRadar(ctx, rect, s) }
             drawMarks(ctx, rect, s)
             if !cockpit { drawLock(ctx, rect, s) }
+            drawHeat(ctx, rect, s)
+            drawBoss(ctx, rect, s)
+            if let hint = hintPoint, rect.contains(hint) {
+                let pulse = 0.5 + 0.5 * CGFloat(sin(CACurrentMediaTime() * 9))
+                bracket(ctx, hint, (22 + 6 * pulse) * s, UIColor(red: 0.5, green: 1, blue: 0.9, alpha: 0.55 + 0.4 * pulse))
+                let attrs: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.monospacedSystemFont(ofSize: 10 * s, weight: .bold),
+                    .foregroundColor: UIColor(red: 0.5, green: 1, blue: 0.9, alpha: 0.9),
+                ]
+                ("NEXT" as NSString).draw(at: CGPoint(x: hint.x - 12 * s, y: hint.y + 30 * s), withAttributes: attrs)
+            }
             drawGuide(ctx, rect, s)
             let reticle = CGPoint(x: rect.midX, y: rect.midY - 8 * s)
             ctx.setStrokeColor(UIColor(white: 1, alpha: 0.9).cgColor)
@@ -699,7 +731,8 @@ final class HudOverlay: UIView {
         }
         for popup in popups {
             let alpha = CGFloat(max(0, 1 - popup.age / 1.4))
-            let big = popup.text.hasPrefix("+") || popup.text == "KILL"
+            let big = popup.text.hasPrefix("+") || popup.text.hasPrefix("KILL") || popup.text == "TRICK SHOT"
+                || popup.text == "OVERDRIVE" || popup.text.hasPrefix("WARDEN")
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: UIFont.monospacedSystemFont(ofSize: (big ? 22 : 13) * s, weight: big ? .heavy : .light),
                 .foregroundColor: UIColor(red: 1, green: 0.86, blue: 0.55, alpha: alpha),
@@ -710,7 +743,7 @@ final class HudOverlay: UIView {
     }
 
     private func drawRadar(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {
-        let center = CGPoint(x: rect.width - 78 * s, y: 188 * s)
+        let center = radarCenter(rect, s)
         let rad = 52 * s
         ctx.setStrokeColor(UIColor(white: 1, alpha: 0.45).cgColor)
         ctx.setLineWidth(max(1.5, 1.5 * s))
@@ -779,29 +812,124 @@ final class HudOverlay: UIView {
         }
     }
 
+    private func radarCenter(_ rect: CGRect, _ s: CGFloat) -> CGPoint {
+        CGPoint(x: rect.width - 78 * s, y: 188 * s)
+    }
+
+    /// b18: tap-to-lock lookup. Brackets within 44pt, or a radar blip.
+    func targetID(at point: CGPoint) -> Int? {
+        let s = max(scale, 0.5)
+        var best: (Int, CGFloat)?
+        for mark in marks where mark.id >= 0 && mark.kind != 2 {
+            guard let p = mark.point else { continue }
+            let d = hypot(p.x - point.x, p.y - point.y)
+            if d < 44 * s && (best == nil || d < best!.1) { best = (mark.id, d) }
+        }
+        if let best { return best.0 }
+        if !cockpit {
+            let center = radarCenter(bounds, s)
+            let rad = 52 * s
+            for blip in blips where blip.id >= 0 && blip.kind != 2 && blip.kind != 3 {
+                let p = CGPoint(x: center.x + blip.x * rad * 0.86, y: center.y - blip.y * rad * 0.86)
+                let d = hypot(p.x - point.x, p.y - point.y)
+                if d < 18 * s && (best == nil || d < best!.1) { best = (blip.id, d) }
+            }
+        }
+        return best?.0
+    }
+
     private func drawLock(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {
-        guard let lock = lockPoint, !lockTitle.isEmpty else { return }
+        guard !lockTitle.isEmpty, lockID >= 0 || lockPoint != nil else { return }
         let color = lockTitle == "BANDIT"
             ? UIColor(red: 1, green: 0.62, blue: 0.18, alpha: 1)
             : UIColor(red: 1, green: 0.22, blue: 0.12, alpha: 1)
-        bracket(ctx, lock, 46 * s, color)
+        let inset = rect.insetBy(dx: 30 * s, dy: 40 * s)
+        guard let lock = lockPoint, inset.contains(lock) else {
+            // Off-screen arrow toward the locked target.
+            guard let mark = marks.first(where: { $0.id == lockID }) else { return }
+            let b = CGFloat(mark.bearing)
+            let tip = CGPoint(x: rect.midX + sin(b) * inset.width * 0.47, y: rect.midY - cos(b) * inset.height * 0.44)
+            ctx.setFillColor(color.cgColor)
+            ctx.move(to: tip)
+            ctx.addLine(to: CGPoint(x: tip.x + sin(b + 2.5) * 26 * s, y: tip.y - cos(b + 2.5) * 26 * s))
+            ctx.addLine(to: CGPoint(x: tip.x + sin(b - 2.5) * 26 * s, y: tip.y - cos(b - 2.5) * 26 * s))
+            ctx.closePath()
+            ctx.fillPath()
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.monospacedSystemFont(ofSize: 11 * s, weight: .bold),
+                .foregroundColor: color,
+            ]
+            ("\(Int(lockDistance))m" as NSString).draw(at: CGPoint(x: tip.x - 16 * s, y: tip.y + 8 * s), withAttributes: attrs)
+            return
+        }
+        // Closing brackets that snap in over 0.3s.
+        let close = max(0, 1 - lockAge / 0.3)
+        bracket(ctx, lock, (40 + 50 * close) * s, color.withAlphaComponent(1 - 0.4 * close))
+        // Health ring.
+        let ringR = 30 * s
+        ctx.setLineWidth(3 * s)
+        ctx.setStrokeColor(UIColor(white: 1, alpha: 0.2).cgColor)
+        ctx.strokeEllipse(in: CGRect(x: lock.x - ringR, y: lock.y - ringR, width: ringR * 2, height: ringR * 2))
+        let h = max(0, min(1, lockHealth))
+        let ringColor = lockCritical ? UIColor(red: 1, green: 0.95, blue: 0.3, alpha: 1) : color
+        ctx.setStrokeColor(ringColor.cgColor)
+        ctx.addArc(center: lock, radius: ringR, startAngle: -.pi / 2, endAngle: -.pi / 2 + 2 * .pi * h, clockwise: false)
+        ctx.strokePath()
         let attrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.monospacedSystemFont(ofSize: 13 * s, weight: .medium),
             .foregroundColor: color,
         ]
-        (lockTitle as NSString).draw(at: CGPoint(x: lock.x - 28 * s, y: lock.y - 68 * s), withAttributes: attrs)
-        let bar = CGRect(x: lock.x - 36 * s, y: lock.y - 50 * s, width: 72 * s, height: 5 * s)
-        ctx.setFillColor(UIColor(white: 1, alpha: 0.25).cgColor)
-        ctx.fill(bar)
-        ctx.setFillColor(color.cgColor)
-        ctx.fill(CGRect(x: bar.minX, y: bar.minY, width: bar.width * max(0, min(1, lockHealth)), height: bar.height))
-        if lockMissile {
-            let lockAttrs: [NSAttributedString.Key: Any] = [
-                .font: UIFont.monospacedSystemFont(ofSize: 12 * s, weight: .bold),
-                .foregroundColor: UIColor(red: 1, green: 0.55, blue: 0.15, alpha: 1),
-            ]
-            ("LOCK" as NSString).draw(at: CGPoint(x: lock.x - 16 * s, y: lock.y + 50 * s), withAttributes: lockAttrs)
+        (lockTitle as NSString).draw(at: CGPoint(x: lock.x - 30 * s, y: lock.y - 68 * s), withAttributes: attrs)
+        let small: [NSAttributedString.Key: Any] = [
+            .font: UIFont.monospacedSystemFont(ofSize: 11 * s, weight: .bold),
+            .foregroundColor: color,
+        ]
+        if lockAge > 0.3 {
+            let tag = lockChosen ? "◆ LOCKED" : "LOCKED"
+            (tag as NSString).draw(at: CGPoint(x: lock.x - 28 * s, y: lock.y + 44 * s), withAttributes: small)
         }
+        ("\(Int(lockDistance))m" as NSString).draw(at: CGPoint(x: lock.x + 40 * s, y: lock.y - 6 * s), withAttributes: small)
+        if lockMissile {
+            ("MSL" as NSString).draw(at: CGPoint(x: lock.x - 72 * s, y: lock.y - 6 * s), withAttributes: small)
+        }
+    }
+
+    private func drawHeat(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {
+        let r = radius + 8 * s
+        ctx.setLineWidth(5 * s)
+        ctx.setStrokeColor(UIColor(white: 1, alpha: 0.12).cgColor)
+        ctx.addArc(center: rightCenter, radius: r, startAngle: .pi * 0.8, endAngle: .pi * 0.2, clockwise: false)
+        ctx.strokePath()
+        let color: UIColor = overdrive > 0
+            ? UIColor(red: 0.5, green: 1, blue: 0.95, alpha: 1)
+            : (overheated ? UIColor(red: 1, green: 0.15, blue: 0.1, alpha: 1) : UIColor(red: 1, green: 0.4 + 0.4 * (1 - heat), blue: 0.15, alpha: 0.95))
+        let frac = overdrive > 0 ? overdrive : heat
+        if frac > 0.01 {
+            ctx.setStrokeColor(color.cgColor)
+            ctx.addArc(center: rightCenter, radius: r, startAngle: .pi * 0.8, endAngle: .pi * 0.8 + .pi * 1.4 * min(1, frac), clockwise: false)
+            ctx.strokePath()
+        }
+        let label = overdrive > 0 ? "OVERDRIVE" : (overheated ? "OVERHEAT" : "HEAT")
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.monospacedSystemFont(ofSize: 10 * s, weight: .bold),
+            .foregroundColor: color,
+        ]
+        (label as NSString).draw(at: CGPoint(x: rightCenter.x - 26 * s, y: rightCenter.y - r - 18 * s), withAttributes: attrs)
+    }
+
+    private func drawBoss(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {
+        guard !bossTitle.isEmpty else { return }
+        let w = min(rect.width * 0.7, 320 * s)
+        let bar = CGRect(x: rect.midX - w / 2, y: 112 * s, width: w, height: 6 * s)
+        ctx.setFillColor(UIColor(white: 1, alpha: 0.18).cgColor)
+        ctx.fill(bar)
+        ctx.setFillColor(UIColor(red: 1, green: 0.3, blue: 0.12, alpha: 1).cgColor)
+        ctx.fill(CGRect(x: bar.minX, y: bar.minY, width: bar.width * max(0, min(1, bossHealth)), height: bar.height))
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.monospacedSystemFont(ofSize: 12 * s, weight: .heavy),
+            .foregroundColor: UIColor(red: 1, green: 0.5, blue: 0.3, alpha: 1),
+        ]
+        (bossTitle as NSString).draw(at: CGPoint(x: bar.minX, y: bar.maxY + 4 * s), withAttributes: attrs)
     }
 
     private func drawMarks(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {
@@ -873,10 +1001,14 @@ final class TouchPad: UIView {
     var rightCenter = CGPoint.zero
     var radius: CGFloat = 74
     var onChange: (() -> Void)?
+    /// Short, still tap. Return true if it locked a target.
+    var onTap: ((CGPoint) -> Bool)?
     var dragOrigin: CGPoint?
     private var leftTouch: UITouch?
     private var rightTouch: UITouch?
     private var rightOrigin: CGPoint?
+    private var rightBegan: TimeInterval = 0
+    private var rightMoved: CGFloat = 0
     private var dragMoved: CGFloat = 0
     private var dragBegan: TimeInterval = 0
     private var lastPoint = CGPoint.zero
@@ -884,6 +1016,13 @@ final class TouchPad: UIView {
     private var lastWasTap = false
     private var boostArmed = false
     private var trickCode = 0
+    // b18 two-finger swipe tricks.
+    private var pair: [UITouch] = []
+    private var pairBegan: TimeInterval = 0
+    private var pairOrigin = CGPoint.zero
+    private var pairDone = false
+    private var lastTrick: TimeInterval = 0
+    private var recent: [(UITouch, TimeInterval)] = []
 
     func consumeBoost() -> Bool {
         let armed = boostArmed
@@ -909,13 +1048,51 @@ final class TouchPad: UIView {
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         if let leftTouch, touches.contains(leftTouch) { updateStick(leftTouch) }
         if let rightTouch, touches.contains(rightTouch) { updateAim(rightTouch) }
+        if !pair.isEmpty && !pairDone && touches.contains(where: { t in pair.contains { $0 === t } }) {
+            checkSwipe(now: touches.first?.timestamp ?? 0)
+        }
         onChange?()
     }
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) { release(touches) }
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { release(touches) }
 
+    private func centroid(_ list: [UITouch]) -> CGPoint {
+        guard !list.isEmpty else { return .zero }
+        var x: CGFloat = 0, y: CGFloat = 0
+        for t in list {
+            let p = t.location(in: self)
+            x += p.x
+            y += p.y
+        }
+        return CGPoint(x: x / CGFloat(list.count), y: y / CGFloat(list.count))
+    }
+
     private func claim(_ touches: Set<UITouch>) {
+        let now = touches.first?.timestamp ?? 0
+        recent.removeAll { now - $0.1 > 0.15 || $0.0.phase == .ended || $0.0.phase == .cancelled }
         for touch in touches {
+            // Two fingers landing within ~0.15s become a swipe gesture, not stick or fire.
+            if pair.isEmpty, let partner = recent.first(where: { $0.0 !== touch })?.0 {
+                pair = [partner, touch]
+                pairBegan = now
+                pairOrigin = centroid(pair)
+                pairDone = false
+                recent.removeAll()
+                if partner === leftTouch {
+                    leftTouch = nil
+                    dragOrigin = nil
+                    stick = .zero
+                    boostArmed = false
+                }
+                if partner === rightTouch {
+                    rightTouch = nil
+                    firing = false
+                    rightOrigin = nil
+                    aim = .zero
+                }
+                continue
+            }
+            recent.append((touch, touch.timestamp))
             let p = touch.location(in: self)
             if p.x < bounds.midX {
                 if leftTouch == nil {
@@ -933,33 +1110,54 @@ final class TouchPad: UIView {
                 rightTouch = touch
                 firing = true
                 rightOrigin = p
+                rightBegan = touch.timestamp
+                rightMoved = 0
                 aim = .zero
             }
         }
         onChange?()
     }
 
+    private func checkSwipe(now: TimeInterval) {
+        let c = centroid(pair)
+        let dx = c.x - pairOrigin.x
+        let dy = pairOrigin.y - c.y
+        guard now - pairBegan < 0.45, now - lastTrick > 0.8 else { return }
+        if hypot(dx, dy) > 60 {
+            pairDone = true
+            lastTrick = now
+            if abs(dx) > abs(dy) {
+                trickCode = dx > 0 ? 2 : 3
+            } else {
+                trickCode = dy > 0 ? 1 : 4
+            }
+        }
+    }
+
     private func release(_ touches: Set<UITouch>) {
         for touch in touches {
+            if let i = pair.firstIndex(where: { $0 === touch }) {
+                if !pairDone { checkSwipe(now: touch.timestamp) }
+                pair.remove(at: i)
+                if pair.isEmpty { pairDone = false }
+                continue
+            }
             if touch === leftTouch {
                 let elapsed = touch.timestamp - dragBegan
-                let origin = dragOrigin ?? lastPoint
-                let dx = lastPoint.x - origin.x
-                let dy = origin.y - lastPoint.y
-                if elapsed < 0.38 && dragMoved > 78 {
-                    if abs(dx) > abs(dy) * 1.15 && abs(dx) > 64 {
-                        trickCode = dx > 0 ? 2 : 3
-                    } else if dy > 64 && dy > abs(dx) {
-                        trickCode = 1
-                    }
+                if elapsed < 0.25 && dragMoved < 12, let origin = dragOrigin, onTap?(origin) == true {
+                    lastWasTap = false
+                } else {
+                    lastWasTap = dragMoved < 26
                 }
-                lastWasTap = dragMoved < 26
                 lastEnded = touch.timestamp
                 leftTouch = nil
                 dragOrigin = nil
                 stick = .zero
             }
             if touch === rightTouch {
+                if touch.timestamp - rightBegan < 0.25 && rightMoved < 12, let origin = rightOrigin {
+                    _ = onTap?(origin)
+                }
                 rightTouch = nil
                 firing = false
                 rightOrigin = nil
@@ -993,6 +1191,7 @@ final class TouchPad: UIView {
         let origin = rightOrigin ?? p
         let dx = p.x - origin.x
         let dy = origin.y - p.y
+        rightMoved = max(rightMoved, hypot(dx, dy))
         let mag = hypot(dx, dy)
         let limit = max(radius * 0.62, 54)
         let scale = mag > limit ? limit / mag : 1

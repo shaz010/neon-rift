@@ -116,7 +116,7 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
         titleLabel.textAlignment = .center
         titleLabel.isUserInteractionEnabled = false
         view.addSubview(titleLabel)
-        buildBadge.text = "b17"
+        buildBadge.text = "b18"
         buildBadge.font = UIFont.monospacedSystemFont(ofSize: 11, weight: .medium)
         buildBadge.textColor = UIColor(white: 1, alpha: 0.55)
         buildBadge.textAlignment = .right

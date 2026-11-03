@@ -9,7 +9,7 @@ name: TestFlight
 on:
   push:
     branches:
-      - nr2-b17
+      - nr2-b18
   workflow_dispatch:
     inputs:
       record:
@@ -18,7 +18,7 @@ on:
         default: false
 
 concurrency:
-  group: testflight-nr2-b17
+  group: testflight-nr2-b18
   cancel-in-progress: true
 
 permissions:
@@ -181,15 +181,15 @@ jobs:
           fi
           exit "${status}"
 
-      - name: Attach What to Test
-        if: success()
-        run: |
-          "${ASC_PYTHON}" tools/asc.py note
-
       - name: Add to the internal Family group only
         if: success()
         run: |
           "${ASC_PYTHON}" tools/asc.py add-family
+
+      - name: Attach What to Test
+        if: success()
+        run: |
+          "${ASC_PYTHON}" tools/asc.py note
 
       - name: Write the build summary
         if: success()
@@ -200,7 +200,7 @@ jobs:
             echo "- Bundle ID: \`com.shaz010.neonrift2\`"
             echo "- Marketing version: 1.0"
             echo "- Build number: ${BUILD_NUMBER}"
-            echo "- Changelog: same in-engine fighter. Hangar tumble on every axis, swappable paint, loops and barrel rolls, a lock reticle with aim assist, magnet pickups, and medals with combo streaks. Right thumb aims and fires, left thumb drives. Cockpit gauges, quieter HUD, hangar and pause, a compass, a tow beam that stays locked, and sunlit planets. Full screen on iPhone and iPad. Same Neon Rift 2 app."
+            echo "- Changelog: b18 tap-to-lock, heat, kill stages, engine, crates, rocks, Dreadnought boss, aerial view, two-finger tricks, trick shots. Previously: same in-engine fighter. Hangar tumble on every axis, swappable paint, loops and barrel rolls, a lock reticle with aim assist, magnet pickups, and medals with combo streaks. Right thumb aims and fires, left thumb drives. Cockpit gauges, quieter HUD, hangar and pause, a compass, a tow beam that stays locked, and sunlit planets. Full screen on iPhone and iPad. Same Neon Rift 2 app."
           } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Remove the API key

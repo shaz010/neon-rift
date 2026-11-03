@@ -30,21 +30,30 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "Build 17 (b17 badge, bottom right of the hangar).\n\n"
-    "Shooting: one strong bolt from the nose per shot, no more twin guns or "
-    "spread fan. SPREAD is now a damage and fire-rate boost. Shots home in "
-    "slightly on the locked target.\n\n"
-    "Camera: rock steady chase view behind and above the ship. No roll, no "
-    "swing in loops and rolls, only a tiny kick on hits, no FOV pumping, no "
-    "slow motion on ordinary kills. Cockpit view unchanged.\n\n"
-    "Targeting: auto-lock on the nearest enemy ahead, one lock box, and the "
-    "Locking Target FX sound on each new lock. Hold fire to shoot. CYCLE and "
-    "FACE buttons are gone.\n\n"
-    "Kills: white flash core, bigger fireball, glowing debris chunks, a "
-    "shockwave ring, a punchy haptic, and a big score popup.\n\n"
-    "Sounds: Logic Sharp Laser Boomer (trimmed) for the shot, Strong "
-    "Connections Impact 02 for kills, Locking Target FX for lock, leveled "
-    "below the rest of the game audio. Ship and planets unchanged."
+    "Build 18 (b18 badge, bottom right of the hangar).\n\n"
+    "Choose and kill: tap an enemy's bracket or radar blip to lock it. The lock "
+    "sticks until it dies or is over 600 m away (auto-lock otherwise). New lock "
+    "box: closing brackets, LOCKED, health ring, distance and an off-screen arrow. "
+    "Hold fire: stronger homing, fire rate ramps up, heat gauge around the fire "
+    "ring (overheat locks guns until cool). Missile volleys only while fire is held.\n\n"
+    "Hits: sparks, white hull flash and a rising tick. Under 30%: smoke, fire trail, "
+    "jitter and a warning. Kills: secondary booms, white core flash, short hit-stop, "
+    "shockwave, two burning halves. KILL x2 / x3 chains and a NEXT hint.\n\n"
+    "Engine: new living engine synth plus Logic beds that crossfade; boost, dive and "
+    "roll sounds.\n\n"
+    "Crates and rocks: gold crates can be shot open and the prize flies to you, or "
+    "fly into them. Three grabs in 4 s = OVERDRIVE. Rocks are solid, hurt, and can "
+    "be shot apart for credits.\n\n"
+    "Dreadnought boss: 6 turrets with health rings, then an exposed core. Kill it for "
+    "a huge multi-stage destruction and +5000.\n\n"
+    "Camera: chase view is further back and higher. New AERIAL view: high steady "
+    "three-quarter overhead that frames you and your target, never spins. VIEW button "
+    "cycles CHASE / AERIAL / COCKPIT and is remembered.\n\n"
+    "Tricks: LOOP/ROLL buttons are gone. Quick two-finger swipe left/right = barrel "
+    "roll, up/down = loop. Try it while holding fire with another finger.\n\n"
+    "Trick shots: firing keeps working in rolls and loops, bolts aim from your lock "
+    "with full homing. Hits and kills mid-trick give TRICK SHOT bonus score, a brighter "
+    "flash and a spiral trail."
 )
 
 
@@ -763,11 +772,11 @@ def note() -> None:
     version = require_env("BUILD_NUMBER").strip()
     token = make_token()
     build = None
-    for _ in range(6):
+    for _ in range(40):
         build = find_build(token, app_id, version)
         if build:
             break
-        time.sleep(15)
+        time.sleep(30)
     if not build:
         print(
             f"Build {version} is not visible in the API yet. "
@@ -792,6 +801,17 @@ def note() -> None:
         )
     except ASCError as exc:
         print(f"Export compliance was left for App Store Connect to read from the binary ({exc}).")
+    try:
+        existing = collection(token, f"/v1/builds/{build_id}/betaBuildLocalizations")
+        for loc in existing:
+            if (loc.get("attributes") or {}).get("locale") == LOCALE:
+                api("PATCH", f"/v1/betaBuildLocalizations/{loc['id']}",
+                    {"data": {"id": loc["id"], "type": "betaBuildLocalizations",
+                              "attributes": {"whatsNew": WHATS_NEW}}}, token=token)
+                print(f"Updated What to Test on build {version}.")
+                return
+    except ASCError as exc:
+        print(f"Could not read existing localizations ({exc}).")
     try:
         api(
             "POST",

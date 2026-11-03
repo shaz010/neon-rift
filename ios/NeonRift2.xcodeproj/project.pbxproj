@@ -30,6 +30,21 @@
 		AB1700000000000000000100 /* nr2-shot.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1700000000000000000200 /* nr2-shot.wav */; };
 		AB1700000000000000000111 /* nr2-kill.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1700000000000000000211 /* nr2-kill.wav */; };
 		AB1700000000000000000122 /* nr2-lock.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1700000000000000000222 /* nr2-lock.wav */; };
+		AB1800000000000000000100 /* nr2-tick0.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000200 /* nr2-tick0.wav */; };
+		AB1800000000000000000101 /* nr2-tick1.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000201 /* nr2-tick1.wav */; };
+		AB1800000000000000000102 /* nr2-tick2.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000202 /* nr2-tick2.wav */; };
+		AB1800000000000000000103 /* nr2-tick3.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000203 /* nr2-tick3.wav */; };
+		AB1800000000000000000104 /* nr2-roll.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000204 /* nr2-roll.wav */; };
+		AB1800000000000000000105 /* nr2-warn.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000205 /* nr2-warn.wav */; };
+		AB1800000000000000000106 /* nr2-boom2.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000206 /* nr2-boom2.wav */; };
+		AB1800000000000000000107 /* nr2-bigboom.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000207 /* nr2-bigboom.wav */; };
+		AB1800000000000000000108 /* nr2-boost.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000208 /* nr2-boost.wav */; };
+		AB1800000000000000000109 /* nr2-dive.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000209 /* nr2-dive.wav */; };
+		AB1800000000000000000110 /* nr2-overdrive.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000210 /* nr2-overdrive.wav */; };
+		AB1800000000000000000111 /* nr2-crate.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000211 /* nr2-crate.wav */; };
+		AB1800000000000000000112 /* nr2-bedA.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000212 /* nr2-bedA.wav */; };
+		AB1800000000000000000113 /* nr2-bedB.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000213 /* nr2-bedB.wav */; };
+		AB1800000000000000000114 /* nr2-bedC.wav in Resources */ = {isa = PBXBuildFile; fileRef = AB1800000000000000000214 /* nr2-bedC.wav */; };
 		111111111111111111111204 /* silence.wav in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111108 /* silence.wav */; };
 /* End PBXBuildFile section */
 
@@ -59,6 +74,21 @@
 		AB1700000000000000000200 /* nr2-shot.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-shot.wav"; sourceTree = "<group>"; };
 		AB1700000000000000000211 /* nr2-kill.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-kill.wav"; sourceTree = "<group>"; };
 		AB1700000000000000000222 /* nr2-lock.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-lock.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000200 /* nr2-tick0.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-tick0.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000201 /* nr2-tick1.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-tick1.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000202 /* nr2-tick2.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-tick2.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000203 /* nr2-tick3.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-tick3.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000204 /* nr2-roll.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-roll.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000205 /* nr2-warn.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-warn.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000206 /* nr2-boom2.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-boom2.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000207 /* nr2-bigboom.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-bigboom.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000208 /* nr2-boost.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-boost.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000209 /* nr2-dive.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-dive.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000210 /* nr2-overdrive.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-overdrive.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000211 /* nr2-crate.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-crate.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000212 /* nr2-bedA.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-bedA.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000213 /* nr2-bedB.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-bedB.wav"; sourceTree = "<group>"; };
+		AB1800000000000000000214 /* nr2-bedC.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "Sfx/nr2-bedC.wav"; sourceTree = "<group>"; };
 		111111111111111111111108 /* silence.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = silence.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -117,6 +147,21 @@
 				AB1700000000000000000200 /* nr2-shot.wav */,
 				AB1700000000000000000211 /* nr2-kill.wav */,
 				AB1700000000000000000222 /* nr2-lock.wav */,
+				AB1800000000000000000200 /* nr2-tick0.wav */,
+				AB1800000000000000000201 /* nr2-tick1.wav */,
+				AB1800000000000000000202 /* nr2-tick2.wav */,
+				AB1800000000000000000203 /* nr2-tick3.wav */,
+				AB1800000000000000000204 /* nr2-roll.wav */,
+				AB1800000000000000000205 /* nr2-warn.wav */,
+				AB1800000000000000000206 /* nr2-boom2.wav */,
+				AB1800000000000000000207 /* nr2-bigboom.wav */,
+				AB1800000000000000000208 /* nr2-boost.wav */,
+				AB1800000000000000000209 /* nr2-dive.wav */,
+				AB1800000000000000000210 /* nr2-overdrive.wav */,
+				AB1800000000000000000211 /* nr2-crate.wav */,
+				AB1800000000000000000212 /* nr2-bedA.wav */,
+				AB1800000000000000000213 /* nr2-bedB.wav */,
+				AB1800000000000000000214 /* nr2-bedC.wav */,
 			);
 			path = NeonRift2;
 			sourceTree = "<group>";
@@ -185,6 +230,21 @@
 				AB1700000000000000000100 /* nr2-shot.wav in Resources */,
 				AB1700000000000000000111 /* nr2-kill.wav in Resources */,
 				AB1700000000000000000122 /* nr2-lock.wav in Resources */,
+				AB1800000000000000000100 /* nr2-tick0.wav in Resources */,
+				AB1800000000000000000101 /* nr2-tick1.wav in Resources */,
+				AB1800000000000000000102 /* nr2-tick2.wav in Resources */,
+				AB1800000000000000000103 /* nr2-tick3.wav in Resources */,
+				AB1800000000000000000104 /* nr2-roll.wav in Resources */,
+				AB1800000000000000000105 /* nr2-warn.wav in Resources */,
+				AB1800000000000000000106 /* nr2-boom2.wav in Resources */,
+				AB1800000000000000000107 /* nr2-bigboom.wav in Resources */,
+				AB1800000000000000000108 /* nr2-boost.wav in Resources */,
+				AB1800000000000000000109 /* nr2-dive.wav in Resources */,
+				AB1800000000000000000110 /* nr2-overdrive.wav in Resources */,
+				AB1800000000000000000111 /* nr2-crate.wav in Resources */,
+				AB1800000000000000000112 /* nr2-bedA.wav in Resources */,
+				AB1800000000000000000113 /* nr2-bedB.wav in Resources */,
+				AB1800000000000000000114 /* nr2-bedC.wav in Resources */,
 				F3D2A1000000000000000019 /* fighter-hotspots.json in Resources */,
 				F3D2A1000000000000000031 /* earth-day.jpg in Resources */,
 				F3D2A1000000000000000032 /* earth-clouds.png in Resources */,
