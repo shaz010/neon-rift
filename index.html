@@ -71,7 +71,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
 #mapcv{width:100%;height:100%;display:block;touch-action:manipulation;background:transparent}
 </style></head><body><canvas id="c"></canvas>
 <button id="pauseBtn" aria-label="pause">II</button>
-<div id="ver" aria-hidden="true">nr-sfx-2</div>
+<div id="ver" aria-hidden="true" style="display:none">nr-sfx-3</div>
 <div id="dbg" hidden></div>
 
 <div class="ui on" id="menu"><div class="panel clear">
@@ -79,7 +79,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
   <div class="sub" style="letter-spacing:3px;white-space:nowrap">YEAR 2199 · THE RIFT</div>
   <h1>NEON RIFT · SPELLS</h1>
   <div class="sub spell" style="margin-top:10px;letter-spacing:2px">Circle. Bolt. Well. Dash.</div>
-  <div style="margin:8px 0 2px"><span id="verPill" style="display:inline-block;padding:3px 10px;border-radius:999px;border:1px solid #2ee6ff;color:#2ee6ff;background:rgba(46,230,255,.12);font:800 12.5px -apple-system,sans-serif;letter-spacing:1.5px">nr-sfx-2</span></div>
+  <div style="margin:8px 0 2px"><span id="verPill" style="display:inline-block;padding:3px 10px;border-radius:999px;border:1px solid #2ee6ff;color:#2ee6ff;background:rgba(46,230,255,.12);font:800 12.5px -apple-system,sans-serif;letter-spacing:1.5px">nr-sfx-3</span></div>
   <div class="cr" id="mCr" style="margin-bottom:14px"></div>
   <div style="max-width:340px;margin:auto">
   <button class="btn pri" id="bMap">CONSTELLATION</button>
@@ -171,6 +171,7 @@ input[type=range]{width:55%;accent-color:#5ef2d6}input[type=checkbox]{width:24px
   <div class="row"><button class="btn" id="rHangar">HANGAR</button><button class="btn" id="rMenu">MENU</button></div>
 </div></div>
 
+<script>if(location.protocol==='file:')document.write('<script src="sfx/sfx-data.js"><\/script>')</script>
 <script src="bed.js?v=nr-sfx-0"></script>
 <script>
 "use strict";
@@ -3130,7 +3131,7 @@ function refreshMenu(){
   $('bDaily').textContent='DAILY RIFT · '+(dd.done?'✓ ':'')+'#'+String(dk).slice(4)+(dd.best?' · BEST '+dd.best.toLocaleString():'');
   const lit=(SV.sectors.stars||[]).filter(n=>n>0).length;
   const mt=musicChoices().find(t=>t.id===trackId());
-  $('mHint').innerHTML=(HS?'BEST '+HS.toLocaleString()+' · ':'')+'MISSIONS '+done+'/'+ACH.length+' · STARS '+lit+'/6<br>'+controlBlurb()+'<br>Ship stuck? Tap to break free.<br>Endless is the classic run. Constellation is six short sectors.<br>Music: '+(mt?mt.name:'ORIGINAL')+'. Switch it any time in Music.<br><span style="letter-spacing:1px;opacity:.75">NR-spell-1</span>';
+  $('mHint').innerHTML=(HS?'BEST '+HS.toLocaleString()+' · ':'')+'MISSIONS '+done+'/'+ACH.length+' · STARS '+lit+'/6<br>'+controlBlurb()+'<br>Ship stuck? Tap to break free.<br>Endless is the classic run. Constellation is six short sectors.<br>Music: '+(mt?mt.name:'ORIGINAL')+'. Switch it any time in Music.';
 }
 function paintConstellation(){
   const c=$('mapcv');if(!c)return;
@@ -3926,7 +3927,7 @@ const SMP={v:'nr-sfx-0',cues:{
 SMP.fmt=(()=>{try{const a=document.createElement('audio');const m=a.canPlayType('audio/mp4; codecs="mp4a.40.2"'),o=a.canPlayType('audio/ogg; codecs="vorbis"');return m&&(m==='probably'||!o)?['m4a','ogg']:['ogg','m4a'];}catch(e){return ['m4a','ogg'];}})();
 function smpFetch(f){
   if(SMP.raw[f])return SMP.raw[f];
-  return SMP.raw[f]=(async()=>{const out={};for(const ext of SMP.fmt){try{const r=await fetch('sfx/'+f+'.'+ext+'?v=nr-sfx-0');if(r.ok)out[ext]=await r.arrayBuffer();}catch(e){}}return out;})();
+  return SMP.raw[f]=(async()=>{const out={};for(const ext of SMP.fmt){try{const E=window.NR_SFX_DATA;if(E&&E[f+'.'+ext]){const b=atob(E[f+'.'+ext]),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);out[ext]=u.buffer;continue;}if(location.protocol==='file:')continue;const r=await fetch('sfx/'+f+'.'+ext+'?v=nr-sfx-0');if(r.ok)out[ext]=await r.arrayBuffer();}catch(e){}}return out;})();
 }
 function smpDecode(c,bytes){return new Promise((res,rej)=>{try{const p=c.decodeAudioData(bytes.slice(0),res,rej);if(p&&p.then)p.then(res,rej);}catch(e){rej(e);}});}
 async function smpLoadFor(c){
