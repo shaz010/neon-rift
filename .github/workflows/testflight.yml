@@ -9,7 +9,7 @@ name: TestFlight
 on:
   push:
     branches:
-      - nr2-b18
+      - nr2-b19
   workflow_dispatch:
     inputs:
       record:
@@ -18,7 +18,7 @@ on:
         default: false
 
 concurrency:
-  group: testflight-nr2-b18
+  group: testflight-nr2-b19
   cancel-in-progress: true
 
 permissions:

@@ -323,6 +323,10 @@ final class FlightViewController: UIViewController {
         overlay.aimOrigin = touch.aimOrigin
         overlay.aim = touch.aim
         overlay.lockPoint = project(m.lockWorld)
+        overlay.leadPoint = project(m.leadWorld)
+        overlay.hurt = CGFloat(m.hurt)
+        overlay.streakCount = m.streakCount
+        overlay.speedValue = CGFloat(m.speedValue)
         overlay.lockTitle = m.lockTitle
         overlay.lockHealth = CGFloat(m.lockHealth)
         overlay.lockMissile = m.lockMissile
@@ -635,6 +639,10 @@ final class HudOverlay: UIView {
     var bossTitle = ""
     var bossHealth: CGFloat = 0
     var cockpit = false
+    var leadPoint: CGPoint?
+    var hurt: CGFloat = 0
+    var streakCount = 0
+    var speedValue: CGFloat = 0
     var guideTitle = ""
     var guideBearing: CGFloat = 0
     var guideDistance: CGFloat = 0
@@ -703,6 +711,9 @@ final class HudOverlay: UIView {
                 ("NEXT" as NSString).draw(at: CGPoint(x: hint.x - 12 * s, y: hint.y + 30 * s), withAttributes: attrs)
             }
             drawGuide(ctx, rect, s)
+            if cockpit {
+                drawCockpitGlass(ctx, rect, s)
+            } else {
             let reticle = CGPoint(x: rect.midX, y: rect.midY - 8 * s)
             ctx.setStrokeColor(UIColor(white: 1, alpha: 0.9).cgColor)
             ctx.setLineWidth(max(1.4, 1.4 * s))
@@ -717,6 +728,7 @@ final class HudOverlay: UIView {
             ctx.move(to: CGPoint(x: reticle.x, y: reticle.y + gap))
             ctx.addLine(to: CGPoint(x: reticle.x, y: reticle.y + gap + arm))
             ctx.strokePath()
+            }
         }
         for gem in gems {
             let point = gem.0
@@ -836,6 +848,99 @@ final class HudOverlay: UIView {
             }
         }
         return best?.0
+    }
+
+    /// b19 cockpit glass HUD: centre crosshair (red + LOCKED when the lock is near it),
+    /// lead pip, target ring, speed, heat and combo, plus flicker and sparks on hits.
+    private func drawCockpitGlass(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {
+        let c = CGPoint(x: rect.midX, y: rect.midY)
+        let glass = UIColor(red: 0.45, green: 1, blue: 0.95, alpha: 0.9)
+        var onTarget = false
+        if let lock = lockPoint, !lockTitle.isEmpty {
+            onTarget = hypot(lock.x - c.x, lock.y - c.y) < 70 * s
+        }
+        let red = UIColor(red: 1, green: 0.2, blue: 0.15, alpha: 0.95)
+        let col = onTarget ? red : glass
+        ctx.saveGState()
+        ctx.setShadow(offset: .zero, blur: 8 * s, color: col.withAlphaComponent(0.8).cgColor)
+        ctx.setStrokeColor(col.cgColor)
+        ctx.setLineWidth(1.6 * s)
+        let gap = 8 * s, arm = 18 * s
+        for (dx, dy) in [(-1.0, 0.0), (1.0, 0.0), (0.0, -1.0), (0.0, 1.0)] as [(CGFloat, CGFloat)] {
+            ctx.move(to: CGPoint(x: c.x + dx * gap, y: c.y + dy * gap))
+            ctx.addLine(to: CGPoint(x: c.x + dx * (gap + arm), y: c.y + dy * (gap + arm)))
+        }
+        ctx.strokePath()
+        ctx.fillEllipse(in: CGRect(x: c.x - 1.5 * s, y: c.y - 1.5 * s, width: 3 * s, height: 3 * s))
+        // Target ring: lock health around the crosshair.
+        let ringR = 44 * s
+        ctx.setStrokeColor(col.withAlphaComponent(0.25).cgColor)
+        ctx.strokeEllipse(in: CGRect(x: c.x - ringR, y: c.y - ringR, width: ringR * 2, height: ringR * 2))
+        if !lockTitle.isEmpty {
+            ctx.setLineWidth(3 * s)
+            ctx.setStrokeColor(col.cgColor)
+            ctx.addArc(center: c, radius: ringR, startAngle: -.pi / 2,
+                       endAngle: -.pi / 2 + 2 * .pi * max(0, min(1, lockHealth)), clockwise: false)
+            ctx.strokePath()
+        }
+        let font: (CGFloat) -> [NSAttributedString.Key: Any] = { size in
+            [.font: UIFont.monospacedSystemFont(ofSize: size * s, weight: .bold), .foregroundColor: col]
+        }
+        if onTarget {
+            ("LOCKED" as NSString).draw(at: CGPoint(x: c.x - 22 * s, y: c.y + ringR + 6 * s), withAttributes: font(11))
+        }
+        if let lock = lockPoint, !lockTitle.isEmpty, rect.contains(lock) {
+            bracket(ctx, lock, 26 * s, red.withAlphaComponent(0.8))
+            ("\(Int(lockDistance))m" as NSString).draw(at: CGPoint(x: lock.x + 30 * s, y: lock.y - 6 * s), withAttributes: font(10))
+        }
+        if let lead = leadPoint, !lockTitle.isEmpty, rect.contains(lead) {
+            let r = 7 * s
+            ctx.setLineWidth(2 * s)
+            ctx.setStrokeColor(UIColor(red: 1, green: 0.85, blue: 0.3, alpha: 0.95).cgColor)
+            ctx.strokeEllipse(in: CGRect(x: lead.x - r, y: lead.y - r, width: r * 2, height: r * 2))
+            if let lock = lockPoint {
+                ctx.setLineWidth(1 * s)
+                ctx.move(to: lock)
+                ctx.addLine(to: lead)
+                ctx.strokePath()
+            }
+        }
+        // Glass panel left: speed. Right: heat. Top: combo.
+        let panelY = c.y + 90 * s
+        ("SPD \(Int(speedValue))" as NSString).draw(at: CGPoint(x: c.x - 120 * s, y: panelY), withAttributes: font(13))
+        let barW = 70 * s
+        let heatRect = CGRect(x: c.x + 50 * s, y: panelY + 4 * s, width: barW, height: 6 * s)
+        ctx.setStrokeColor(glass.withAlphaComponent(0.5).cgColor)
+        ctx.setLineWidth(1 * s)
+        ctx.stroke(heatRect)
+        let hot = overheated ? red : UIColor(red: 1, green: 0.6 + 0.4 * (1 - heat), blue: 0.2, alpha: 0.9)
+        ctx.setFillColor(hot.cgColor)
+        ctx.fill(CGRect(x: heatRect.minX, y: heatRect.minY, width: barW * max(0, min(1, heat)), height: heatRect.height))
+        ((overheated ? "OVERHEAT" : "HEAT") as NSString).draw(at: CGPoint(x: heatRect.minX, y: panelY - 12 * s), withAttributes: font(9))
+        if streakCount >= 2 {
+            ("COMBO x\(streakCount)" as NSString).draw(at: CGPoint(x: c.x - 36 * s, y: c.y - ringR - 24 * s), withAttributes: font(12))
+        }
+        ctx.restoreGState()
+        // Hit: frame lights flicker red and sparks spit from the canopy edges.
+        if hurt > 0 {
+            let on = Int(CACurrentMediaTime() * 30) % 3 != 0
+            if on {
+                ctx.setFillColor(UIColor(red: 1, green: 0.1, blue: 0.05, alpha: 0.16 * min(1, hurt)).cgColor)
+                ctx.fill(rect)
+            }
+            ctx.setStrokeColor(UIColor(red: 1, green: 0.85, blue: 0.4, alpha: min(1, hurt)).cgColor)
+            ctx.setLineWidth(1.5 * s)
+            for _ in 0..<8 {
+                let left = Bool.random()
+                let start = CGPoint(x: left ? rect.minX + 6 * s : rect.maxX - 6 * s,
+                                    y: CGFloat.random(in: rect.height * 0.2...rect.height * 0.8))
+                let len = CGFloat.random(in: 10...34) * s
+                let ang = CGFloat.random(in: -0.8...0.8) + (left ? 0 : .pi)
+                ctx.move(to: start)
+                ctx.addLine(to: CGPoint(x: start.x + cos(ang) * len, y: start.y + sin(ang) * len))
+            }
+            ctx.strokePath()
+        }
     }
 
     private func drawLock(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {

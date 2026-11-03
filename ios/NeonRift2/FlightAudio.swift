@@ -1,26 +1,125 @@
 import AVFoundation
 import UIKit
 
-/// Playback-category bed plus shot and explosion voices. Silent-switch safe
-/// because the session is `.playback` before the engine starts.
+/// b19: one AVAudioEngine, everything converted to 44.1 kHz stereo float at load,
+/// every node attached and connected before start, a serial audio queue for all
+/// node calls, restart on interruption / route / configuration change / media
+/// reset, and an AVAudioPlayer fallback for the sample clips if the engine fails.
 final class FlightAudio {
-    private let engine = AVAudioEngine()
+    /// Short status for the hangar badge (debug-safe, no secrets).
+    static var status = "audio …"
+    static let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 2)!
+
+    private var engine = AVAudioEngine()
     private let box = UnsafeMutablePointer<AudioBox>.allocate(capacity: 1)
     private var started = false
+    private var built = false
     private let samples = SamplePool()
     private let beds = EngineBeds()
+    private let queue = DispatchQueue(label: "nr2.audio", qos: .userInitiated)
+    private var observers: [NSObjectProtocol] = []
+    private var lastRestart: CFTimeInterval = 0
 
     init() {
         box.initialize(to: AudioBox())
+        box.pointee.rate = 44_100
     }
 
     func startIfNeeded() {
+        queue.sync { self.startLocked() }
+    }
+
+    /// Called when the app becomes active and before plays when the engine is down.
+    func ensureRunning() {
+        queue.async { [weak self] in
+            guard let self else { return }
+            if !self.engine.isRunning { self.restartLocked(reason: "resume") }
+        }
+    }
+
+    private func startLocked() {
         guard !started else { return }
         AudioSession.engage()
-        let session = AVAudioSession.sharedInstance()
-        let rate = session.sampleRate > 8_000 ? session.sampleRate : 44_100
-        box.pointee.rate = Float(rate)
-        guard let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 2) else { return }
+        if !built { buildGraph() }
+        engine.prepare()
+        do {
+            try engine.start()
+            started = true
+            samples.useEngine(engine)
+            beds.start()
+            FlightAudio.status = "audio ok"
+            NSLog("NR2 audio: engine started, output \(engine.outputNode.outputFormat(forBus: 0))")
+        } catch {
+            let code = (error as NSError).code
+            FlightAudio.status = "audio fb \(code)"
+            NSLog("NR2 audio: engine start failed \(code) \(error.localizedDescription); sample fallback on")
+            samples.useFallback()
+            started = true
+        }
+        if observers.isEmpty { observe() }
+    }
+
+    private func restartLocked(reason: String) {
+        let now = CACurrentMediaTime()
+        guard now - lastRestart > 0.5 else { return }
+        lastRestart = now
+        NSLog("NR2 audio: restart (\(reason))")
+        AudioSession.engage()
+        if engine.isRunning { return }
+        engine.prepare()
+        do {
+            try engine.start()
+            samples.useEngine(engine)
+            beds.start()
+            FlightAudio.status = "audio ok"
+        } catch {
+            FlightAudio.status = "audio fb \((error as NSError).code)"
+            samples.useFallback()
+        }
+    }
+
+    private func observe() {
+        let center = NotificationCenter.default
+        observers.append(center.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: nil) { [weak self] note in
+            guard let self else { return }
+            let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+            if raw == AVAudioSession.InterruptionType.ended.rawValue {
+                self.queue.async { self.lastRestart = 0; self.restartLocked(reason: "interruption ended") }
+            }
+        })
+        observers.append(center.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: nil) { [weak self] _ in
+            guard let self else { return }
+            self.queue.asyncAfter(deadline: .now() + 0.2) { if !self.engine.isRunning { self.restartLocked(reason: "route") } }
+        })
+        observers.append(center.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil) { [weak self] _ in
+            guard let self else { return }
+            self.queue.async { self.lastRestart = 0; self.restartLocked(reason: "configuration") }
+        })
+        observers.append(center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: nil) { [weak self] _ in
+            self?.ensureRunning()
+        })
+        observers.append(center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: nil) { [weak self] _ in
+            guard let self else { return }
+            self.queue.async { self.rebuildLocked() }
+        })
+    }
+
+    /// Media services reset invalidates every node: build a fresh engine.
+    private func rebuildLocked() {
+        engine.stop()
+        engine = AVAudioEngine()
+        built = false
+        started = false
+        samples.reset()
+        beds.reset()
+        for o in observers { NotificationCenter.default.removeObserver(o) }
+        observers.removeAll()
+        startLocked()
+    }
+
+    private func buildGraph() {
+        built = true
+        let format = FlightAudio.format
         let state = box
         let source = AVAudioSourceNode(format: format) { isSilence, _, frameCount, abl in
             isSilence.pointee = ObjCBool(false)
@@ -52,10 +151,14 @@ final class FlightAudio {
             let tDmg = local.engDamage
             let smooth = min(1, dt / 0.09)
             var endE = local.eng
-            for (bufferIndex, buffer) in buffers.enumerated() {
-                guard let data = buffer.mData else { continue }
-                let ptr = data.assumingMemoryBound(to: Float.self)
-                let channels = Int(buffer.mNumberChannels)
+            // b19: one synth pass per render, written to every channel buffer
+            // (b18 re-ran the whole synth once per deinterleaved buffer).
+            let thumpK: Float = exp(-dt / 0.09)
+            let zapK: Float = exp(-dt / 0.032)
+            guard buffers.count > 0, let d0 = buffers[0].mData else { return noErr }
+            let out0 = d0.assumingMemoryBound(to: Float.self)
+            let out1: UnsafeMutablePointer<Float>? = buffers.count > 1 ? buffers[1].mData?.assumingMemoryBound(to: Float.self) : nil
+            do {
                 var phase = local.phase
                 var nstate = local.nstate
                 var shot = local.shot
@@ -114,10 +217,8 @@ final class FlightAudio {
                     let voice: Float = (e.lp2 * (0.06 + 0.07 * e.thr + 0.04 * e.boost)
                         + e.nl * (0.03 + 0.12 * e.spd + 0.06 * e.boost)) * sputter
                     let pan: Float = max(-0.8, min(0.8, e.turn * 0.6))
-                    let side: Float = channelCount < 2 ? 1 : (bufferIndex == 0 ? sqrt(1 - pan) : sqrt(1 + pan))
-                    let hum = voice * side
-                    let thumpK: Float = exp(-dt / 0.09)
-                    let zapK: Float = exp(-dt / 0.032)
+                    let sideL: Float = channelCount < 2 ? 1 : sqrt(1 - pan)
+                    let sideR: Float = channelCount < 2 ? 1 : sqrt(1 + pan)
                     shot *= thumpK
                     zap *= zapK
                     shotPhase += dt
@@ -142,13 +243,18 @@ final class FlightAudio {
                     var gate: Float = 0
                     if sin(lockPhase * 2 * .pi) > 0.45 { gate = 1 }
                     let seeker = gate * sin(lockPhase * 16 * .pi) * lock * 0.055
-                    let sample = (hum + crack + rumble + hit + rise + bell + tow + bed + seeker) * 0.9
-                    if channels <= 1 {
-                        ptr[i] = sample
+                    let common = (crack + rumble + hit + rise + bell + tow + bed + seeker) * 0.9
+                    var l = common + voice * sideL * 0.9
+                    var r = common + voice * sideR * 0.9
+                    if !l.isFinite { l = 0 }
+                    if !r.isFinite { r = 0 }
+                    l = max(-1, min(1, l))
+                    r = max(-1, min(1, r))
+                    if let out1 {
+                        out0[i] = l
+                        out1[i] = r
                     } else {
-                        for c in 0..<channels {
-                            ptr[i * channels + c] = sample
-                        }
+                        out0[i] = (l + r) * 0.5
                     }
                 }
                 endPhase = phase
@@ -183,13 +289,17 @@ final class FlightAudio {
         engine.mainMixerNode.outputVolume = 0.9
         samples.attach(to: engine)
         beds.attach(to: engine)
-        engine.prepare()
-        do {
-            try engine.start()
-            started = true
-            beds.start()
-        } catch {
-            NSLog("Neon Rift 2 audio engine: \(error.localizedDescription)")
+    }
+
+    /// All sample plays go through the serial audio queue; a failed play restarts the engine.
+    private func play(_ clip: SamplePool.Clip, volume: Float) {
+        guard started else { return }
+        queue.async { [weak self] in
+            guard let self else { return }
+            if !self.samples.play(clip, volume: volume) {
+                self.restartLocked(reason: "play while stopped")
+                self.samples.play(clip, volume: volume)
+            }
         }
     }
 
@@ -199,11 +309,11 @@ final class FlightAudio {
     func setBeam(_ value: Float) { box.pointee.beam = min(1, max(0, value)) }
     func setLock(_ value: Float) { box.pointee.lock = min(1, max(0, value)) }
     /// b17: Logic "Sharp Laser Boomer", trimmed to 0.32 s, peak -4 dBFS.
-    func shot() { samples.play(.shot, volume: 0.42) }
+    func shot() { play(.shot, volume: 0.42) }
     /// b17: Logic "Strong Connections Impact 02", trimmed to 1.6 s, peak -4 dBFS.
-    func explosion(volume: Float = 0.62) { samples.play(.kill, volume: volume) }
+    func explosion(volume: Float = 0.62) { play(.kill, volume: volume) }
     /// b17: Logic "Locking Target FX", trimmed, peak -4 dBFS.
-    func lockOn() { samples.play(.lock, volume: 0.34) }
+    func lockOn() { play(.lock, volume: 0.34) }
     /// b18: EngineVoice controls. All 0...1 except turn (-1...1). Also drives the Logic beds.
     func setEngine(throttle: Float, speed: Float, turn: Float, boost: Float, damage: Float, dt: Float) {
         box.pointee.engThrottle = min(1, max(0, throttle))
@@ -212,25 +322,26 @@ final class FlightAudio {
         box.pointee.engBoost = min(1, max(0, boost))
         box.pointee.engDamage = min(1, max(0, damage))
         guard started else { return }
-        beds.update(throttle: throttle, speed: speed, boost: boost, dt: dt)
+        queue.async { [weak self] in self?.beds.update(throttle: throttle, speed: speed, boost: boost, dt: dt) }
     }
     /// b18: rising hit tick. Each consecutive hit on the same target steps up in pitch.
     func hitTick(streak: Int) {
         let clips: [SamplePool.Clip] = [.tick0, .tick1, .tick2, .tick3]
-        samples.play(clips[min(3, max(0, streak / 2))], volume: 0.2)
+        play(clips[min(3, max(0, streak / 2))], volume: 0.2)
     }
-    func warn() { samples.play(.warn, volume: 0.26) }
-    func secondaryBoom(volume: Float = 0.36) { samples.play(.boom2, volume: volume) }
-    func bigBoom(volume: Float = 0.62) { samples.play(.bigboom, volume: volume) }
-    func boostWhoosh() { samples.play(.boost, volume: 0.3) }
-    func dive() { samples.play(.dive, volume: 0.24) }
-    func rollSweep() { samples.play(.roll, volume: 0.22) }
-    func overdrive() { samples.play(.overdrive, volume: 0.36) }
-    func crate() { samples.play(.crate, volume: 0.34) }
+    func warn() { play(.warn, volume: 0.26) }
+    func secondaryBoom(volume: Float = 0.36) { play(.boom2, volume: volume) }
+    func bigBoom(volume: Float = 0.62) { play(.bigboom, volume: volume) }
+    func boostWhoosh() { play(.boost, volume: 0.3) }
+    func dive() { play(.dive, volume: 0.24) }
+    func rollSweep() { play(.roll, volume: 0.22) }
+    func overdrive() { play(.overdrive, volume: 0.36) }
+    func crate() { play(.crate, volume: 0.34) }
     func titleHit() { box.pointee.sting = 1 }
     func chime() { box.pointee.chime = 1 }
 
     deinit {
+        for o in observers { NotificationCenter.default.removeObserver(o) }
         engine.stop()
         box.deinitialize(count: 1)
         box.deallocate()
@@ -373,29 +484,23 @@ private final class SamplePool {
     private var players: [Clip: [AVAudioPlayerNode]] = [:]
     private var next: [Clip: Int] = [:]
     private weak var engine: AVAudioEngine?
+    private var fallback = false
+    private var fbPlayers: [Clip: [AVAudioPlayer]] = [:]
 
     init() {
         for clip in Clip.allCases {
-            guard let url = Bundle.main.url(forResource: clip.file, withExtension: "wav"),
-                  let file = try? AVAudioFile(forReading: url),
-                  let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)) else {
-                NSLog("NR2 sample missing: \(clip.file)")
-                continue
-            }
-            do { try file.read(into: buffer) } catch { continue }
-            buffers[clip] = buffer
+            if let buffer = loadStereo(clip.file) { buffers[clip] = buffer } else { NSLog("NR2 sample missing: \(clip.file)") }
         }
     }
 
     func attach(to engine: AVAudioEngine) {
         self.engine = engine
-        for clip in Clip.allCases {
-            guard let buffer = buffers[clip] else { continue }
+        for clip in Clip.allCases where buffers[clip] != nil {
             var list: [AVAudioPlayerNode] = []
             for _ in 0..<clip.voices {
                 let node = AVAudioPlayerNode()
                 engine.attach(node)
-                engine.connect(node, to: engine.mainMixerNode, format: buffer.format)
+                engine.connect(node, to: engine.mainMixerNode, format: FlightAudio.format)
                 list.append(node)
             }
             players[clip] = list
@@ -403,28 +508,85 @@ private final class SamplePool {
         }
     }
 
-    func play(_ clip: Clip, volume: Float) {
-        guard let engine, engine.isRunning, let buffer = buffers[clip], let list = players[clip], !list.isEmpty else { return }
-        let index = next[clip] ?? 0
-        next[clip] = (index + 1) % list.count
-        let node = list[index]
-        node.stop()
-        node.volume = volume
-        node.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
-        node.play()
+    func useEngine(_ engine: AVAudioEngine) { self.engine = engine; fallback = false }
+
+    func reset() { players.removeAll(); next.removeAll(); engine = nil }
+
+    /// Engine failed: file-based AVAudioPlayers, independent of the graph.
+    func useFallback() {
+        fallback = true
+        guard fbPlayers.isEmpty else { return }
+        for clip in Clip.allCases {
+            guard let url = Bundle.main.url(forResource: clip.file, withExtension: "wav") else { continue }
+            var list: [AVAudioPlayer] = []
+            for _ in 0..<max(1, min(3, clip.voices)) {
+                if let p = try? AVAudioPlayer(contentsOf: url) { p.prepareToPlay(); list.append(p) }
+            }
+            fbPlayers[clip] = list
+            if next[clip] == nil { next[clip] = 0 }
+        }
+    }
+
+    /// Returns false if the engine is down so the caller can restart it.
+    @discardableResult
+    func play(_ clip: Clip, volume: Float) -> Bool {
+        if !fallback, let engine, engine.isRunning, let buffer = buffers[clip], let list = players[clip], !list.isEmpty {
+            let index = next[clip] ?? 0
+            next[clip] = (index + 1) % list.count
+            let node = list[index]
+            node.stop()
+            node.volume = volume
+            node.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
+            node.play()
+            return true
+        }
+        if let list = fbPlayers[clip], !list.isEmpty {
+            let index = (next[clip] ?? 0) % list.count
+            next[clip] = (index + 1) % list.count
+            let p = list[index]
+            p.currentTime = 0
+            p.volume = volume
+            p.play()
+            return fallback
+        }
+        return false
     }
 }
 
-/// b18: looped Logic beds under the EngineVoice. Each bed has two players so it
-/// can crossfade to a fresh random offset every few seconds; a varispeed per
-/// player follows speed. Volumes move a little each frame, so there are no clicks.
+/// Reads a WAV and converts it to FlightAudio.format (44.1 kHz stereo float).
+private func loadStereo(_ name: String) -> AVAudioPCMBuffer? {
+    guard let url = Bundle.main.url(forResource: name, withExtension: "wav"),
+          let file = try? AVAudioFile(forReading: url),
+          let src = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)),
+          (try? file.read(into: src)) != nil else { return nil }
+    let dstFormat = FlightAudio.format
+    if src.format == dstFormat { return src }
+    guard let conv = AVAudioConverter(from: src.format, to: dstFormat) else { return nil }
+    if src.format.channelCount == 1 { conv.channelMap = [0, 0] }
+    let ratio = dstFormat.sampleRate / src.format.sampleRate
+    let cap = AVAudioFrameCount(Double(src.frameLength) * ratio + 1024)
+    guard let dst = AVAudioPCMBuffer(pcmFormat: dstFormat, frameCapacity: cap) else { return nil }
+    var fed = false
+    var err: NSError?
+    let status = conv.convert(to: dst, error: &err) { _, out in
+        if fed { out.pointee = .endOfStream; return nil }
+        fed = true
+        out.pointee = .haveData
+        return src
+    }
+    if status == .error || dst.frameLength == 0 { NSLog("NR2 convert failed \(name)"); return nil }
+    return dst
+}
+
+/// Looped Logic beds under the EngineVoice. Two players per bed crossfade to a
+/// fresh random offset every few seconds. b19: no varispeed units (fewer AUs),
+/// all buffers 44.1k stereo, all calls on FlightAudio's serial audio queue.
 private final class EngineBeds {
     private struct Bed {
         let file: String
         let maxVolume: Float
         var buffer: AVAudioPCMBuffer?
         var players: [AVAudioPlayerNode] = []
-        var speeds: [AVAudioUnitVarispeed] = []
         var gains: [Float] = [0, 0]
         var active = 0
         var clock: Float = 0
@@ -440,46 +602,41 @@ private final class EngineBeds {
 
     init() {
         for i in beds.indices {
-            guard let url = Bundle.main.url(forResource: beds[i].file, withExtension: "wav"),
-                  let file = try? AVAudioFile(forReading: url),
-                  let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)) else {
-                NSLog("NR2 bed missing: \(beds[i].file)")
-                continue
-            }
-            do { try file.read(into: buffer) } catch { continue }
-            beds[i].buffer = buffer
+            beds[i].buffer = loadStereo(beds[i].file)
+            if beds[i].buffer == nil { NSLog("NR2 bed missing: \(beds[i].file)") }
         }
     }
 
     func attach(to engine: AVAudioEngine) {
-        for i in beds.indices {
-            guard let buffer = beds[i].buffer else { continue }
+        for i in beds.indices where beds[i].buffer != nil {
             for _ in 0..<2 {
                 let player = AVAudioPlayerNode()
-                let speed = AVAudioUnitVarispeed()
                 engine.attach(player)
-                engine.attach(speed)
-                engine.connect(player, to: speed, format: buffer.format)
-                engine.connect(speed, to: engine.mainMixerNode, format: buffer.format)
+                engine.connect(player, to: engine.mainMixerNode, format: FlightAudio.format)
                 player.volume = 0
                 beds[i].players.append(player)
-                beds[i].speeds.append(speed)
             }
             beds[i].nextSwap = Float.random(in: 8...14)
         }
     }
 
+    func reset() {
+        for i in beds.indices { beds[i].players.removeAll(); beds[i].gains = [0, 0]; beds[i].active = 0 }
+        running = false
+    }
+
+    /// (Re)starts the active slot; safe to call after an engine restart.
     func start() {
         for i in beds.indices where beds[i].players.count == 2 {
-            cue(i, slot: 0)
-            beds[i].gains = [1, 0]
+            cue(i, slot: beds[i].active)
+            beds[i].gains[beds[i].active] = 1
+            beds[i].gains[1 - beds[i].active] = 0
         }
         running = true
     }
 
-    /// Starts `slot` looping from a random point in the bed.
     private func cue(_ i: Int, slot: Int) {
-        guard let buffer = beds[i].buffer else { return }
+        guard let buffer = beds[i].buffer, let engine = beds[i].players[slot].engine, engine.isRunning else { return }
         let player = beds[i].players[slot]
         player.stop()
         let total = Int(buffer.frameLength)
@@ -503,9 +660,7 @@ private final class EngineBeds {
         let t = max(0, min(1, throttle))
         let v = max(0, min(1, speed))
         let b = max(0, min(1, boost))
-        // A: the main engine riser bed, B: deep synth layers at cruise, C: pulsing noise at speed and boost.
         let want: [Float] = [0.35 + 0.65 * t, 0.55 + 0.45 * (1 - t) * (1 - v * 0.5), 0.15 + 0.5 * v + 0.6 * b]
-        let rates: [Float] = [0.86 + 0.3 * v + 0.12 * b, 0.94 + 0.1 * t, 0.9 + 0.35 * v]
         let k = min(1, dt * 2.5)
         for i in beds.indices where beds[i].players.count == 2 {
             level[i] += (min(1, want[i]) - level[i]) * k
@@ -520,9 +675,7 @@ private final class EngineBeds {
             for slot in 0..<2 {
                 let target: Float = slot == beds[i].active ? 1 : 0
                 beds[i].gains[slot] += (target - beds[i].gains[slot]) * min(1, dt / 2.2)
-                let g = beds[i].gains[slot]
-                beds[i].players[slot].volume = beds[i].maxVolume * level[i] * sqrt(max(0, g))
-                beds[i].speeds[slot].rate = rates[i]
+                beds[i].players[slot].volume = beds[i].maxVolume * level[i] * sqrt(max(0, beds[i].gains[slot]))
             }
         }
     }

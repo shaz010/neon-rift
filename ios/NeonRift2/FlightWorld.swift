@@ -71,6 +71,11 @@ struct HudModel {
     var hull = 100
     var heading: Float = 0
     var lockWorld: simd_float3?
+    var leadWorld: simd_float3?
+    var hurt: Float = 0
+    var heatFrac: Float = 0
+    var streakCount = 0
+    var speedValue: Float = 0
     var pickups: [simd_float3] = []
     var popups: [(simd_float3, String, Float)] = []
     var sunWorld = simd_float3.zero
@@ -262,6 +267,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     private var bossCore: Enemy?
     private var viewMode = UserDefaults.standard.integer(forKey: "nr2.viewMode") % 3
     private var aerialYaw: Float = 0
+    private var yawRate: Float = 0
     private var aerialCenter = simd_float3.zero
     private var aerialSpan: Float = 60
     private var trickShotFlash: Float = 0
@@ -682,26 +688,19 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let y = Float(stick.y)
         let aimX = auto ? Float(0) : Float(inputAim.x)
         let aimY = auto ? Float(0) : Float(inputAim.y)
-        // Left thumb adds a gentle turn. Right thumb is the fine aim. They sum.
-        let yawFromLeft: Float = auto ? x : x * 0.4
-        var yawCmd = yawFromLeft + aimX * 0.92
+        // b19: direct steering. Left stick x and right thumb x both turn the nose
+        // (they sum), mapped almost linearly to a fast yaw rate with a crisp
+        // first-order response (no overshoot). No aim assist, no auto-face: only
+        // the player moves the ship.
+        let yawFromLeft: Float = auto ? x : x * 0.8
+        var yawCmd = yawFromLeft + aimX
         yawCmd = max(-1, min(1, yawCmd))
-        let shaped = yawCmd * (0.62 + 0.38 * abs(yawCmd))
-        yaw += shaped * 3.25 * dt
-        if fire, let aim = aimEnemy(), trick == nil {
-            let err = yawError(toward: aim.position)
-            if abs(err) < 0.28 {
-                yaw += err * min(1, 1.8 * dt)
-            }
-        }
-        if faceLeft > 0, trick == nil {
-            faceLeft -= dt
-            let target = (cycled?.alive == true && cycled?.disabled == false) ? cycled : nearestHostile()
-            if let target {
-                let err = yawError(toward: target.position)
-                yaw += max(-2.8 * dt, min(2.8 * dt, err))
-            }
-        }
+        let shaped = yawCmd * (0.8 + 0.2 * abs(yawCmd))
+        let wantYawRate = shaped * 4.2
+        yawRate += (wantYawRate - yawRate) * min(1, 22 * dt)
+        if abs(wantYawRate) < 0.001 && abs(yawRate) < 0.02 { yawRate = 0 }
+        yaw += yawRate * dt
+        if faceLeft > 0 { faceLeft -= dt }
         if let trick {
             trickAge += dt
             let duration: Float = trick == .loop ? 1.25 : 0.72
@@ -717,13 +716,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 self.trick = nil
             }
         } else {
-            var targetPitch = aimY * 0.5
-            if faceLeft > 0, let target = (cycled?.alive == true && cycled?.disabled == false) ? cycled : nearestHostile() {
-                let climb = target.position.y - position.y
-                let dist = max(12, simd_distance(target.position, position))
-                targetPitch = max(-0.36, min(0.36, climb / dist))
-            }
-            pitch += (targetPitch - pitch) * min(1, 14 * dt)
+            let targetPitch = aimY * 0.55
+            pitch += (targetPitch - pitch) * min(1, 20 * dt)
             pitch = max(-0.55, min(0.55, pitch))
             let targetRoll = -yawCmd * 0.62
             roll += (targetRoll - roll) * min(1, 11 * dt)
@@ -737,15 +731,9 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let thrustMul: Float = boosting ? 1.9 : 1
         var force = fwd * (thrustScale * maxThrust * thrustMul)
         if trick != nil { force += fwd * maxThrust * 0.7 }
-        if !auto {
-            let strafe = safeNorm(simd_cross(fwd, simd_float3(0, 1, 0)))
-            force += strafe * x * maxThrust * 0.42
-        }
+        // b19: no strafe force (it made the ship slide sideways off its nose).
         if towed != nil { force *= 0.72 }
         let forwardSpeed = simd_dot(velocity, fwd)
-        let lateral = velocity - fwd * forwardSpeed
-        let latK: Float = assisting ? 3.2 : 1.05
-        force += -lateral * latK * mass
         if assisting {
             force += -fwd * forwardSpeed * 0.2 * mass
         }
@@ -764,6 +752,11 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         if position.z < zFloor { force.z -= (position.z - zFloor) * mass }
 
         velocity += force / mass * dt
+        // b19: velocity follows the nose almost immediately. Sideways velocity is
+        // removed with a ~0.07 s time constant, so there is no drift or slide.
+        let along = simd_dot(velocity, fwd)
+        let side = velocity - fwd * along
+        velocity = fwd * along + side * exp(-14 * dt)
         let cap: Float = boosting ? 158 : (towed != nil ? 78 : 118)
         let speed = simd_length(velocity)
         if speed > cap { velocity *= cap / speed }
@@ -1133,7 +1126,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 let n = len > 0.01 ? d / len : simd_float3(0, 1, 0)
                 position = rock.position + n * reach
                 let vn = simd_dot(velocity, n)
-                if vn < 0 { velocity -= 1.7 * vn * n }
+                if vn < 0 { velocity -= 1.15 * vn * n }
                 hurtPlayer(14)
                 sparks(at: rock.position + n * rock.radius, count: 4, speed: 10)
             }
@@ -1150,7 +1143,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 let best = pens.min { $0.0 < $1.0 }!
                 position += best.1 * (best.0 + 0.5)
                 let vn = simd_dot(velocity, best.1)
-                if vn < 0 { velocity -= 1.6 * vn * best.1 }
+                if vn < 0 { velocity -= 1.15 * vn * best.1 }
                 hurtPlayer(10)
             }
         }
@@ -1463,6 +1456,11 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
     /// Portrait keeps the iPhone chase framing. Landscape tightens the vertical
     /// angle so the fighter stays large on a wide iPad.
+    /// b19: wide cockpit view.
+    private func cockpitFieldOfView() -> CGFloat {
+        viewportAspect > 1.05 ? 62 : 74
+    }
+
     private func verticalFieldOfView(boost: Float, shake: Float) -> CGFloat {
         let wide = viewportAspect > 1.05
         let base: CGFloat = wide ? 46 : 56
@@ -1485,7 +1483,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         place("railL", simd_float3(-halfW * 0.9, halfH * 0.06, z), simd_float3(1, halfH * 1.5, 1))
         place("railR", simd_float3(halfW * 0.9, halfH * 0.06, z), simd_float3(1, halfH * 1.5, 1))
         place("bow", simd_float3(0, halfH * 0.84, z), simd_float3(halfW * 1.8, 1, 1))
-        let dashH = halfH * 0.52
+        let dashH = halfH * 0.3  // b19: minimal frame, more sky.
         let dashY = -halfH + dashH * 0.5
         place("dash", simd_float3(0, dashY, z), simd_float3(halfW * 1.84, dashH, 1))
         let front = z + 0.045
@@ -1528,77 +1526,47 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
     private func updateCamera(_ raw: Float) {
         let fwd = forward()
-        // b18: chase pulled further back and higher so the ship is ~15-20% of the width.
-        let chasePos = position - fwd * 26 + simd_float3(0, 7.5, 0)
-        let chaseLook = position + fwd * 30 + simd_float3(0, 0.4, 0)
+        // b19: chase and aerial hang off the ship's HEADING (yaw only): no pitch swing,
+        // no velocity look-ahead, no roll, no target framing, no shake.
+        let headYaw = trick != nil ? trickCamYaw : yaw
+        let head = simd_float3(sin(headYaw), 0, -cos(headYaw))
+        let chasePos = position - head * 26 + simd_float3(0, 7.5, 0)
+        let chaseLook = position + head * 30 + simd_float3(0, 0.4, 0)
         var desired = chasePos
         var look = chaseLook
-        var rollCam: Float = 0  // b17: chase camera never rolls with the ship.
+        var rollCam: Float = 0
+        var rigid = true
 
         if cockpitOn && phase == .combat {
+            // b19: rigid cockpit on the nose (yaw + pitch), no bank, no kick.
             let eye = position + simd_float3(0, 0.55, 0) + fwd * 0.8
             desired = eye
             look = eye + fwd * 40
-            rollCam = roll * 0.85
         } else if phase == .cinema {
+            rigid = false
             let launch = smoothstep(2.6, 7.6, phaseTime)
-            let scripted = simd_float3(sin(phaseTime * 0.2) * 1.4, mix(6.4, 8.0, launch), mix(116, position.z + 14, launch))
+            let scripted = simd_float3(0, mix(6.4, 8.0, launch), mix(116, position.z + 14, launch))
             let scriptLook = position + simd_float3(0, 1.1, -36)
             let blend = smoothstep(6.8, 8.4, phaseTime)
             desired = mix3(scripted, chasePos, blend)
             look = mix3(scriptLook, chaseLook, blend)
-            rollCam *= blend
         } else if phase == .warden {
+            rigid = false
             let u = smoothstep(0.2, 4.2, phaseTime)
             let wide = simd_float3(-36, 28, -560)
             let wideLook = simd_float3(10, 12, -860)
             desired = mix3(chasePos, wide, u)
             look = mix3(chaseLook, wideLook, u)
-            rollCam *= (1 - u)
-        } else if trick != nil {
-            // b17: steady straight-back view through loops and rolls, no swing.
-            let back = simd_float3(sin(trickCamYaw), 0, -cos(trickCamYaw))
-            desired = position - back * 26 + simd_float3(0, 7.5, 0)
-            look = position + back * 30 + simd_float3(0, 0.4, 0)
+        } else if viewMode == 1 && phase == .combat {
+            // b19 AERIAL: fixed high offset behind the heading. No target tracking.
+            desired = position - head * 30 + simd_float3(0, 42, 0)
+            look = position + head * 14
         }
-        var aerial = false
-        if viewMode == 1 && phase == .combat {
-            // b18 AERIAL: high, steady three-quarter overhead. Frames the ship and its
-            // locked target; the heading eases slowly and the camera never rolls or spins.
-            aerial = true
-            let headYaw = trick != nil ? trickCamYaw : yaw
-            var delta = headYaw - aerialYaw
-            delta = atan2(sin(delta), cos(delta))
-            aerialYaw += delta * (1 - exp(-0.6 * raw))
-            var center = position
-            var span: Float = 40
-            if let target = lockedEnemy, target.alive {
-                center = (position + target.position) * 0.5
-                span = min(200, simd_distance(position, target.position))
-            }
-            let kc = 1 - exp(-2.5 * raw)
-            if !camReady {
-                aerialCenter = center
-                aerialSpan = span
-            } else {
-                aerialCenter = mix3(aerialCenter, center, kc)
-                aerialSpan += (span - aerialSpan) * kc
-            }
-            let back = simd_float3(sin(aerialYaw), 0, -cos(aerialYaw))
-            desired = aerialCenter - back * (30 + aerialSpan * 0.45) + simd_float3(0, 38 + aerialSpan * 0.55, 0)
-            look = aerialCenter
-            rollCam = 0
-        }
-
-        // b17: rock-steady chase. Fixed offset, near-instant critically damped follow.
-        let chaseLocked = !(cockpitOn && phase == .combat) && phase != .cinema && phase != .warden
-        var kPos = chaseLocked ? 1 - exp(-28 * raw) : 1 - exp(-4.2 * raw)
-        var kLook = chaseLocked ? 1 - exp(-32 * raw) : 1 - exp(-6.5 * raw)
-        if aerial {
-            kPos = 1 - exp(-6 * raw)
-            kLook = 1 - exp(-8 * raw)
-        }
-        if !camReady {
+        aerialYaw = headYaw
+        aerialCenter = position
+        let kPos = rigid ? 1 - exp(-40 * raw) : 1 - exp(-4.2 * raw)
+        let kLook = rigid ? 1 - exp(-40 * raw) : 1 - exp(-6.5 * raw)
+        if !camReady || (cockpitOn && phase == .combat) {
             camPos = desired
             camLook = look
             camReady = true
@@ -1606,13 +1574,10 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             camPos = mix3(camPos, desired, kPos)
             camLook = mix3(camLook, look, kLook)
         }
-        let t = missionTime
-        let jitter = simd_float3(sin(t * 41), cos(t * 37), 0) * shake * (aerial ? 0.08 : 0.18)
-        cameraNode.simdPosition = camPos + jitter
+        cameraNode.simdPosition = camPos
         let camFwd = safeNorm(camLook - camPos)
         cameraNode.simdOrientation = lookOrientation(forward: camFwd, up: simd_float3(0, 1, 0), roll: rollCam)
-        let boost = max(0, min(1, simd_dot(velocity, fwd) / 90))
-        camera.fieldOfView = verticalFieldOfView(boost: boost, shake: shake)
+        camera.fieldOfView = (cockpitOn && phase == .combat) ? cockpitFieldOfView() : verticalFieldOfView(boost: 0, shake: 0)
         layoutCockpit()
         let cinema = phase == .cinema || phase == .warden
         camera.wantsDepthOfField = profile.dof && cinema
@@ -2285,6 +2250,16 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         updateLock()
         let locked = lockedEnemy
         hud.lockWorld = locked.map { $0.alive ? $0.position : nil } ?? nil
+        // b19: lead point for the cockpit crosshair (bolts fly at 280 m/s).
+        if let locked, locked.alive {
+            let t = simd_distance(locked.position, position) / 280
+            hud.leadWorld = locked.position + (locked.velocity - velocity * 0) * t
+        } else {
+            hud.leadWorld = nil
+        }
+        hud.hurt = max(0, hurt)
+        hud.streakCount = streak
+        hud.speedValue = simd_length(velocity)
         if let locked, locked.alive {
             let kind: String
             switch locked.role {
