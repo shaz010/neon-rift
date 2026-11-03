@@ -148,7 +148,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nDEST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/web\"\nmkdir -p \"${DEST}\"\nfor f in index.html manifest.json sw.js bed.js apple-touch-icon.png icon-512.png; do\n  test -f \"${SRCROOT}/../${f}\"\n  cp \"${SRCROOT}/../${f}\" \"${DEST}/${f}\"\ndone\ngrep -q 'NR-spell-1' \"${DEST}/index.html\"\n";
+			shellScript = "set -e\nDEST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/web\"\nmkdir -p \"${DEST}\"\nfor f in index.html manifest.json sw.js bed.js apple-touch-icon.png icon-512.png; do\n  test -f \"${SRCROOT}/../${f}\"\n  cp \"${SRCROOT}/../${f}\" \"${DEST}/${f}\"\ndone\nmkdir -p \"${DEST}/sfx\"\ncp \"${SRCROOT}/../sfx/\"*.m4a \"${SRCROOT}/../sfx/sfx-data.js\" \"${DEST}/sfx/\"\ntest -f \"${DEST}/sfx/sfx-data.js\"\ngrep -q 'nr-sfx-3' \"${DEST}/index.html\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

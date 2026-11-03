@@ -31,7 +31,7 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "NR-spell-1: sound now recovers on its own after notifications, calls or Siri. Includes Rift Echo."
+    "nr-sfx-3: Rift Echo now clearly visible (cyan ghost, banners, vs ECHO chip, Replay to race your Echo); new Logic Pro sound effects with Settings > SOUND FX (Classic / Rift / Mix)."
 )
 
 
