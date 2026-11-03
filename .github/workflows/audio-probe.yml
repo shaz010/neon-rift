@@ -2,7 +2,7 @@ name: Audio probe
 on:
   push:
     branches: [nr2-b19]
-    paths: [tools/audio-probe.swift, .github/workflows/audio-probe.yml]
+    paths: [tools/audio-probe.swift, tools/probe-audio.swift, .github/workflows/audio-probe.yml]
 jobs:
   probe:
     runs-on: macos-26
@@ -13,3 +13,5 @@ jobs:
           swiftc -O tools/audio-probe.swift -o probe
           ./probe ios/NeonRift2/Sfx b18 || echo "b18 crashed $?"
           ./probe ios/NeonRift2/Sfx nobeds || echo "nobeds crashed $?"
+          mkdir p2 && swiftc -O tools/probe-audio.swift tools/probe-main.swift -o p2/probe2 -module-name main 2>&1 | tail -20
+          mv tools/probe-main.swift /tmp/ ; cp ios/NeonRift2/Sfx/*.wav p2/ && ./p2/probe2 || echo "probe2 crashed $?"
