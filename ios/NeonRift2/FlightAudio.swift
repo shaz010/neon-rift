@@ -19,6 +19,11 @@ final class FlightAudio {
     private let queue = DispatchQueue(label: "nr2.audio", qos: .userInitiated)
     private var observers: [NSObjectProtocol] = []
     private var lastRestart: CFTimeInterval = 0
+    private var engAge: Float = 0
+    private var engSwell: Float = 0
+
+    /// b20: call at the start of each flight so the engine opens at full volume again.
+    func resetEngineEnvelope() { engAge = 0; engSwell = 0 }
 
     init() {
         box.initialize(to: AudioBox())
@@ -149,6 +154,7 @@ final class FlightAudio {
             let tTurn = local.engTurn
             let tBoost = local.engBoost
             let tDmg = local.engDamage
+            let tGain = local.engGain
             let smooth = min(1, dt / 0.09)
             var endE = local.eng
             // b19: one synth pass per render, written to every channel buffer
@@ -214,7 +220,8 @@ final class FlightAudio {
                     e.sp += dt * (9 + 5 * e.dn)
                     if e.sp > 1000 { e.sp -= 1000 }
                     let sputter: Float = 1 - e.dmg * 0.55 * max(0, sin(e.sp * 2 * .pi)) * (0.6 + 0.4 * sin(e.sp * 0.37))
-                    let voice: Float = (e.lp2 * (0.06 + 0.07 * e.thr + 0.04 * e.boost)
+                    e.gain += (tGain - e.gain) * smooth * 0.25
+                    let voice: Float = e.gain * (e.lp2 * (0.06 + 0.07 * e.thr + 0.04 * e.boost)
                         + e.nl * (0.03 + 0.12 * e.spd + 0.06 * e.boost)) * sputter
                     let pan: Float = max(-0.8, min(0.8, e.turn * 0.6))
                     let sideL: Float = channelCount < 2 ? 1 : sqrt(1 - pan)
@@ -238,7 +245,7 @@ final class FlightAudio {
                         + sin(musicPhase * 1320 * .pi) * chime * 0.05
                     let tow = sin(phase * 6 * .pi) * beam * (0.04 + 0.03 * sin(phase * 0.5))
                     let pulse = max(0, sin(musicPhase * 2 * .pi))
-                    let bed = sin(musicPhase * 2 * .pi * (92 + music * 70)) * pulse * (0.012 + music * 0.05)
+                    let bed = sin(musicPhase * 2 * .pi * (92 + music * 70)) * pulse * (0.012 + music * 0.05) * 0.65
                     lockPhase += dt * (7 + lock * 8)
                     var gate: Float = 0
                     if sin(lockPhase * 2 * .pi) > 0.45 { gate = 1 }
@@ -321,8 +328,15 @@ final class FlightAudio {
         box.pointee.engTurn = min(1, max(-1, turn))
         box.pointee.engBoost = min(1, max(0, boost))
         box.pointee.engDamage = min(1, max(0, damage))
+        // b20: engine envelope. Full volume for the first ~4 s of a flight, then it
+        // trims to ~22%. Boost or a hard turn swells it back up briefly, then it settles.
+        engAge += dt
+        let base: Float = engAge < 4 ? 1 : max(0.22, 1 - (engAge - 4) / 2.5 * 0.78)
+        if boost > 0.3 || abs(turn) > 0.75 { engSwell = min(1, engSwell + dt * 4) } else { engSwell = max(0, engSwell - dt / 1.4) }
+        let gain = base + (1 - base) * engSwell * 0.85
+        box.pointee.engGain = gain
         guard started else { return }
-        queue.async { [weak self] in self?.beds.update(throttle: throttle, speed: speed, boost: boost, dt: dt) }
+        queue.async { [weak self] in self?.beds.update(throttle: throttle, speed: speed, boost: boost, dt: dt, gain: gain) }
     }
     /// b18: rising hit tick. Each consecutive hit on the same target steps up in pitch.
     func hitTick(streak: Int) {
@@ -371,11 +385,13 @@ private struct AudioBox {
     var engTurn: Float = 0
     var engBoost: Float = 0
     var engDamage: Float = 0
+    var engGain: Float = 1
     var eng = EngineState()
 }
 
 /// b18: per-sample EngineVoice state.
 private struct EngineState {
+    var gain: Float = 1
     var thr: Float = 0
     var spd: Float = 0
     var turn: Float = 0
@@ -655,7 +671,7 @@ private final class EngineBeds {
         player.play()
     }
 
-    func update(throttle: Float, speed: Float, boost: Float, dt: Float) {
+    func update(throttle: Float, speed: Float, boost: Float, dt: Float, gain: Float) {
         guard running else { return }
         let t = max(0, min(1, throttle))
         let v = max(0, min(1, speed))
@@ -675,7 +691,7 @@ private final class EngineBeds {
             for slot in 0..<2 {
                 let target: Float = slot == beds[i].active ? 1 : 0
                 beds[i].gains[slot] += (target - beds[i].gains[slot]) * min(1, dt / 2.2)
-                beds[i].players[slot].volume = beds[i].maxVolume * level[i] * sqrt(max(0, beds[i].gains[slot]))
+                beds[i].players[slot].volume = gain * beds[i].maxVolume * level[i] * sqrt(max(0, beds[i].gains[slot]))
             }
         }
     }

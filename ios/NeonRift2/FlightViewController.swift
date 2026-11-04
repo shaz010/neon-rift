@@ -353,7 +353,8 @@ final class FlightViewController: UIViewController {
         overlay.marks = m.contacts.map { contact in
             HudMark(point: project(contact.world), kind: contact.kind, distance: contact.distance, bearing: contact.bearing, id: contact.id, health: contact.health)
         }
-        overlay.blips = m.blips.map { HudBlipView(x: CGFloat($0.x), y: CGFloat($0.y), kind: $0.kind, id: $0.id) }
+        overlay.blips = m.blips.map { HudBlipView(x: CGFloat($0.x), y: CGFloat($0.y), kind: $0.kind, id: $0.id, up: CGFloat($0.up), locked: $0.locked, goal: $0.goal) }
+        overlay.guideRadar = m.guideRadar.map { CGPoint(x: CGFloat($0.x), y: CGFloat($0.y)) }
         overlay.pickupPoints = m.pickups.compactMap { project($0) }
         overlay.sunPoint = project(m.sunWorld)
         overlay.popups = m.popups.compactMap { item in
@@ -617,6 +618,9 @@ struct HudBlipView {
     var y: CGFloat
     var kind: Int
     var id: Int = -1
+    var up: CGFloat = 0
+    var locked = false
+    var goal = false
 }
 
 final class HudOverlay: UIView {
@@ -653,6 +657,8 @@ final class HudOverlay: UIView {
     var popups: [HudPopup] = []
     var marks: [HudMark] = []
     var blips: [HudBlipView] = []
+    var guideRadar: CGPoint?
+    var radarRadius: CGFloat { (cockpit ? 46 : 60) * max(scale, 0.5) }
     var dragOrigin: CGPoint?
     var aimOrigin: CGPoint?
     var aim = CGPoint.zero
@@ -696,7 +702,7 @@ final class HudOverlay: UIView {
                 ctx.setFillColor(UIColor(red: 1, green: 0.45, blue: 0.12, alpha: 0.35).cgColor)
                 ctx.fillEllipse(in: CGRect(x: rightCenter.x - fireR, y: rightCenter.y - fireR, width: fireR * 2, height: fireR * 2))
             }
-            if !cockpit { drawRadar(ctx, rect, s) }
+            drawRadar(ctx, rect, s)
             drawMarks(ctx, rect, s)
             if !cockpit { drawLock(ctx, rect, s) }
             drawHeat(ctx, rect, s)
@@ -740,6 +746,14 @@ final class HudOverlay: UIView {
             ctx.addLine(to: CGPoint(x: point.x - 8 * s, y: point.y))
             ctx.closePath()
             ctx.strokePath()
+            // b20: say what the crate is and what to do with it.
+            let gemAttrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.monospacedSystemFont(ofSize: 9 * s, weight: .bold),
+                .foregroundColor: UIColor(red: 1, green: 0.85, blue: 0.4, alpha: 0.95),
+            ]
+            let text = gem.1 as NSString
+            let w = text.size(withAttributes: gemAttrs).width
+            text.draw(at: CGPoint(x: point.x - w / 2, y: point.y + 14 * s), withAttributes: gemAttrs)
         }
         for popup in popups {
             let alpha = CGFloat(max(0, 1 - popup.age / 1.4))
@@ -754,38 +768,107 @@ final class HudOverlay: UIView {
         }
     }
 
+    /// b20 radar: your ship is the centre, the top is straight ahead of your nose,
+    /// range 420 m (inner ring 210 m); anything farther sits on the rim.
+    /// Red dot drone, orange diamond bandit, yellow ring disabled bandit (beam it),
+    /// cyan square freighter, small gold dot crate, magenta big dot warden.
+    /// White ring = your lock. Cyan wedge on the rim = where the goal is.
+    /// Tick above/below a blip = it is above/below you. Tap a red/orange blip to lock it.
     private func drawRadar(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {
         let center = radarCenter(rect, s)
-        let rad = 52 * s
-        ctx.setStrokeColor(UIColor(white: 1, alpha: 0.45).cgColor)
+        let rad = radarRadius
+        ctx.setFillColor(UIColor(red: 0, green: 0.08, blue: 0.12, alpha: 0.45).cgColor)
+        ctx.fillEllipse(in: CGRect(x: center.x - rad, y: center.y - rad, width: rad * 2, height: rad * 2))
+        ctx.setStrokeColor(UIColor(red: 0.5, green: 1, blue: 0.9, alpha: 0.55).cgColor)
         ctx.setLineWidth(max(1.5, 1.5 * s))
         ctx.strokeEllipse(in: CGRect(x: center.x - rad, y: center.y - rad, width: rad * 2, height: rad * 2))
-        ctx.setStrokeColor(UIColor(white: 1, alpha: 0.2).cgColor)
-        ctx.strokeEllipse(in: CGRect(x: center.x - rad * 0.55, y: center.y - rad * 0.55, width: rad * 1.1, height: rad * 1.1))
-        ctx.setStrokeColor(UIColor(white: 1, alpha: 0.35).cgColor)
-        ctx.move(to: CGPoint(x: center.x, y: center.y - rad))
-        ctx.addLine(to: CGPoint(x: center.x, y: center.y + rad))
-        ctx.move(to: CGPoint(x: center.x - rad, y: center.y))
-        ctx.addLine(to: CGPoint(x: center.x + rad, y: center.y))
-        ctx.strokePath()
-        let sweep = CGFloat(CACurrentMediaTime().truncatingRemainder(dividingBy: 2.4) / 2.4) * 2 * .pi
-        ctx.setStrokeColor(UIColor(red: 0.5, green: 1, blue: 0.85, alpha: 0.7).cgColor)
+        ctx.setStrokeColor(UIColor(white: 1, alpha: 0.18).cgColor)
+        ctx.strokeEllipse(in: CGRect(x: center.x - rad * 0.5, y: center.y - rad * 0.5, width: rad, height: rad))
+        // Forward cone (what is in front of the nose).
+        ctx.setStrokeColor(UIColor(white: 1, alpha: 0.22).cgColor)
         ctx.move(to: center)
-        ctx.addLine(to: CGPoint(x: center.x + sin(sweep) * rad, y: center.y - cos(sweep) * rad))
+        ctx.addLine(to: CGPoint(x: center.x - rad * 0.42, y: center.y - rad * 0.9))
+        ctx.move(to: center)
+        ctx.addLine(to: CGPoint(x: center.x + rad * 0.42, y: center.y - rad * 0.9))
         ctx.strokePath()
+        // You.
+        ctx.setFillColor(UIColor.white.cgColor)
+        ctx.move(to: CGPoint(x: center.x, y: center.y - 6 * s))
+        ctx.addLine(to: CGPoint(x: center.x + 4.5 * s, y: center.y + 4 * s))
+        ctx.addLine(to: CGPoint(x: center.x - 4.5 * s, y: center.y + 4 * s))
+        ctx.closePath()
+        ctx.fillPath()
+        // Goal wedge.
+        if let g = guideRadar, hypot(g.x, g.y) > 0.01 {
+            let ang = atan2(g.x, g.y)
+            let inside = hypot(g.x, g.y) < 0.98
+            let r0 = rad + 3 * s
+            let tip = CGPoint(x: center.x + sin(ang) * (r0 + 11 * s), y: center.y - cos(ang) * (r0 + 11 * s))
+            ctx.setFillColor(UIColor(red: 0.45, green: 0.95, blue: 1, alpha: inside ? 0.6 : 1).cgColor)
+            ctx.move(to: tip)
+            ctx.addLine(to: CGPoint(x: center.x + sin(ang - 0.16) * r0, y: center.y - cos(ang - 0.16) * r0))
+            ctx.addLine(to: CGPoint(x: center.x + sin(ang + 0.16) * r0, y: center.y - cos(ang + 0.16) * r0))
+            ctx.closePath()
+            ctx.fillPath()
+        }
+        let pulse = CGFloat(0.6 + 0.4 * sin(CACurrentMediaTime() * 6))
         for blip in blips {
+            let p = CGPoint(x: center.x + blip.x * rad * 0.9, y: center.y - blip.y * rad * 0.9)
             let color: UIColor
             switch blip.kind {
-            case 1: color = UIColor(red: 1, green: 0.62, blue: 0.2, alpha: 1)
-            case 2: color = UIColor(red: 0.95, green: 0.85, blue: 0.4, alpha: 1)
-            case 3: color = UIColor(red: 0.4, green: 0.9, blue: 1, alpha: 1)
-            default: color = UIColor(red: 1, green: 0.2, blue: 0.12, alpha: 1)
+            case 1: color = UIColor(red: 1, green: 0.6, blue: 0.15, alpha: 1)
+            case 2: color = UIColor(red: 1, green: 0.92, blue: 0.3, alpha: 1)
+            case 3: color = UIColor(red: 0.35, green: 0.95, blue: 1, alpha: 1)
+            case 4: color = UIColor(red: 1, green: 0.8, blue: 0.35, alpha: 0.8)
+            case 5: color = UIColor(red: 1, green: 0.3, blue: 0.9, alpha: 1)
+            default: color = UIColor(red: 1, green: 0.22, blue: 0.15, alpha: 1)
             }
             ctx.setFillColor(color.cgColor)
-            let p = CGPoint(x: center.x + blip.x * rad * 0.86, y: center.y - blip.y * rad * 0.86)
-            let dot: CGFloat = blip.kind == 0 ? 8 : 6.5
-            ctx.fillEllipse(in: CGRect(x: p.x - dot * s * 0.5, y: p.y - dot * s * 0.5, width: dot * s, height: dot * s))
+            ctx.setStrokeColor(color.cgColor)
+            ctx.setLineWidth(max(1.5, 2 * s))
+            switch blip.kind {
+            case 1:
+                let d = 5.5 * s
+                ctx.move(to: CGPoint(x: p.x, y: p.y - d))
+                ctx.addLine(to: CGPoint(x: p.x + d, y: p.y))
+                ctx.addLine(to: CGPoint(x: p.x, y: p.y + d))
+                ctx.addLine(to: CGPoint(x: p.x - d, y: p.y))
+                ctx.closePath()
+                ctx.fillPath()
+            case 2:
+                let d = 5 * s * (0.8 + 0.4 * pulse)
+                ctx.strokeEllipse(in: CGRect(x: p.x - d, y: p.y - d, width: d * 2, height: d * 2))
+            case 3:
+                let d = 5 * s
+                ctx.fill(CGRect(x: p.x - d, y: p.y - d, width: d * 2, height: d * 2))
+            case 4:
+                let d = 2.6 * s
+                ctx.fillEllipse(in: CGRect(x: p.x - d, y: p.y - d, width: d * 2, height: d * 2))
+            case 5:
+                let d = 6.5 * s
+                ctx.fillEllipse(in: CGRect(x: p.x - d, y: p.y - d, width: d * 2, height: d * 2))
+            default:
+                let d = 4.5 * s
+                ctx.fillEllipse(in: CGRect(x: p.x - d, y: p.y - d, width: d * 2, height: d * 2))
+            }
+            if blip.up != 0 && blip.kind != 4 {
+                let dir: CGFloat = blip.up > 0 ? -1 : 1
+                ctx.move(to: CGPoint(x: p.x, y: p.y + dir * 6 * s))
+                ctx.addLine(to: CGPoint(x: p.x, y: p.y + dir * 11 * s))
+                ctx.strokePath()
+            }
+            if blip.locked {
+                ctx.setStrokeColor(UIColor.white.withAlphaComponent(pulse).cgColor)
+                let d = 9 * s
+                ctx.strokeEllipse(in: CGRect(x: p.x - d, y: p.y - d, width: d * 2, height: d * 2))
+            }
         }
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.monospacedSystemFont(ofSize: 8.5 * s, weight: .semibold),
+            .foregroundColor: UIColor(white: 1, alpha: 0.75),
+        ]
+        ("RADAR 420m · TAP BLIP = LOCK" as NSString).draw(at: CGPoint(x: center.x - rad, y: center.y + rad + 4 * s), withAttributes: attrs)
+        ("●DRONE ◆BANDIT ○BEAM ■FREIGHT" as NSString).draw(at: CGPoint(x: center.x - rad, y: center.y + rad + 15 * s), withAttributes: attrs)
     }
 
     private func drawGuide(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {
@@ -821,11 +904,12 @@ final class HudOverlay: UIView {
             ctx.addLine(to: CGPoint(x: tip.x + CGFloat(sin(back - 2.6)) * 18 * s, y: tip.y - CGFloat(cos(back - 2.6)) * 18 * s))
             ctx.closePath()
             ctx.fillPath()
+            ("GOAL" as NSString).draw(at: CGPoint(x: tip.x - 12 * s, y: tip.y + (tip.y < rect.midY ? 10 : -22) * s), withAttributes: attrs)
         }
     }
 
     private func radarCenter(_ rect: CGRect, _ s: CGFloat) -> CGPoint {
-        CGPoint(x: rect.width - 78 * s, y: 188 * s)
+        cockpit ? CGPoint(x: rect.width - 62 * s, y: rect.height - 200 * s) : CGPoint(x: rect.width - 82 * s, y: 196 * s)
     }
 
     /// b18: tap-to-lock lookup. Brackets within 44pt, or a radar blip.
@@ -838,13 +922,13 @@ final class HudOverlay: UIView {
             if d < 44 * s && (best == nil || d < best!.1) { best = (mark.id, d) }
         }
         if let best { return best.0 }
-        if !cockpit {
+        do {
             let center = radarCenter(bounds, s)
-            let rad = 52 * s
-            for blip in blips where blip.id >= 0 && blip.kind != 2 && blip.kind != 3 {
-                let p = CGPoint(x: center.x + blip.x * rad * 0.86, y: center.y - blip.y * rad * 0.86)
+            let rad = radarRadius
+            for blip in blips where blip.id >= 0 && (blip.kind == 0 || blip.kind == 1 || blip.kind == 5) {
+                let p = CGPoint(x: center.x + blip.x * rad * 0.9, y: center.y - blip.y * rad * 0.9)
                 let d = hypot(p.x - point.x, p.y - point.y)
-                if d < 18 * s && (best == nil || d < best!.1) { best = (blip.id, d) }
+                if d < 24 * s && (best == nil || d < best!.1) { best = (blip.id, d) }
             }
         }
         return best?.0
@@ -1068,6 +1152,11 @@ final class HudOverlay: UIView {
                 ctx.addLine(to: CGPoint(x: tip.x + CGFloat(sin(back - 2.6)) * 20 * s, y: tip.y - CGFloat(cos(back - 2.6)) * 20 * s))
                 ctx.closePath()
                 ctx.fillPath()
+                let beamAttrs: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.monospacedSystemFont(ofSize: 9 * s, weight: .bold),
+                    .foregroundColor: color,
+                ]
+                ("BEAM \(Int(mark.distance))m" as NSString).draw(at: CGPoint(x: tip.x - 26 * s, y: tip.y + (tip.y < rect.midY ? 10 : -22) * s), withAttributes: beamAttrs)
             }
         }
     }

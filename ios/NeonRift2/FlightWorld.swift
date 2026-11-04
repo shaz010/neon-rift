@@ -96,6 +96,7 @@ struct HudModel {
     var calloutAlpha: Float = 0
     var contacts: [HudContact] = []
     var blips: [HudBlip] = []
+    var guideRadar: HudBlip?
     var bounty = 0
     var rank = "ROOKIE"
     var boost: Float = 0
@@ -135,11 +136,16 @@ struct HudContact {
     var health: Float = 1
 }
 
+/// b20 radar blip. kind: 0 drone, 1 bandit, 2 disabled bandit (beam it),
+/// 3 freighter, 4 crate, 5 warden part. `up` > 0 means above the ship.
 struct HudBlip {
     var x: Float
     var y: Float
     var kind: Int
     var id: Int = -1
+    var up: Float = 0
+    var locked = false
+    var goal = false
 }
 
 /// One short Newtonian test flight. Translation is integrated explicitly
@@ -268,6 +274,13 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     private var viewMode = UserDefaults.standard.integer(forKey: "nr2.viewMode") % 3
     private var aerialYaw: Float = 0
     private var yawRate: Float = 0
+    private let radarRange: Float = 420
+    /// b20: the ship's true attitude. yaw/pitch are now derived from it (for the
+    /// compass and old callers); nothing clamps it, so loops and full turns work.
+    private var orient = simd_quatf(angle: 0, axis: simd_float3(0, 1, 0))
+    private var pitchRate: Float = 0
+    private var trickTurned: Float = 0
+    private var camUp = simd_float3(0, 1, 0)
     private var aerialCenter = simd_float3.zero
     private var aerialSpan: Float = 60
     private var trickShotFlash: Float = 0
@@ -369,6 +382,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         velocity = simd_float3(0, 0, -38)
         yaw = 0
         pitch = 0
+        syncOrient()
         roll = 0
         enter(.combat)
         camReady = false
@@ -490,6 +504,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         velocity = simd_float3(0, 0.6 * launch, -42 * launch)
         yaw = 0
         pitch = 0.04 * launch
+        syncOrient()
         roll = sin(phaseTime * 0.8) * 0.03 * launch
         placePlayer()
         audio.setThrust(spool)
@@ -553,6 +568,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         trickPitch0 = pitch
         trickRoll0 = roll
         trickCamYaw = yaw
+        trickTurned = 0
         say(kind == .loop ? (trickDir > 0 ? "LOOP" : "SOMERSAULT") : "BARREL ROLL")
         if kind == .loop { audio.dive() } else { audio.rollSweep() }
         haptics.launch()
@@ -699,30 +715,41 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let wantYawRate = shaped * 4.2
         yawRate += (wantYawRate - yawRate) * min(1, 22 * dt)
         if abs(wantYawRate) < 0.001 && abs(yawRate) < 0.02 { yawRate = 0 }
-        yaw += yawRate * dt
         if faceLeft > 0 { faceLeft -= dt }
+        // b20: rate-based pitch, no clamp: hold the thumb up/down to loop all the way.
+        let wantPitchRate = aimY * (0.8 + 0.2 * abs(aimY)) * 3.4
+        pitchRate += (wantPitchRate - pitchRate) * min(1, 22 * dt)
+        if abs(wantPitchRate) < 0.001 && abs(pitchRate) < 0.02 { pitchRate = 0 }
+        var dPitch = pitchRate * dt
         if let trick {
             trickAge += dt
             let duration: Float = trick == .loop ? 1.25 : 0.72
             let u = min(1, trickAge / duration)
             if trick == .loop {
-                pitch = trickPitch0 + trickDir * u * 2 * .pi
+                // Loop: a full 360 about the ship's own right axis, ends where it began.
+                let goal = trickDir * u * 2 * .pi
+                dPitch = goal - trickTurned
+                trickTurned = goal
             } else {
                 roll = trickRoll0 + trickDir * u * 2 * .pi
             }
             if u >= 1 {
-                pitch = trickPitch0
                 roll = trickRoll0
                 self.trick = nil
             }
         } else {
-            let targetPitch = aimY * 0.55
-            pitch += (targetPitch - pitch) * min(1, 20 * dt)
-            pitch = max(-0.55, min(0.55, pitch))
             let targetRoll = -yawCmd * 0.62
             roll += (targetRoll - roll) * min(1, 11 * dt)
             roll = max(-0.85, min(0.85, roll))
         }
+        // Yaw about the ship's own up, pitch about its own right (body axes, quaternion,
+        // no gimbal lock, no limits).
+        orient = simd_normalize(orient
+            * simd_quatf(angle: -yawRate * dt, axis: simd_float3(0, 1, 0))
+            * simd_quatf(angle: dPitch, axis: simd_float3(1, 0, 0)))
+        let f0 = forward()
+        yaw = atan2(f0.x, -f0.z)
+        pitch = asin(max(-1, min(1, f0.y)))
 
         if boostLeft > 0 { boostLeft -= dt }
         let boosting = boostLeft > 0
@@ -737,13 +764,9 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         if assisting {
             force += -fwd * forwardSpeed * 0.2 * mass
         }
-        if trick == nil {
-            if position.y < 2 { force.y += (2 - position.y) * mass * 4 }
-            if position.y > 28 { force.y -= (position.y - 28) * mass * 3 }
-        } else {
-            if position.y < -8 { force.y += (-8 - position.y) * mass * 2 }
-            if position.y > 46 { force.y -= (position.y - 46) * mass * 2 }
-        }
+        // b20: wide soft ceiling/floor only (was a 2..28 m band that fought loops).
+        if position.y < -90 { force.y += (-90 - position.y) * mass * 1.4 }
+        if position.y > 140 { force.y -= (position.y - 140) * mass * 1.4 }
         if abs(position.x) > 280 {
             force.x -= (position.x - copysign(280, position.x)) * mass * 1.4
         }
@@ -1528,10 +1551,17 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let fwd = forward()
         // b19: chase and aerial hang off the ship's HEADING (yaw only): no pitch swing,
         // no velocity look-ahead, no roll, no target framing, no shake.
-        let headYaw = trick != nil ? trickCamYaw : yaw
-        let head = simd_float3(sin(headYaw), 0, -cos(headYaw))
-        let chasePos = position - head * 26 + simd_float3(0, 7.5, 0)
-        let chaseLook = position + head * 30 + simd_float3(0, 0.4, 0)
+        // b20: chase rides in the ship's own frame (behind along the nose, above along
+        // the ship's up), so it follows loops and flips. Camera up = ship up (not the
+        // visual bank), lightly smoothed. Still nothing moves it but the ship.
+        let headYaw = yaw
+        let flatF = simd_float3(fwd.x, 0, fwd.z)
+        let head = simd_length(flatF) > 0.05 ? simd_normalize(flatF) : simd_float3(sin(aerialYaw), 0, -cos(aerialYaw))
+        let up = shipUp()
+        camUp = safeNorm(mix3(camUp, up, 1 - exp(-30 * raw)))
+        var viewUp = camUp
+        let chasePos = position - fwd * 26 + up * 7.5
+        let chaseLook = position + fwd * 30 + up * 0.4
         var desired = chasePos
         var look = chaseLook
         var rollCam: Float = 0
@@ -1539,7 +1569,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
         if cockpitOn && phase == .combat {
             // b19: rigid cockpit on the nose (yaw + pitch), no bank, no kick.
-            let eye = position + simd_float3(0, 0.55, 0) + fwd * 0.8
+            let eye = position + up * 0.55 + fwd * 0.8
+            viewUp = up
             desired = eye
             look = eye + fwd * 40
         } else if phase == .cinema {
@@ -1561,6 +1592,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             // b19 AERIAL: fixed high offset behind the heading. No target tracking.
             desired = position - head * 30 + simd_float3(0, 42, 0)
             look = position + head * 14
+            viewUp = simd_float3(0, 1, 0)
         }
         aerialYaw = headYaw
         aerialCenter = position
@@ -1576,7 +1608,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         }
         cameraNode.simdPosition = camPos
         let camFwd = safeNorm(camLook - camPos)
-        cameraNode.simdOrientation = lookOrientation(forward: camFwd, up: simd_float3(0, 1, 0), roll: rollCam)
+        if phase == .cinema || phase == .warden { viewUp = simd_float3(0, 1, 0) }
+        cameraNode.simdOrientation = lookOrientation(forward: camFwd, up: viewUp, roll: rollCam)
         camera.fieldOfView = (cockpitOn && phase == .combat) ? cockpitFieldOfView() : verticalFieldOfView(boost: 0, shake: 0)
         layoutCockpit()
         let cinema = phase == .cinema || phase == .warden
@@ -1636,7 +1669,9 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             origin = position + dir * 3.2
         } else if let hard {
             let to = safeNorm(hard.position - origin)
-            let blend: Float = 0.8
+            // b20: bolts only bend toward the lock when it is near the crosshair
+            // (~14 deg), so rocks and crates in front of the nose are hittable.
+            let blend: Float = simd_dot(dir, to) > 0.97 ? 0.8 : 0
             dir = safeNorm(dir * (1 - blend) + to * blend)
         }
         spawnBolt(origin: origin, direction: dir, speed: 280, life: 1.25, player: true, home: hard, mat: art.boltPlayer, missile: false, trick: tricking && hard != nil)
@@ -1911,11 +1946,22 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
     private func placePlayer() {
         player.simdPosition = position
-        player.simdOrientation = lookOrientation(forward: forward(), up: simd_float3(0, 1, 0), roll: roll)
+        player.simdOrientation = simd_normalize(orient * simd_quatf(angle: roll, axis: simd_float3(0, 0, -1)))
     }
 
     private func forward() -> simd_float3 {
-        simd_normalize(simd_float3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch)))
+        simd_normalize(orient.act(simd_float3(0, 0, -1)))
+    }
+
+    private func shipUp() -> simd_float3 { simd_normalize(orient.act(simd_float3(0, 1, 0))) }
+    private func shipRight() -> simd_float3 { simd_normalize(orient.act(simd_float3(1, 0, 0))) }
+
+    /// Rebuilds the quaternion from yaw/pitch after a reset.
+    private func syncOrient() {
+        orient = simd_normalize(simd_quatf(angle: -yaw, axis: simd_float3(0, 1, 0)) * simd_quatf(angle: pitch, axis: simd_float3(1, 0, 0)))
+        pitchRate = 0
+        yawRate = 0
+        camUp = simd_float3(0, 1, 0)
     }
 
     private func worldPoint(_ local: simd_float3) -> simd_float3 {
@@ -2173,20 +2219,28 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
     private func contact(_ point: simd_float3, kind: Int) -> HudContact {
         let rel = point - position
-        let fwd = forward()
-        let right = simd_normalize(simd_cross(fwd, simd_float3(0, 1, 0)))
-        let ahead = simd_dot(rel, fwd)
-        let side = simd_dot(rel, right)
-        return HudContact(world: point, kind: kind, distance: simd_length(rel), bearing: atan2(side, ahead))
+        // b20: bearing on screen (camera right / camera up), correct when inverted.
+        let cq = cameraNode.simdOrientation
+        let cr = cq.act(simd_float3(1, 0, 0))
+        let cu = cq.act(simd_float3(0, 1, 0))
+        let cf = cq.act(simd_float3(0, 0, -1))
+        let relC = point - cameraNode.simdPosition
+        var bx = simd_dot(relC, cr)
+        var by = simd_dot(relC, cu)
+        if simd_dot(relC, cf) < 0 && abs(bx) + abs(by) < 1 { by = -1; bx = 0 }
+        return HudContact(world: point, kind: kind, distance: simd_length(rel), bearing: atan2(bx, by))
     }
 
     private func blip(_ point: simd_float3, kind: Int) -> HudBlip {
         let rel = point - position
-        let fwd = forward()
-        let right = simd_normalize(simd_cross(fwd, simd_float3(0, 1, 0)))
-        let ahead = simd_dot(rel, fwd) / 220
-        let side = simd_dot(rel, right) / 220
-        return HudBlip(x: max(-1, min(1, side)), y: max(-1, min(1, ahead)), kind: kind)
+        // b20: radar is in the ship's frame: up = ahead of the nose, sides = ship right.
+        let ahead = simd_dot(rel, forward()) / radarRange
+        let side = simd_dot(rel, shipRight()) / radarRange
+        let elev = simd_dot(rel, shipUp())
+        var x = side, y = ahead
+        let r = hypot(x, y)
+        if r > 1 { x /= r; y /= r }
+        return HudBlip(x: x, y: y, kind: kind, up: elev > 25 ? 1 : (elev < -25 ? -1 : 0))
     }
 
     private func creditsText() -> String {
@@ -2282,7 +2336,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         if tone > 0.5 && !hadLock { haptics.hit() }
         hadLock = tone > 0.5
         hud.pickups = phase == .combat ? pickups.filter(\.alive).map(\.node.simdPosition) : []
-        hud.gems = phase == .combat ? pickups.filter(\.alive).map { ($0.node.simdPosition, $0.kind.label) } : []
+        hud.gems = phase == .combat ? pickups.filter(\.alive).map { ($0.node.simdPosition, $0.opened ? "GRAB " + $0.kind.label : "SHOOT: " + $0.kind.label) } : []
         hud.objective = objectiveLine()
         hud.callout = callout
         hud.calloutAlpha = max(0, calloutLeft / 1.6)
@@ -2296,9 +2350,9 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         hud.guideTitle = guide.1
         hud.guideDistance = simd_distance(guide.0, position)
         let rel = guide.0 - position
-        let fwd = forward()
-        let right = safeNorm(simd_cross(fwd, simd_float3(0, 1, 0)))
-        hud.guideBearing = atan2(simd_dot(rel, right), simd_dot(rel, fwd))
+        _ = rel
+        hud.guideRadar = phase == .combat ? blip(guide.0, kind: 3) : nil
+        hud.guideBearing = contact(guide.0, kind: 3).bearing
         hud.cockpit = cockpitOn
         hud.creditScroll = creditScroll
         hud.contacts = []
@@ -2341,11 +2395,17 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
                 c.id = enemy.id
                 c.health = enemy.hullMax > 1 ? max(0, enemy.hull / enemy.hullMax) : 1
                 hud.contacts.append(c)
-                var b = blip(enemy.position, kind: kind)
+                var b = blip(enemy.position, kind: enemy.role == .turret || enemy.role == .core ? 5 : kind)
                 b.id = enemy.id
+                b.locked = enemy === lockedEnemy
                 hud.blips.append(b)
             }
-            hud.blips.append(blip(dropoff, kind: 3))
+            for pickup in pickups where pickup.alive {
+                hud.blips.append(blip(pickup.node.simdPosition, kind: 4))
+            }
+            var f = blip(dropoff, kind: 3)
+            f.goal = towed != nil
+            hud.blips.append(f)
         }
         hud.popups = popups.map { ($0.position, $0.text, $0.age) }
         hud.sunWorld = SpaceLook.sunDirection * 2200
@@ -2392,6 +2452,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         case .cinema:
             break
         case .combat:
+            audio.resetEngineEnvelope()
             hangar.removeFromParentNode()
             if viewMode == 2 { ensureCockpit() }
             cockpitOn = viewMode == 2
