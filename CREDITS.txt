@@ -6,3 +6,9 @@ Terrain textures: ambientCG (https://ambientcg.com) - Rock030, Grass004, Ground0
 Engine: three.js r170 (MIT).
 
 Audio (s4): sfx/brief, engine_loop, flyby1/2, ambient, riser, boomer — derived from Shahbaz Mirshahi's own Logic Pro sounds (Deep Space Dub 02 = briefing + score; Deep Space Boomer 02 = layered into bunker explosion; Jet Passing Overhead 01/02 = engine loop; Subsonic Boom FX 01 + 08 = explosion, release, secondaries, start, Dream Space Layers, Floating Frequency Kick Space Riser). Used with permission.
+
+s6 additions
+- Jet engine loop (sfx/jet.*): "Running Jet Engine 02", SFXMint (sfxmint.com), CC0 / public domain (AI-generated). Trimmed to a seamless 12 s loop.
+- Nuclear blast (sfx/nuke.*): mixed from the Logic Pro sounds already in this credits list (explosion pitched down, FX08/FX01) plus synthesized sub rumble.
+- Terrain textures aerial_grass_rock, rocky_terrain_02 (diffuse + normal): Poly Haven (polyhaven.com), CC0.
+- Removed: engine_loop, explosion, boomer stand-alone files (explosion is now baked into nuke.*).
