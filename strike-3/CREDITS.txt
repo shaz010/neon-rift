@@ -1,0 +1,6 @@
+DEEP STRIKE s2 - asset credits
+Jet: "F-35 Lightning II - Fighter Jet - Free" by bohmerang (https://sketchfab.com/bohmerang)
+  https://sketchfab.com/3d-models/f-35-lightning-ii-fighter-jet-free-b1ab1c0090e34b0fbfe667e706023e6d
+  Free download, personal/non-commercial use only (author note). Unmodified GLB.
+Terrain textures: ambientCG (https://ambientcg.com) - Rock030, Grass004, Ground054, Snow006 - CC0 1.0.
+Engine: three.js r170 (MIT).
