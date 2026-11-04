@@ -353,6 +353,11 @@ final class FlightViewController: UIViewController {
         overlay.marks = m.contacts.map { contact in
             HudMark(point: project(contact.world), kind: contact.kind, distance: contact.distance, bearing: contact.bearing, id: contact.id, health: contact.health)
         }
+        overlay.labels = m.labels.compactMap { item in
+            guard let p = project(item.0) else { return nil }
+            return (p, item.1)
+        }
+        overlay.tip = m.tip
         overlay.blips = m.blips.map { HudBlipView(x: CGFloat($0.x), y: CGFloat($0.y), kind: $0.kind, id: $0.id, up: CGFloat($0.up), locked: $0.locked, goal: $0.goal) }
         overlay.guideRadar = m.guideRadar.map { CGPoint(x: CGFloat($0.x), y: CGFloat($0.y)) }
         overlay.pickupPoints = m.pickups.compactMap { project($0) }
@@ -658,6 +663,8 @@ final class HudOverlay: UIView {
     var marks: [HudMark] = []
     var blips: [HudBlipView] = []
     var guideRadar: CGPoint?
+    var labels: [(CGPoint, String)] = []
+    var tip = ""
     var radarRadius: CGFloat { (cockpit ? 46 : 60) * max(scale, 0.5) }
     var dragOrigin: CGPoint?
     var aimOrigin: CGPoint?
@@ -714,9 +721,10 @@ final class HudOverlay: UIView {
                     .font: UIFont.monospacedSystemFont(ofSize: 10 * s, weight: .bold),
                     .foregroundColor: UIColor(red: 0.5, green: 1, blue: 0.9, alpha: 0.9),
                 ]
-                ("NEXT" as NSString).draw(at: CGPoint(x: hint.x - 12 * s, y: hint.y + 30 * s), withAttributes: attrs)
+                ("TAP TO LOCK" as NSString).draw(at: CGPoint(x: hint.x - 12 * s, y: hint.y + 30 * s), withAttributes: attrs)
             }
             drawGuide(ctx, rect, s)
+            drawLabels(ctx, rect, s)
             if cockpit {
                 drawCockpitGlass(ctx, rect, s)
             } else {
@@ -799,7 +807,7 @@ final class HudOverlay: UIView {
         ctx.closePath()
         ctx.fillPath()
         // Goal wedge.
-        if let g = guideRadar, hypot(g.x, g.y) > 0.01 {
+        if false, let g = guideRadar, hypot(g.x, g.y) > 0.01 {
             let ang = atan2(g.x, g.y)
             let inside = hypot(g.x, g.y) < 0.98
             let r0 = rad + 3 * s
@@ -812,15 +820,10 @@ final class HudOverlay: UIView {
             ctx.fillPath()
         }
         let pulse = CGFloat(0.6 + 0.4 * sin(CACurrentMediaTime() * 6))
-        for blip in blips {
+        for blip in blips where blip.kind == 0 || blip.kind == 1 || blip.kind == 5 {
             let p = CGPoint(x: center.x + blip.x * rad * 0.9, y: center.y - blip.y * rad * 0.9)
             let color: UIColor
             switch blip.kind {
-            case 1: color = UIColor(red: 1, green: 0.6, blue: 0.15, alpha: 1)
-            case 2: color = UIColor(red: 1, green: 0.92, blue: 0.3, alpha: 1)
-            case 3: color = UIColor(red: 0.35, green: 0.95, blue: 1, alpha: 1)
-            case 4: color = UIColor(red: 1, green: 0.8, blue: 0.35, alpha: 0.8)
-            case 5: color = UIColor(red: 1, green: 0.3, blue: 0.9, alpha: 1)
             default: color = UIColor(red: 1, green: 0.22, blue: 0.15, alpha: 1)
             }
             ctx.setFillColor(color.cgColor)
@@ -867,8 +870,35 @@ final class HudOverlay: UIView {
             .font: UIFont.monospacedSystemFont(ofSize: 8.5 * s, weight: .semibold),
             .foregroundColor: UIColor(white: 1, alpha: 0.75),
         ]
-        ("RADAR 420m · TAP BLIP = LOCK" as NSString).draw(at: CGPoint(x: center.x - rad, y: center.y + rad + 4 * s), withAttributes: attrs)
-        ("●DRONE ◆BANDIT ○BEAM ■FREIGHT" as NSString).draw(at: CGPoint(x: center.x - rad, y: center.y + rad + 15 * s), withAttributes: attrs)
+        ("RED = ENEMY · RING = LOCKED · TOP = AHEAD" as NSString).draw(at: CGPoint(x: center.x - rad - 20 * s, y: center.y + rad + 4 * s), withAttributes: attrs)
+    }
+
+    /// b21: floating "what is this" labels and the opening tip.
+    private func drawLabels(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 11 * s, weight: .bold),
+            .foregroundColor: UIColor.white,
+        ]
+        for (p, text) in labels where rect.contains(p) {
+            let t = text as NSString
+            let size = t.size(withAttributes: attrs)
+            let box = CGRect(x: p.x - size.width / 2 - 5 * s, y: p.y - size.height - 6 * s, width: size.width + 10 * s, height: size.height + 4 * s)
+            ctx.setFillColor(UIColor(white: 0, alpha: 0.55).cgColor)
+            ctx.fill(box)
+            t.draw(at: CGPoint(x: box.minX + 5 * s, y: box.minY + 2 * s), withAttributes: attrs)
+        }
+        if !tip.isEmpty {
+            let big: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 15 * s, weight: .heavy),
+                .foregroundColor: UIColor(red: 0.6, green: 1, blue: 0.95, alpha: 1),
+            ]
+            let t = tip as NSString
+            let size = t.size(withAttributes: big)
+            let box = CGRect(x: rect.midX - size.width / 2 - 10 * s, y: rect.height * 0.62, width: size.width + 20 * s, height: size.height + 10 * s)
+            ctx.setFillColor(UIColor(white: 0, alpha: 0.6).cgColor)
+            ctx.fill(box)
+            t.draw(at: CGPoint(x: box.minX + 10 * s, y: box.minY + 5 * s), withAttributes: big)
+        }
     }
 
     private func drawGuide(_ ctx: CGContext, _ rect: CGRect, _ s: CGFloat) {
@@ -904,7 +934,7 @@ final class HudOverlay: UIView {
             ctx.addLine(to: CGPoint(x: tip.x + CGFloat(sin(back - 2.6)) * 18 * s, y: tip.y - CGFloat(cos(back - 2.6)) * 18 * s))
             ctx.closePath()
             ctx.fillPath()
-            ("GOAL" as NSString).draw(at: CGPoint(x: tip.x - 12 * s, y: tip.y + (tip.y < rect.midY ? 10 : -22) * s), withAttributes: attrs)
+            ("GOAL: \(guideTitle)" as NSString).draw(at: CGPoint(x: tip.x - 12 * s, y: tip.y + (tip.y < rect.midY ? 10 : -22) * s), withAttributes: attrs)
         }
     }
 
@@ -1048,12 +1078,12 @@ final class HudOverlay: UIView {
                 .font: UIFont.monospacedSystemFont(ofSize: 11 * s, weight: .bold),
                 .foregroundColor: color,
             ]
-            ("\(Int(lockDistance))m" as NSString).draw(at: CGPoint(x: tip.x - 16 * s, y: tip.y + 8 * s), withAttributes: attrs)
+            ("TARGET \(Int(lockDistance))m" as NSString).draw(at: CGPoint(x: tip.x - 30 * s, y: tip.y + (tip.y < rect.midY ? 8 : -22) * s), withAttributes: attrs)
             return
         }
         // Closing brackets that snap in over 0.3s.
         let close = max(0, 1 - lockAge / 0.3)
-        bracket(ctx, lock, (40 + 50 * close) * s, color.withAlphaComponent(1 - 0.4 * close))
+        bracket(ctx, lock, (52 + 50 * close) * s, color.withAlphaComponent(1 - 0.4 * close))
         // Health ring.
         let ringR = 30 * s
         ctx.setLineWidth(3 * s)
@@ -1068,13 +1098,27 @@ final class HudOverlay: UIView {
             .font: UIFont.monospacedSystemFont(ofSize: 13 * s, weight: .medium),
             .foregroundColor: color,
         ]
-        (lockTitle as NSString).draw(at: CGPoint(x: lock.x - 30 * s, y: lock.y - 68 * s), withAttributes: attrs)
+        // b21: big obvious "LOCKED: DRONE" with a health bar under it.
+        let named = lockTitle == "BOGEY" ? "DRONE" : lockTitle
+        let big: [NSAttributedString.Key: Any] = [
+            .font: UIFont.monospacedSystemFont(ofSize: 15 * s, weight: .heavy),
+            .foregroundColor: color,
+        ]
+        let title = "LOCKED: \(named)" as NSString
+        let tw = title.size(withAttributes: big).width
+        title.draw(at: CGPoint(x: lock.x - tw / 2, y: lock.y - 92 * s), withAttributes: big)
+        let barW = max(tw, 80 * s)
+        let bar = CGRect(x: lock.x - barW / 2, y: lock.y - 70 * s, width: barW, height: 6 * s)
+        ctx.setFillColor(UIColor(white: 1, alpha: 0.2).cgColor)
+        ctx.fill(bar)
+        ctx.setFillColor(ringColor.cgColor)
+        ctx.fill(CGRect(x: bar.minX, y: bar.minY, width: bar.width * h, height: bar.height))
         let small: [NSAttributedString.Key: Any] = [
             .font: UIFont.monospacedSystemFont(ofSize: 11 * s, weight: .bold),
             .foregroundColor: color,
         ]
         if lockAge > 0.3 {
-            let tag = lockChosen ? "◆ LOCKED" : "LOCKED"
+            let tag = lockChosen ? "HOLD FIRE" : "AUTO-LOCK · HOLD FIRE"
             (tag as NSString).draw(at: CGPoint(x: lock.x - 28 * s, y: lock.y + 44 * s), withAttributes: small)
         }
         ("\(Int(lockDistance))m" as NSString).draw(at: CGPoint(x: lock.x + 40 * s, y: lock.y - 6 * s), withAttributes: small)

@@ -30,20 +30,14 @@ LOCALE = "en-US"
 API = "https://api.appstoreconnect.apple.com"
 
 WHATS_NEW = (
-    "Build 20 (b20 badge, bottom right of the hangar).\n\n"
-    "Full rotation: no pitch/turn limits. Hold your right thumb up or down to loop all the way round, "
-    "fly upside down, turn fully around. The chase camera rides with the ship through loops (no motion of its own).\n\n"
-    "Radar (top right; bottom right in cockpit): you are the white arrow, top = ahead of your nose, 420 m range. "
-    "Red dot = drone, orange diamond = bandit, yellow pulsing ring = disabled bandit (fly close, beam it, tow it "
-    "to the freighter), cyan square = freighter, gold dot = crate, magenta = Warden. White ring = your lock. "
-    "Cyan wedge on the rim = where your goal is. A tick above/below a blip = above/below you. Tap a blip to lock it.\n\n"
-    "Arrows at the screen edge: cyan GOAL = your current objective, red/orange = your locked target, "
-    "yellow BEAM = a disabled bandit to tow.\n\n"
-    "Crates now say SHOOT: <prize>, then GRAB <prize>. Bolts only curve to your lock when it is near the crosshair, "
-    "so rocks and crates in front of you are easy to hit.\n\n"
-    "Sound: engine starts at full volume and settles to about a fifth after a few seconds; boost or a hard turn "
-    "swells it back up. Music is a bit lower under the effects.\n\n"
-    "Please test: loops and flips in chase and cockpit, whether the radar now makes sense, and the engine volume."
+    "b21 - CALM CONTROL + CLARITY. "
+    "Ship now holds still and flies level by itself; drag gently to turn, thumb up = gentle climb (max 35 deg), let go = levels out in ~1 s. "
+    "No more loops/rolls/endless spinning. Camera stays steady behind the ship. "
+    "Tap an enemy to lock - big LOCKED: DRONE/BANDIT tag with health bar; hold FIRE and shots fly straight at it. "
+    "Labels float over the first few of each object (DRONE, BANDIT, CRATE, ROCK, FREIGHTER). "
+    "Yellow wireframe boxes = CRATES (shoot for a prize). Edge triangles now say TARGET or GOAL. "
+    "Radar shows only enemies (red) + your lock (ring). "
+    "TEST: does the ship feel calm and obey you? Do you understand what everything is?"
 )
 
 

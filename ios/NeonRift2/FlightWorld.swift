@@ -97,6 +97,9 @@ struct HudModel {
     var contacts: [HudContact] = []
     var blips: [HudBlip] = []
     var guideRadar: HudBlip?
+    /// b21: in-world "what is this" labels and the opening tip.
+    var labels: [(simd_float3, String)] = []
+    var tip = ""
     var bounty = 0
     var rank = "ROOKIE"
     var boost: Float = 0
@@ -275,6 +278,18 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     private var aerialYaw: Float = 0
     private var yawRate: Float = 0
     private let radarRange: Float = 420
+    private var labelled: [String: [Int]] = [:]
+
+    /// b21: true for the first 3 objects of each type the player meets (within 260 m).
+    private func wantsLabel(_ type: String, _ id: Int, _ point: simd_float3) -> Bool {
+        guard simd_distance(point, position) < 260 else { return false }
+        var list = labelled[type] ?? []
+        if list.contains(id) { return true }
+        if list.count >= 3 { return false }
+        list.append(id)
+        labelled[type] = list
+        return true
+    }
     /// b20: the ship's true attitude. yaw/pitch are now derived from it (for the
     /// compass and old callers); nothing clamps it, so loops and full turns work.
     private var orient = simd_quatf(angle: 0, axis: simd_float3(0, 1, 0))
@@ -560,6 +575,7 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
     }
 
     private func beginTrick(_ kind: Trick, direction: Float) {
+        return // b21: loop/roll gestures removed (calm control).
         guard phase == .combat, !died, trick == nil, trickCooldown <= 0 else { return }
         trickCooldown = 0.35
         trick = kind
@@ -708,48 +724,26 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         // (they sum), mapped almost linearly to a fast yaw rate with a crisp
         // first-order response (no overshoot). No aim assist, no auto-face: only
         // the player moves the ship.
+        // b21 calm control: finger offset -> gentle turn rate and a capped climb
+        // angle, soft response. No input = level flight; pitch and bank ease back
+        // to level in about 1 s. No loops, no endless rotation.
         let yawFromLeft: Float = auto ? x : x * 0.8
         var yawCmd = yawFromLeft + aimX
         yawCmd = max(-1, min(1, yawCmd))
-        let shaped = yawCmd * (0.8 + 0.2 * abs(yawCmd))
-        let wantYawRate = shaped * 4.2
-        yawRate += (wantYawRate - yawRate) * min(1, 22 * dt)
-        if abs(wantYawRate) < 0.001 && abs(yawRate) < 0.02 { yawRate = 0 }
+        let shaped = yawCmd * (0.6 + 0.4 * abs(yawCmd))
+        let wantYawRate = shaped * 1.9
+        yawRate += (wantYawRate - yawRate) * min(1, 6 * dt)
+        if abs(wantYawRate) < 0.001 && abs(yawRate) < 0.01 { yawRate = 0 }
+        yaw += yawRate * dt
         if faceLeft > 0 { faceLeft -= dt }
-        // b20: rate-based pitch, no clamp: hold the thumb up/down to loop all the way.
-        let wantPitchRate = aimY * (0.8 + 0.2 * abs(aimY)) * 3.4
-        pitchRate += (wantPitchRate - pitchRate) * min(1, 22 * dt)
-        if abs(wantPitchRate) < 0.001 && abs(pitchRate) < 0.02 { pitchRate = 0 }
-        var dPitch = pitchRate * dt
-        if let trick {
-            trickAge += dt
-            let duration: Float = trick == .loop ? 1.25 : 0.72
-            let u = min(1, trickAge / duration)
-            if trick == .loop {
-                // Loop: a full 360 about the ship's own right axis, ends where it began.
-                let goal = trickDir * u * 2 * .pi
-                dPitch = goal - trickTurned
-                trickTurned = goal
-            } else {
-                roll = trickRoll0 + trickDir * u * 2 * .pi
-            }
-            if u >= 1 {
-                roll = trickRoll0
-                self.trick = nil
-            }
-        } else {
-            let targetRoll = -yawCmd * 0.62
-            roll += (targetRoll - roll) * min(1, 11 * dt)
-            roll = max(-0.85, min(0.85, roll))
-        }
-        // Yaw about the ship's own up, pitch about its own right (body axes, quaternion,
-        // no gimbal lock, no limits).
-        orient = simd_normalize(orient
-            * simd_quatf(angle: -yawRate * dt, axis: simd_float3(0, 1, 0))
-            * simd_quatf(angle: dPitch, axis: simd_float3(1, 0, 0)))
-        let f0 = forward()
-        yaw = atan2(f0.x, -f0.z)
-        pitch = asin(max(-1, min(1, f0.y)))
+        let maxClimb: Float = 35 * .pi / 180
+        let targetPitch = max(-1, min(1, aimY)) * maxClimb
+        pitch += (targetPitch - pitch) * min(1, 4 * dt)
+        pitch = max(-maxClimb, min(maxClimb, pitch))
+        trick = nil
+        let targetRoll = -yawCmd * 0.12
+        roll += (targetRoll - roll) * min(1, 4 * dt)
+        orient = simd_normalize(simd_quatf(angle: -yaw, axis: simd_float3(0, 1, 0)) * simd_quatf(angle: pitch, axis: simd_float3(1, 0, 0)))
 
         if boostLeft > 0 { boostLeft -= dt }
         let boosting = boostLeft > 0
@@ -765,8 +759,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             force += -fwd * forwardSpeed * 0.2 * mass
         }
         // b20: wide soft ceiling/floor only (was a 2..28 m band that fought loops).
-        if position.y < -90 { force.y += (-90 - position.y) * mass * 1.4 }
-        if position.y > 140 { force.y -= (position.y - 140) * mass * 1.4 }
+        if position.y < -40 { force.y += (-40 - position.y) * mass * 1.4 }
+        if position.y > 80 { force.y -= (position.y - 80) * mass * 1.4 }
         if abs(position.x) > 280 {
             force.x -= (position.x - copysign(280, position.x)) * mass * 1.4
         }
@@ -1560,8 +1554,11 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         let up = shipUp()
         camUp = safeNorm(mix3(camUp, up, 1 - exp(-30 * raw)))
         var viewUp = camUp
-        let chasePos = position - fwd * 26 + up * 7.5
-        let chaseLook = position + fwd * 30 + up * 0.4
+        // b21: rigid behind the level heading, world up, no roll.
+        _ = up
+        viewUp = simd_float3(0, 1, 0)
+        let chasePos = position - head * 26 + simd_float3(0, 7.5, 0)
+        let chaseLook = position + fwd * 30 + simd_float3(0, 0.4, 0)
         var desired = chasePos
         var look = chaseLook
         var rollCam: Float = 0
@@ -1569,8 +1566,8 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
 
         if cockpitOn && phase == .combat {
             // b19: rigid cockpit on the nose (yaw + pitch), no bank, no kick.
-            let eye = position + up * 0.55 + fwd * 0.8
-            viewUp = up
+            let eye = position + simd_float3(0, 0.55, 0) + fwd * 0.8
+            viewUp = simd_float3(0, 1, 0)
             desired = eye
             look = eye + fwd * 40
         } else if phase == .cinema {
@@ -1668,13 +1665,12 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
             }
             origin = position + dir * 3.2
         } else if let hard {
-            let to = safeNorm(hard.position - origin)
-            // b20: bolts only bend toward the lock when it is near the crosshair
-            // (~14 deg), so rocks and crates in front of the nose are hittable.
-            let blend: Float = simd_dot(dir, to) > 0.97 ? 0.8 : 0
-            dir = safeNorm(dir * (1 - blend) + to * blend)
+            // b21: locked = the bolt flies dead straight at where the target will be
+            // (simple lead), no curving, no homing.
+            let t = simd_distance(hard.position, origin) / 280
+            dir = safeNorm(hard.position + hard.velocity * t - origin)
         }
-        spawnBolt(origin: origin, direction: dir, speed: 280, life: 1.25, player: true, home: hard, mat: art.boltPlayer, missile: false, trick: tricking && hard != nil)
+        spawnBolt(origin: origin, direction: dir, speed: 280, life: 1.25, player: true, home: nil, mat: art.boltPlayer, missile: false, trick: tricking && hard != nil)
         // Missile volleys at 50% and 20% of the locked target's hull, only while fire is held.
         if missileLevel > 0, let hard, hard.volleys > 0 {
             hard.volleys -= 1
@@ -2336,7 +2332,30 @@ final class FlightWorld: NSObject, SCNSceneRendererDelegate {
         if tone > 0.5 && !hadLock { haptics.hit() }
         hadLock = tone > 0.5
         hud.pickups = phase == .combat ? pickups.filter(\.alive).map(\.node.simdPosition) : []
-        hud.gems = phase == .combat ? pickups.filter(\.alive).map { ($0.node.simdPosition, $0.opened ? "GRAB " + $0.kind.label : "SHOOT: " + $0.kind.label) } : []
+        hud.gems = phase == .combat ? pickups.filter(\.alive).map { ($0.node.simdPosition, $0.opened ? "GRAB: " + $0.kind.label + " - fly into it" : "CRATE - shoot for prize") } : []
+        hud.labels = []
+        hud.tip = ""
+        if phase == .combat {
+            if phaseTime < 12 { hud.tip = "Tap an enemy to lock - hold FIRE to shoot it" }
+            for enemy in enemies where enemy.alive {
+                let up = enemy.position + simd_float3(0, 5, 0)
+                if enemy.disabled {
+                    if wantsLabel("disabled", enemy.id, enemy.position) { hud.labels.append((up, "DISABLED - fly close, BEAM, tow to freighter")) }
+                } else if enemy.role == .bandit {
+                    if wantsLabel("bandit", enemy.id, enemy.position) { hud.labels.append((up, "BANDIT - shoot to disable, then tow")) }
+                } else if enemy.role == .turret || enemy.role == .core {
+                    if wantsLabel("warden", enemy.id, enemy.position) { hud.labels.append((up, "WARDEN - shoot")) }
+                } else if wantsLabel("drone", enemy.id, enemy.position) {
+                    hud.labels.append((up, "DRONE - shoot"))
+                }
+            }
+            for (i, rock) in rocks.enumerated() where rock.alive {
+                if wantsLabel("rock", i, rock.position) { hud.labels.append((rock.position + simd_float3(0, rock.radius + 2, 0), "ROCK - avoid or shoot")) }
+            }
+            if towed != nil || phaseTime < 40 || simd_distance(dropoff, position) < 300 {
+                hud.labels.append((dropoff + simd_float3(0, 14, 0), "FREIGHTER - deliver here"))
+            }
+        }
         hud.objective = objectiveLine()
         hud.callout = callout
         hud.calloutAlpha = max(0, calloutLeft / 1.6)

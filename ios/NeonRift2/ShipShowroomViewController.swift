@@ -116,7 +116,7 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
         titleLabel.textAlignment = .center
         titleLabel.isUserInteractionEnabled = false
         view.addSubview(titleLabel)
-        buildBadge.text = "b20 · " + FlightAudio.status
+        buildBadge.text = "b21 · " + FlightAudio.status
         buildBadge.font = UIFont.monospacedSystemFont(ofSize: 11, weight: .medium)
         buildBadge.textColor = UIColor(white: 1, alpha: 0.55)
         buildBadge.textAlignment = .right
@@ -185,7 +185,7 @@ final class ShipShowroomViewController: UIViewController, UIGestureRecognizerDel
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        buildBadge.text = "b20 · " + FlightAudio.status
+        buildBadge.text = "b21 · " + FlightAudio.status
         guard announce, !announced else { return }
         announced = true
         ShowroomLog.line("NR2 showroom ready")
