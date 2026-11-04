@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#050605">
 <link rel="manifest" href="manifest.webmanifest">
 <!-- Credits: see CREDITS.txt (F-35 model by bohmerang/Sketchfab, non-commercial; textures ambientCG CC0) -->
-<title>DEEP STRIKE s4</title>
+<title>DEEP STRIKE s5</title>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
 <style>
 :root{--g:rgba(178,214,170,.88);--gd:rgba(178,214,170,.35);--m:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
@@ -59,7 +59,7 @@ table{width:100%;font-size:12px;border-collapse:collapse}td{padding:3px 0;border
 <div id="lock" class="btn off">LOCK</div>
 <div id="rel" class="btn off"><div id="relf"></div><span style="position:relative">RELEASE</span></div>
 <div id="flash"></div>
-<div id="badge">DEEP STRIKE · s4</div>
+<div id="badge">DEEP STRIKE · s5</div>
 <div id="brief" class="ov scan">
  <div id="bl"><div class="hdr"><span>DEEP STRIKE // IRON VEIL</span><span>SECRET//REL</span></div>
   <canvas id="map"></canvas>
@@ -289,8 +289,8 @@ function initAudio(){if(AC){AC.resume();return}AC=new(window.AudioContext||windo
  const o2=AC.createOscillator();o2.type='triangle';o2.frequency.value=900;const g2=AC.createGain();g2.gain.value=.02;
  const g=AC.createGain();g.gain.value=0;n.connect(bp).connect(g);o1.connect(lp);const g1=AC.createGain();g1.gain.value=.25;lp.connect(g1).connect(g);o2.connect(g2).connect(g);g.connect(out);
  n.start();o1.start();o2.start();eng={g,bp,o1,o2,lp};
- AC.mus=AC.createGain();AC.mus.gain.value=1;AC.mus.connect(out);AC.amb=AC.createGain();AC.amb.gain.value=0;AC.amb.connect(AC.mus);
- AC.jet=AC.createGain();AC.jet.gain.value=0;AC.jlp=AC.createBiquadFilter();AC.jlp.type='lowpass';AC.jlp.frequency.value=2500;AC.jlp.Q.value=.5;AC.jet.connect(AC.jlp).connect(out);
+ AC.dk=AC.createGain();AC.dk.connect(out);eng.g.disconnect();eng.g.connect(AC.dk);AC.mus=AC.createGain();AC.mus.gain.value=1;AC.mus.connect(AC.dk);AC.amb=AC.createGain();AC.amb.gain.value=0;AC.amb.connect(AC.mus);
+ AC.jet=AC.createGain();AC.jet.gain.value=0;AC.jlp=AC.createBiquadFilter();AC.jlp.type='lowpass';AC.jlp.frequency.value=2500;AC.jlp.Q.value=.5;AC.jet.connect(AC.jlp).connect(AC.dk);
  SB.load();
  warnG=AC.createGain();warnG.gain.value=0;tone=AC.createOscillator();tone.type='square';tone.frequency.value=1200;const tf=AC.createGain();tf.gain.value=.06;tone.connect(tf).connect(warnG).connect(out);tone.start();
  trkG=AC.createGain();trkG.gain.value=0;{const o=AC.createOscillator();o.type='triangle';o.frequency.value=780;o.connect(trkG).connect(out);o.start()}
@@ -298,25 +298,26 @@ function initAudio(){if(AC){AC.resume();return}AC=new(window.AudioContext||windo
  fetch('sfx/lock.m4a').then(r=>r.arrayBuffer()).then(a=>AC.decodeAudioData(a)).then(b=>lockBuf=b).catch(()=>{})}
 // Briefing music: swap this ONE reference to change the entry track (sfx/<name>.mp3 + optional .ogg)
 const BRIEF_TRACK='brief';
-const SB={b:{},load(){for(const k of[BRIEF_TRACK,'boomer','engine_loop','flyby1','flyby2','ambient','riser'])this.get(k)},
+const SB={b:{},load(){for(const k of[BRIEF_TRACK,'boomer','explosion','sub01','sub08','engine_loop','ambient','riser'])this.get(k)},
  get(k){if(this.b[k])return this.b[k];const tryf=ext=>fetch('sfx/'+k+'.'+ext).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(a=>new Promise((res,rej)=>AC.decodeAudioData(a,res,rej)));
   return this.b[k]=tryf('mp3').catch(()=>tryf('ogg')).then(b=>(this[k]=b)).catch(()=>null)}};
 function src(buf,vol,dest,opt={}){const s=AC.createBufferSource();s.buffer=buf;s.loop=!!opt.loop;s.playbackRate.value=opt.rate||1;const g=AC.createGain();g.gain.value=vol;
  let n=s.connect(g);if(opt.pan!=null&&AC.createStereoPanner){const p=AC.createStereoPanner();p.pan.value=opt.pan;n=n.connect(p)}n.connect(dest||AC.out);s.start(AC.currentTime,opt.off||0);s.g=g;return s}
-window.__aud=()=>({st:AC&&AC.state,loaded:Object.keys(SB).filter(k=>SB[k]&&SB[k].duration),jet:!!JET,brief:!!briefSrc,riser:!!riserS,jg:AC&&AC.jet&&+AC.jet.gain.value.toFixed(3),amb:AC&&AC.amb&&+AC.amb.gain.value.toFixed(3),rate:JET&&+JET[0].playbackRate.value.toFixed(3),flyCD:+flyCD.toFixed(1)});
+window.__aud=()=>({st:AC&&AC.state,loaded:Object.keys(SB).filter(k=>SB[k]&&SB[k].duration),jet:!!JET,brief:!!briefSrc,riser:!!riserS,jg:AC&&AC.jet&&+AC.jet.gain.value.toFixed(3),amb:AC&&AC.amb&&+AC.amb.gain.value.toFixed(3),rate:JET&&+JET.playbackRate.value.toFixed(3),dk:AC&&+AC.dk.gain.value.toFixed(2),flyCD:+flyCD.toFixed(1)});
+function heavy(k,v,rate=1){if(!AC||!SB[k])return false;src(SB[k],v,AC.out,{rate});return true}
+function duck(depth,hold,rec){if(!AC)return;const t=AC.currentTime,g=AC.dk.gain;g.cancelScheduledValues(t);g.setValueAtTime(g.value,t);g.linearRampToValueAtTime(depth,t+.03);g.setValueAtTime(depth,t+hold);g.linearRampToValueAtTime(1,t+hold+rec)}
 let JET=null,briefSrc=null,briefT=null,riserS=null,flyCD=0,ambS=null;
 function startJet(){if(JET||!SB.engine_loop)return;const b=SB.engine_loop,L=b.duration;
- JET=[0,.5].map((o,i)=>{const s=src(b,0,AC.jet,{loop:true,off:L*o,rate:1});s.ph=i*Math.PI;return s});
+ JET=src(b,1,AC.jet,{loop:true});
  ambS=src(SB.ambient,1,AC.amb,{loop:true})}
 function briefMusic(){if(!AC)return;const go=()=>{if(!$('brief')||$('brief').classList.contains('hide'))return;if(SB[BRIEF_TRACK]){briefSrc=src(SB[BRIEF_TRACK],.0,AC.mus);briefSrc.g.gain.linearRampToValueAtTime(.55,AC.currentTime+.4)}briefT=setTimeout(go,(SB[BRIEF_TRACK]?SB[BRIEF_TRACK].duration*1000-300:9500))};
  if(briefT)return;SB.get(BRIEF_TRACK).then(()=>go())}
 function stopBrief(){clearTimeout(briefT);briefT=1;if(briefSrc){briefSrc.g.gain.setTargetAtTime(0,AC.currentTime,.4);briefSrc=null}}
-function flyby(pan,v=.5){if(!AC||flyCD>0)return;flyCD=5+Math.random()*3;const b=Math.random()<.5?SB.flyby1:SB.flyby2;if(b)src(b,v,AC.out,{rate:.88+Math.random()*.22,pan})}
 function riser(on){if(!AC)return;const t=AC.currentTime;if(on&&!riserS&&SB.riser){riserS=src(SB.riser,.001,AC.mus,{rate:.92});riserS.g.gain.exponentialRampToValueAtTime(.38,t+5);riserS.playbackRate.linearRampToValueAtTime(1.12,t+6)}
  if(!on&&riserS){riserS.g.gain.cancelScheduledValues(t);riserS.g.gain.setTargetAtTime(0,t,.08);const r=riserS;setTimeout(()=>{try{r.stop()}catch(e){}},800);riserS=null}}
 function play(buf,vol=.5){if(!AC||!buf)return;const s=AC.createBufferSource();s.buffer=buf;const g=AC.createGain();g.gain.value=vol;s.connect(g).connect(AC.out);s.start()}
 function blip(f,d=.08,v=.15,type='square'){if(!AC)return;const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);o.connect(g).connect(AC.out);o.start();o.stop(AC.currentTime+d)}
-function boomSfx(big){if(!AC)return;if(big&&SB.boomer){const s=src(SB.boomer,.85,AC.out,{rate:.94})}const t=AC.currentTime,n=AC.createBufferSource();n.buffer=noiseBuf(big?4:1.5);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(big?2500:1800,t);f.frequency.exponentialRampToValueAtTime(80,t+(big?3.5:1.2));
+function boomSfx(big){if(!AC)return;if(big&&heavy('explosion',1)){duck(.25,1.2,3.5);return}const t=AC.currentTime,n=AC.createBufferSource();n.buffer=noiseBuf(big?4:1.5);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(big?2500:1800,t);f.frequency.exponentialRampToValueAtTime(80,t+(big?3.5:1.2));
  const g=AC.createGain();g.gain.setValueAtTime(big?1.2:.5,t);g.gain.exponentialRampToValueAtTime(.001,t+(big?4:1.4));n.connect(f).connect(g).connect(AC.out);n.start();
  if(big){const r=AC.createBufferSource();r.buffer=noiseBuf(7);const rf=AC.createBiquadFilter();rf.type='lowpass';rf.frequency.value=140;const rg=AC.createGain();rg.gain.setValueAtTime(.001,t);rg.gain.linearRampToValueAtTime(1.1,t+.35);rg.gain.exponentialRampToValueAtTime(.001,t+7);r.connect(rf).connect(rg).connect(AC.out);r.start();
   const o3=AC.createOscillator();o3.frequency.setValueAtTime(40,t);o3.frequency.exponentialRampToValueAtTime(18,t+4);const g3=AC.createGain();g3.gain.setValueAtTime(1,t);g3.gain.exponentialRampToValueAtTime(.001,t+4.5);o3.connect(g3).connect(AC.out);o3.start();o3.stop(t+4.6);
@@ -395,12 +396,12 @@ function update(rdt){
  if(S.phase==='release'){if(bDist()<350||!scr(BUNK)){S.locked=false;S.phase='ingress';msg('LOCK LOST — REATTACK')}
   if(relDown&&bDist()<3000&&S.missile&&!S.missile.decoy){if(S.msgT<=0)msg('DEFEAT MISSILE FIRST')}else if(relDown&&bDist()<3000){S.relHold+=rdt;if(S.relHold>=.5)release()}else S.relHold=Math.max(0,S.relHold-rdt*2)}else S.relHold=0;
  const b=S.bomb;if(b){const to=tmp.copy(b.aim).sub(b.p),d=to.length();b.s=Math.min(420,b.s+120*dt);b.v.lerp(to.normalize().multiplyScalar(b.s),clamp(dt*1.4,0,1));b.v.y-=3*dt;b.p.addScaledVector(b.v,dt);b.tti=d/b.v.length();
-  bomb.position.copy(b.p);bomb.lookAt(tmp.copy(b.p).add(b.v));if(d<6||b.p.y<b.aim.y){S.bomb=null;bomb.visible=false;S.phase='penetrate';S.penT=0;riser(false);blip(90,.4,.4,'sine');boomSfx(false);bulge.position.copy(BUNK);bulge.visible=true;bulge.scale.set(46,.1,40);
+  bomb.position.copy(b.p);bomb.lookAt(tmp.copy(b.p).add(b.v));if(d<6||b.p.y<b.aim.y){S.bomb=null;bomb.visible=false;S.phase='penetrate';S.penT=0;riser(false);blip(90,.4,.4,'sine');boomSfx(false);heavy('sub08',.35,.9);bulge.position.copy(BUNK);bulge.visible=true;bulge.scale.set(46,.1,40);
    for(let i=0;i<22;i++)spr(BUNK,0x8f8270,16,3,new THREE.Vector3(rnd(22),18+Math.random()*35,rnd(22)),{grow:20,o:.85,must:1})}}
  if(S.phase==='penetrate'){S.penT+=rdt;const k=sstep(.5,1.6,S.penT);bulge.scale.set(46+k*8,.1+k*9,40+k*8);S.shake=Math.max(S.shake,k*.25);if(Math.random()<.3)spr(tmp.copy(BUNK).add(new THREE.Vector3(rnd(40),2,rnd(40))),0x8a7d6a,10,2,new THREE.Vector3(0,6,0),{grow:10,o:.6});if(S.penT>1.6)bigBoom()}
  if(S.boomT>=0){S.boomT+=dt;const t=S.boomT;ring.scale.setScalar(40+t*1300);ring.material.opacity=Math.max(0,.75-t/3);dome.scale.set(60+t*1600,(60+t*1600)*.5,60+t*1600);dome.material.opacity=Math.max(0,.09-t*.15);
   if(t>2.4)ring.visible=false;if(t>.7)dome.visible=false;
-  while(S.sec.length&&t>S.sec[0]){S.sec.shift();fire(tmp.copy(BUNK).add(new THREE.Vector3(rnd(90),0,rnd(90))),1.1);boomSfx(false)}}
+  while(S.sec.length&&t>S.sec[0]){S.sec.shift();fire(tmp.copy(BUNK).add(new THREE.Vector3(rnd(90),0,rnd(90))),1.1);if(!heavy('sub01',.5,.85+Math.random()*.15))boomSfx(false)}}
  for(const d of debris){if(d.v.lengthSq()===0)continue;d.v.y-=30*dt;d.m.position.addScaledVector(d.v,dt);d.m.rotation.x+=d.r.x*dt;d.m.rotation.y+=d.r.y*dt;const gy=H(d.m.position.x,d.m.position.z);if(d.m.position.y<gy){d.m.position.y=gy;d.v.set(0,0,0);if(Math.random()<.4)spr(d.m.position,0x7a6e60,8,2,null,{grow:8,o:.6})}else if(Math.random()<.15)spr(d.m.position,0x2a2622,4,1.5,null,{grow:5,o:.5})}
  if(S.egressLaunch&&S.boomT>7&&!S.missile){S.egressLaunch=false;S.sites[2].shots=0}
  const th=updSites(dt);S.th=th;
@@ -416,14 +417,13 @@ function update(rdt){
  if(S.pos.z<EXZ-900&&S.phase!=='egress'&&S.phase!=='done')die('LEFT THE AO');
  if(AC&&eng){const tt=AC.currentTime;eng.g.gain.setTargetAtTime(.25+S.thr*.25,tt,.1);eng.bp.frequency.setTargetAtTime((300+S.thr*1400)*S.ts,tt,.1);eng.o1.frequency.setTargetAtTime((45+S.thr*40)*S.ts,tt,.1);eng.o2.frequency.setTargetAtTime((700+S.thr*900)*S.ts,tt,.1);
   startJet();flyCD=Math.max(0,flyCD-rdt);const warnA=S.missile&&!S.missile.decoy&&!S.missile.lost;
-  if(JET){const sp=(S.spd-110)/120,rate=(.82+S.thr*.26+sp*.08)*(S.cine?.8:1);JET.forEach((j,i)=>{j.ph+=rdt*(.21+i*.07);j.playbackRate.setTargetAtTime(rate*(1+.012*Math.sin(j.ph*1.7)),tt,.25);j.g.gain.setTargetAtTime(.5+.5*Math.sin(j.ph),tt,.3)});
-   AC.jet.gain.setTargetAtTime((S.cine?.18:.32+S.thr*.28)*(warnA?.6:1),tt,.25);AC.jlp.frequency.setTargetAtTime((S.cine?600:900+S.thr*3800+Math.min(1,Math.abs(S.roll))*900),tt,.2)}
+  if(JET){JET.playbackRate.setTargetAtTime(.86+S.thr*.2,tt,.4);AC.jet.gain.setTargetAtTime((S.cine?.12:.2+S.thr*.12)*(warnA?.6:1),tt,.4);AC.jlp.frequency.setTargetAtTime(S.cine?700:1800+S.thr*1200,tt,.4)}
   const tense=S.th&&(S.th.anyTrk||S.th.anySrch);AC.mus.gain.setTargetAtTime(warnA?.45:1,tt,.15);AC.amb.gain.setTargetAtTime(S.cine?0:(warnA?.04:tense?.16:.09),tt,1.2);
-  if(!S.cine&&S.t>3){if(Math.abs(S.roll)>1.0&&S.thr>.5)flyby(-Math.sign(S.roll)*.5,.38);else if(S.agl<38)flyby(0,.45)}
+
   const warn=S.missile&&!S.missile.decoy&&!S.missile.lost;trkG.gain.setTargetAtTime(!warn&&S.th&&S.th.anyTrk?.05:0,tt,.02);S.srchT-=rdt;if(S.th&&S.th.anySrch&&!S.th.anyTrk&&S.srchT<=0){S.srchT=1.3;blip(620,.06,.06,'sine')}
-  eng.g.gain.setTargetAtTime(S.cine?.05:.09+S.thr*.08,tt,.2);warnG.gain.setTargetAtTime(warn?((S.t*8|0)%2?1:0):0,tt,.01);tone.frequency.value=(S.t*8|0)%2?1300:1000;
+  eng.g.gain.setTargetAtTime(0,tt,.2);warnG.gain.setTargetAtTime(warn?((S.t*8|0)%2?1:0):0,tt,.01);tone.frequency.value=(S.t*8|0)%2?1300:1000;
   const seek=S.phase==='ingress'&&bDist()<4500&&inBox()>0;seekG.gain.setTargetAtTime(seek?((S.t*5|0)%2?.05:0):S.phase==='release'?.035:0,tt,.01);seekG.o.frequency.value=S.phase==='release'?1500:1000}}
-function release(){S.relHold=0;S.locked=false;S.phase='bombfall';riser(true);const q=inBox();S.err=(1-q)*14+Math.random()*2;const a=Math.random()*6.28;
+function release(){S.relHold=0;S.locked=false;S.phase='bombfall';riser(true);heavy('sub08',.45,1.15);const q=inBox();S.err=(1-q)*14+Math.random()*2;const a=Math.random()*6.28;
  S.bomb={p:S.pos.clone().add(new THREE.Vector3(0,-2,0)),v:fwd.clone().multiplyScalar(S.spd),s:S.spd,aim:BUNK.clone().add(new THREE.Vector3(Math.cos(a)*S.err,0,Math.sin(a)*S.err)),tti:99};bomb.visible=true;blip(300,.2,.3,'triangle');whoosh()}
 function showEnd(win){running=false;if(AC){const t=AC.currentTime;riser(false);AC.jet.gain.setTargetAtTime(0,t,.5);AC.amb.gain.setTargetAtTime(0,t,.5);eng.g.gain.setTargetAtTime(0,t,.3);warnG.gain.setTargetAtTime(0,t,.05);trkG.gain.setTargetAtTime(0,t,.05);seekG.gain.setTargetAtTime(0,t,.05);
  if(win)SB.get(BRIEF_TRACK).then(b=>b&&src(b,.45,AC.mus))}const prec=win?Math.round(clamp(100-S.err*5,0,100)):0,st=Math.round(clamp(100-S.detT/Math.max(1,S.t)*100-S.samShots*10,0,100)),tm=S.t;
@@ -521,7 +521,7 @@ const TUT=[['1/3  FLIGHT CONTROL','Drag anywhere with one finger. Left/right ban
  ['3/3  WEAPONS','Place the target inside the HUD box and tap LOCK. Hold RELEASE to drop. Missile inbound: tap FLARE.']];
 let tutI=0;function showTut(){$('tt').textContent=TUT[tutI][0];$('tp').textContent=TUT[tutI][1];$('tn').textContent='TAP TO CONTINUE'}
 $('brief').addEventListener('pointerdown',()=>{initAudio();briefMusic();$('snd').textContent='♪ SOUND ON'});
-$('go').addEventListener('pointerdown',e=>{e.stopPropagation();goFS();initAudio();stopBrief();$('brief').classList.add('hide');if(localStorage.ds1_tut)begin();else{tutI=0;showTut();$('tut').classList.remove('hide')}});
+$('go').addEventListener('pointerdown',e=>{e.stopPropagation();goFS();initAudio();stopBrief();heavy('sub08',.28,.8);$('brief').classList.add('hide');if(localStorage.ds1_tut)begin();else{tutI=0;showTut();$('tut').classList.remove('hide')}});
 $('tut').addEventListener('pointerdown',e=>{e.stopPropagation();tutI++;if(tutI>=3){localStorage.ds1_tut=1;$('tut').classList.add('hide');begin()}else showTut()});
 $('retry').addEventListener('pointerdown',e=>{e.stopPropagation();initAudio();begin()});
 function goFS(){const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(f&&!document.fullscreenElement&&!document.webkitFullscreenElement){try{const p=f.call(d,{navigationUI:'hide'});p&&p.catch&&p.catch(()=>{})}catch(e){}}try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}

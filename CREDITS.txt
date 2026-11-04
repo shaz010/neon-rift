@@ -5,4 +5,4 @@ Jet: "F-35 Lightning II - Fighter Jet - Free" by bohmerang (https://sketchfab.co
 Terrain textures: ambientCG (https://ambientcg.com) - Rock030, Grass004, Ground054, Snow006 - CC0 1.0.
 Engine: three.js r170 (MIT).
 
-Audio (s4): sfx/brief, engine_loop, flyby1/2, ambient, riser, boomer — derived from Shahbaz Mirshahi's own Logic Pro sounds (Deep Space Dub 02 = briefing + score; Deep Space Boomer 02 = layered into bunker explosion; Jet Passing Overhead 01/02, Dream Space Layers, Floating Frequency Kick Space Riser). Used with permission.
+Audio (s4): sfx/brief, engine_loop, flyby1/2, ambient, riser, boomer — derived from Shahbaz Mirshahi's own Logic Pro sounds (Deep Space Dub 02 = briefing + score; Deep Space Boomer 02 = layered into bunker explosion; Jet Passing Overhead 01/02 = engine loop; Subsonic Boom FX 01 + 08 = explosion, release, secondaries, start, Dream Space Layers, Floating Frequency Kick Space Riser). Used with permission.
