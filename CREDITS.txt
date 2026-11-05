@@ -12,3 +12,14 @@ s6 additions
 - Nuclear blast (sfx/nuke.*): mixed from the Logic Pro sounds already in this credits list (explosion pitched down, FX08/FX01) plus synthesized sub rumble.
 - Terrain textures aerial_grass_rock, rocky_terrain_02 (diffuse + normal): Poly Haven (polyhaven.com), CC0.
 - Removed: engine_loop, explosion, boomer stand-alone files (explosion is now baked into nuke.*).
+
+== Strike s8 — Apple Logic Pro library (Shahbaz's DS-logic pack), trimmed/normalised, mono 44.1k mp3+ogg ==
+sfx/jet8      engine loop       <- Jet Take Off 3 (9-13 s, crossfade loop)
+sfx/mlaunch   SAM launch roar   <- Jet Take off 2 (11.5-16.5 s)
+sfx/mmotor    missile motor loop (HRTF+Doppler) <- Jet Take off 1 (16-20 s)
+sfx/aaa       AAA round thud    <- Thunder_VideoStar.aif (first 0.7 s) + low-mid harmonic layer
+sfx/flak,flak2 flak booms       <- Boomer FX 27, Boomer FX 46 (first 2.6 s)
+sfx/impact    missile hit/explosion <- Big Bang 01 + Subsonic Boom FX 03
+sfx/subdrop   release / pass-by sub <- Sub Drop 01
+sfx/drone     sub ambience bed  <- Subsonic Drone 01 (8-21 s loop)
+sfx/sweep     missile whoosh    <- Warm Embers Noise Sweep FX 01
