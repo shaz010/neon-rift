@@ -44,3 +44,8 @@ Textures (unchanged, still CC0): ambientCG Rock030, Grass004, Ground054, Snow006
 aaaw rebuilt: Thunder + Subsonic Boom FX 07 + Boomer FX 46, soft swell, steep LP — onset energy above 2 kHz ~0% (spectral check).
 Bomb-cam delayed .35s after release; failsafe 14s; prewarm compiles bunk/bomb-cam angle.
 Throttle: wider speed band, clearer engine pitch/volume; THROTTLE label + KTS + first-use hint.
+
+== Strike s12 ==
+Enemy fire: aaaw rebuilt as cannon (Big Bang 01 + Subsonic Boom FX 03 + Boomer FX 27 + Thunder), ~476ms attack to 50%, long tail; src fadeIn .28s (was 4ms click). Flak fades slowed.
+Music beds (Logic Pro library): ambient=Iron Veil (default); mus_depth=Subsonic Drone 02; mus_dream=Dream Space Layers; mus_layers=Jet Propulsion Synth Layers; mus_waves=Warm Summer Waves Sub Bass. Dub 02 / brief still mission-complete only.
+Textures (CC0): Poly Haven rock_face_03, aerial_rocks_02, coast_sand_rocks_02; ambientCG Ground037. Existing ambientCG Rock030/Grass004/Ground054/Snow006 + Poly Haven aerial_grass_rock / rocky_terrain_02.
