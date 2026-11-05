@@ -784,66 +784,91 @@ function setupSoundTester(){
 function startTesterEngine(){initAudio(); if(!JET)startJet(); testerEngOn=true; if(AC){AC.jet.gain.setTargetAtTime(.1+S.thr*.32,AC.currentTime,.1); AC.sub.gain.setTargetAtTime(.05+S.thr*.12,AC.currentTime,.1)} $('thrbox')?.classList.add('on')}
 function stopTesterEngine(){testerEngOn=false; if(AC){AC.jet.gain.setTargetAtTime(0,AC.currentTime,.2); AC.sub.gain.setTargetAtTime(0,AC.currentTime,.2)} }
 
-// ===== SCENERY TESTER =====
-let scenOrbit={x:0.2,y:0.0,dist:220}, scenAuto=false, scenView='valley';
+// ===== SCENERY TESTER (preset gallery, fixed cruise view, no orbit/sliders) =====
+const SCEN_PRESETS=[
+  {id:'s14',name:'s14 Default',desc:'Clear natural sky, real snowline — the shipping look.',
+   scen:{turbidity:2.6,rayleigh:.95,mie:.0025,mieG:.78,sunEl:21,sunAz:.62,sunInt:4.5,hemi:1.15,exposure:.88,env:.75,fogDen:0,snowAlt0:490,snowAlt1:700,snowAmt:1,warmth:0,clouds:0}},
+  {id:'morning',name:'Clear Morning',desc:'Crisper air, higher sun, cooler light — still no haze.',
+   scen:{turbidity:1.8,rayleigh:1.05,mie:.002,mieG:.76,sunEl:34,sunAz:.55,sunInt:5.0,hemi:1.25,exposure:.92,env:.8,fogDen:0,snowAlt0:500,snowAlt1:720,snowAmt:1,warmth:0.05,clouds:0}},
+  {id:'golden',name:'Golden Hour',desc:'Low warm sun, soft contrast, subtle colour warmth.',
+   scen:{turbidity:3.2,rayleigh:.85,mie:.0032,mieG:.8,sunEl:9,sunAz:.85,sunInt:3.8,hemi:1.05,exposure:.95,env:.7,fogDen:0,snowAlt0:480,snowAlt1:690,snowAmt:1,warmth:0.45,clouds:0.08}},
+  {id:'haze',name:'Light Haze',desc:'Very light atmospheric haze only — not the heavy s12 fog.',
+   scen:{turbidity:3.4,rayleigh:1.15,mie:.0035,mieG:.82,sunEl:24,sunAz:.62,sunInt:4.2,hemi:1.2,exposure:.86,env:.72,fogDen:0.000055,snowAlt0:500,snowAlt1:710,snowAmt:1,warmth:0.08,clouds:0.12}},
+  {id:'overcast',name:'Overcast',desc:'Soft grey sky, muted sun, gentle cloud cover.',
+   scen:{turbidity:6.5,rayleigh:1.4,mie:.004,mieG:.7,sunEl:28,sunAz:.5,sunInt:2.4,hemi:1.35,exposure:.78,env:.55,fogDen:0.00003,snowAlt0:510,snowAlt1:730,snowAmt:1,warmth:0,clouds:0.55}},
+  {id:'fresh',name:'Fresh Snow',desc:'Heavier snow cover lower on the slopes; still natural, not plastic.',
+   scen:{turbidity:2.4,rayleigh:.9,mie:.0024,mieG:.78,sunEl:20,sunAz:.62,sunInt:4.4,hemi:1.15,exposure:.9,env:.75,fogDen:0,snowAlt0:380,snowAlt1:620,snowAmt:1.15,warmth:0,clouds:0}},
+  {id:'bare',name:'Bare Rock',desc:'Higher snowline — more rock faces showing on the peaks.',
+   scen:{turbidity:2.7,rayleigh:.95,mie:.0026,mieG:.78,sunEl:22,sunAz:.62,sunInt:4.6,hemi:1.15,exposure:.88,env:.75,fogDen:0,snowAlt0:620,snowAlt1:860,snowAmt:0.7,warmth:0.05,clouds:0}},
+  {id:'dusk',name:'Dusk',desc:'Sun nearly down, cooler shadows, quiet evening light.',
+   scen:{turbidity:3.8,rayleigh:1.2,mie:.004,mieG:.84,sunEl:4,sunAz:1.05,sunInt:2.6,hemi:.95,exposure:.82,env:.6,fogDen:0.00002,snowAlt0:490,snowAlt1:700,snowAmt:1,warmth:0.25,clouds:0.18}},
+];
+let scenActiveId='s14';
 function setupSceneryTester(){
   document.body.classList.add('sceneryMode');
   running=false; S.dead=null; S.missile=null; S.phase='ingress';
-  applyScen(); setScenView('valley');
-  // orbit drag
-  let dragging=false,lx=0,ly=0;
-  const el=$('gl');
-  const onDown=e=>{dragging=true;lx=e.clientX??e.touches?.[0]?.clientX;ly=e.clientY??e.touches?.[0]?.clientY};
-  const onMove=e=>{if(!dragging)return;const x=e.clientX??e.touches?.[0]?.clientX,y=e.clientY??e.touches?.[0]?.clientY; scenOrbit.y-=(x-lx)*0.005; scenOrbit.x=Math.max(-1.2,Math.min(1.2,scenOrbit.x+(y-ly)*0.004)); lx=x;ly=y};
-  const onUp=()=>dragging=false;
-  el.addEventListener('pointerdown',onDown); el.addEventListener('pointermove',onMove); el.addEventListener('pointerup',onUp); el.addEventListener('pointercancel',onUp);
-  el.addEventListener('touchstart',onDown,{passive:true}); el.addEventListener('touchmove',e=>{onMove(e);e.preventDefault()},{passive:false}); el.addEventListener('touchend',onUp);
-  // pinch/dolly via wheel
-  el.addEventListener('wheel',e=>{scenOrbit.dist=Math.max(40,Math.min(2000,scenOrbit.dist+e.deltaY*0.4));e.preventDefault()},{passive:false});
-  $('autofly')?.addEventListener('click',()=>{scenAuto=!scenAuto; $('autofly').textContent=scenAuto?'AUTO-FLY: ON':'AUTO-FLY'});
-  document.querySelectorAll('#panel [data-view]').forEach(b=>b.addEventListener('click',()=>setScenView(b.dataset.view)));
-  const maps={
-    fogDen:v=>v/100*0.00045,
-    fogFar:v=>+v,
-    turbidity:v=>v/10,
-    rayleigh:v=>v/30,
-    sunEl:v=>+v,
-    sunInt:v=>v/10,
-    exposure:v=>v/100,
-    snowAlt0:v=>+v,
-    snowAlt1:v=>+v,
-    snowAmt:v=>v/100,
-    clouds:v=>v/100,
-    warmth:v=>v/100,
-  };
-  document.querySelectorAll('#panel input[data-k]').forEach(inp=>{
-    const sync=()=>{const k=inp.dataset.k; SCEN[k]=maps[k](+inp.value); const lab=$('v_'+k); if(lab)lab.textContent=typeof SCEN[k]==='number'?(SCEN[k]<0.01&&SCEN[k]>0?SCEN[k].toExponential(2):(+SCEN[k].toFixed(SCEN[k]<2?2:0))):SCEN[k]; applyScen()};
-    inp.addEventListener('input',sync); sync();
-  });
-  $('resetScen')?.addEventListener('click',()=>{Object.assign(SCEN,SCEN_DEFAULT); // reset sliders
-    const inv={fogDen:v=>Math.round(v/0.00045*100),fogFar:v=>v,turbidity:v=>Math.round(v*10),rayleigh:v=>Math.round(v*30),sunEl:v=>v,sunInt:v=>Math.round(v*10),exposure:v=>Math.round(v*100),snowAlt0:v=>v,snowAlt1:v=>v,snowAmt:v=>Math.round(v*100),clouds:v=>Math.round(v*100),warmth:v=>Math.round(v*100)};
-    document.querySelectorAll('#panel input[data-k]').forEach(inp=>{inp.value=inv[inp.dataset.k](SCEN[inp.dataset.k]); inp.dispatchEvent(new Event('input'))});
-    applyScen(); $('code').textContent='Reset to s14 defaults.';
-  });
-  $('saveScen')?.addEventListener('click',()=>{const payload={v:'s14',t:Date.now(),SCEN:{...SCEN}}; localStorage.ds14_scen=JSON.stringify(payload); const text=JSON.stringify(payload.SCEN,null,2); $('code').textContent='Saved to localStorage ds14_scen\n\n'+text; try{navigator.clipboard?.writeText(text)}catch(e){}});
-  // load saved if any
-  try{const raw=JSON.parse(localStorage.ds14_scen||'null'); if(raw?.SCEN){Object.assign(SCEN,raw.SCEN); applyScen()}}catch(e){}
-  function frame(now){requestAnimationFrame(frame); const dt=Math.min(.05,(now-(frame._t||now))/1000); frame._t=now;
-    if(scenAuto){scenOrbit.y+=dt*.12; scenOrbit.x=Math.sin(now*0.0002)*.15+.25; S.pos.z-=dt*40; S.pos.x=vx(S.pos.z)+Math.sin(S.pos.z*0.001)*30; S.pos.y=H(S.pos.x,S.pos.z)+140}
-    const tgt=S.pos.clone(); const ct=Math.cos(scenOrbit.x),st=Math.sin(scenOrbit.x),cy=Math.cos(scenOrbit.y),sy=Math.sin(scenOrbit.y);
-    cam.position.set(tgt.x+scenOrbit.dist*cy*ct, tgt.y+scenOrbit.dist*st, tgt.z+scenOrbit.dist*sy*ct); cam.lookAt(tgt);
-    // hide jet optional
-    if(jet)jet.visible=false; msl.visible=false; mslG.visible=false;
-    if(useBloom)composer.render(); else R.render(scene,cam);
+  // Fixed representative cruise view: behind the jet, valley + snowy peaks ahead
+  parkScenCruise();
+  const list=$('list'); if(!list)return;
+  list.innerHTML='';
+  for(const p of SCEN_PRESETS){
+    const el=document.createElement('div'); el.className='row'+(p.id==='s14'?' on':''); el.dataset.id=p.id;
+    el.innerHTML=`<div class="name">${p.name}</div><div class="desc">${p.desc}</div><div class="acts"><button type="button" class="live" data-act="live">VIEW LIVE</button><button type="button" class="pick" data-act="pick">PICK THIS</button></div>`;
+    el.addEventListener('click',e=>{
+      const btn=e.target.closest('button'); if(!btn)return;
+      if(btn.dataset.act==='live'){ applyScenPreset(p.id); }
+      if(btn.dataset.act==='pick'){ pickScenPreset(p.id); }
+    });
+    list.appendChild(el);
   }
+  // restore prior pick if any
+  try{
+    const raw=JSON.parse(localStorage.ds14_scen_pick||'null');
+    if(raw?.id && SCEN_PRESETS.some(p=>p.id===raw.id)){ showPicked(raw); applyScenPreset(raw.id); }
+    else applyScenPreset('s14');
+  }catch(e){ applyScenPreset('s14'); }
+  // resize gl to preview wrap
+  function fit(){const w=$('previewWrap'); if(!w)return; const r=w.getBoundingClientRect(); R.setSize(r.width,r.height,false); cam.aspect=r.width/Math.max(1,r.height); cam.updateProjectionMatrix()}
+  fit(); addEventListener('resize',fit); if(window.visualViewport)visualViewport.addEventListener('resize',fit);
+  function frame(){requestAnimationFrame(frame); parkScenCruise(true); if(jet)jet.visible=true; if(msl)msl.visible=false; if(mslG)mslG.visible=false;
+    // keep jet oriented with camera path
+    if(jet){jet.position.copy(S.pos); jet.rotation.set(S.pitch,S.yaw,S.roll)}
+    if(useBloom&&composer)composer.render(); else R.render(scene,cam)}
   requestAnimationFrame(frame);
 }
-function setScenView(which){
-  scenView=which; const B=BUNK;
-  if(which==='valley'){S.pos.set(vx(400),H(vx(400),400)+70,400); scenOrbit={x:.18,y:2.6,dist:180}}
-  else if(which==='cruise'){S.pos.set(vx(-2000),H(vx(-2000),-2000)+280,-2000); scenOrbit={x:.25,y:.4,dist:320}}
-  else if(which==='target'){S.pos.set(B.x+180,B.y+220,B.z+260); scenOrbit={x:.35,y:-.6,dist:260}}
-  else if(which==='peaks'){S.pos.set(vx(-6000),Math.max(720,H(vx(-6000),-6000)+80),-6000); scenOrbit={x:.55,y:1.1,dist:520}}
+function parkScenCruise(keepCam){
+  // Fixed cruise: behind jet, looking down the target valley with snowy peaks in frame
+  const z=-3200, x=vx(z)+40;
+  const ground=H(x,z);
+  S.pos.set(x, ground+320, z);
+  S.yaw=0; S.pitch=-0.06; S.roll=0; S.thr=.7; S.spd=85+S.thr*195;
+  const fwd=new THREE.Vector3(-Math.sin(S.yaw)*Math.cos(S.pitch),Math.sin(S.pitch),-Math.cos(S.yaw)*Math.cos(S.pitch));
+  cam.position.copy(S.pos).addScaledVector(fwd,-70).add(new THREE.Vector3(0,18,0));
+  cam.up.set(0,1,0);
+  // look past the jet toward distant high terrain / bunker direction
+  const aim=S.pos.clone().addScaledVector(fwd,900); aim.y=Math.max(aim.y, H(aim.x,aim.z)+180);
+  cam.lookAt(aim);
+}
+function applyScenPreset(id){
+  const p=SCEN_PRESETS.find(x=>x.id===id)||SCEN_PRESETS[0];
+  scenActiveId=p.id;
+  Object.assign(SCEN, SCEN_DEFAULT, p.scen);
+  applyScen();
+  document.querySelectorAll('#list .row').forEach(r=>r.classList.toggle('on',r.dataset.id===p.id));
+  const lab=$('previewLabel'); if(lab)lab.textContent='LIVE · '+p.name;
+}
+function pickScenPreset(id){
+  applyScenPreset(id);
+  const p=SCEN_PRESETS.find(x=>x.id===id)||SCEN_PRESETS[0];
+  const payload={v:'s14',id:p.id,name:p.name,t:Date.now(),SCEN:{...SCEN}};
+  localStorage.ds14_scen_pick=JSON.stringify(payload);
+  localStorage.ds14_scen=JSON.stringify({v:'s14',t:payload.t,SCEN:payload.SCEN,preset:p.id,name:p.name});
+  showPicked(payload);
+}
+function showPicked(payload){
+  const el=$('picked'); if(!el)return;
+  el.textContent='PICKED: '+payload.name+' ('+payload.id+')';
+  el.classList.add('on');
 }
 
 window.__S=()=>S;window.__brk=doBreak;window.__flr=fireFlares;window.__ecm=doECM;window.__begin=begin;window.__inp=inp;window.__aaa=P=>aaaBurst(P||BUNK.clone());window.__flak=P=>flakBoom(P||BUNK.clone().add(new THREE.Vector3(0,80,0)));window.__whoosh=whoosh;window.__passBy=P=>passBy(P||S.pos.clone());window.__sam=d=>samRoar(d||800);window.__rwr=P=>rwrLaunch(P||BUNK.clone(),false);window.__boom=b=>boomSfx(!!b);window.__thud=()=>thud(AC.out,.5,48,20,1);window.__nburst=()=>nburst(AC.out,.3,220,.5);window.__BUNK=()=>BUNK;window.__release=release;window.__H=H;window.__setThr=setThr;window.__AC=()=>AC;window.__ft={max:0,relMax:0,n:0,markRel(){this._r=performance.now()}};window.__sfx=()=>window.__sfxLog.slice();window.__clearSfx=()=>{window.__sfxLog=[]};
