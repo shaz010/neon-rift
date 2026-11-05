@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>DEEP STRIKE s14 — Scenery Tester</title>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+<style>
+:root{--g:#b6dcae;--bg:#070908;--m:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+html,body{margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;background:#000;color:var(--g);font:12px var(--m);touch-action:none;-webkit-user-select:none;user-select:none}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+#ui{position:fixed;left:0;right:0;top:0;z-index:5;pointer-events:none;padding:calc(8px + env(safe-area-inset-top)) 10px 0}
+#ui .top{display:flex;gap:8px;align-items:center;pointer-events:auto;flex-wrap:wrap}
+#ui h1{margin:0;font:700 13px var(--m);letter-spacing:2px;padding:6px 10px;border:1px solid rgba(182,220,174,.5);background:rgba(6,10,8,.72);border-radius:4px}
+#ui a,#ui button{pointer-events:auto;min-height:40px;padding:0 12px;border:1px solid rgba(182,220,174,.45);background:rgba(10,14,12,.75);color:var(--g);border-radius:6px;font:12px var(--m)}
+#panel{position:fixed;left:0;right:0;bottom:0;max-height:48dvh;overflow:auto;-webkit-overflow-scrolling:touch;z-index:6;background:rgba(6,10,8,.9);border-top:1px solid rgba(182,220,174,.4);padding:10px 12px calc(14px + env(safe-area-inset-bottom));pointer-events:auto}
+#panel label{display:grid;grid-template-columns:1fr 52px;gap:4px 8px;align-items:center;margin:8px 0}
+#panel input[type=range]{grid-column:1/-1;width:100%;height:40px}
+#panel .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+#panel .btns button{min-height:44px;flex:1;min-width:120px;border:1px solid rgba(182,220,174,.5);background:rgba(30,48,34,.75);color:#d8f0d0;border-radius:6px;font:700 12px var(--m)}
+#code{margin-top:8px;padding:8px;border:1px solid rgba(182,220,174,.35);background:#0c100e;color:#cfe0c8;font:11px var(--m);white-space:pre-wrap;word-break:break-all;user-select:text;-webkit-user-select:text}
+.hud,.btn,#brief,#tut,#end,#badge,#setb,#pauseb,#pauseOv,#setp,#vig,#teach,#thr,#lock,#rel,#flr,#brk,#ecm,#rot,#mvig,#hx{display:none!important}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="ui"><div class="top"><h1>DEEP STRIKE · s14 — SCENERY</h1><a href="./">← Game</a><button type="button" id="autofly">AUTO-FLY</button></div></div>
+<div id="panel">
+<label>Fog / haze dens <span id="v_fogDen">0</span></label><input type="range" data-k="fogDen" min="0" max="100" value="0"/>
+<label>Fog distance feel <span id="v_fogFar">14000</span></label><input type="range" data-k="fogFar" min="2000" max="16000" value="14000"/>
+<label>Sky turbidity <span id="v_turbidity">2.6</span></label><input type="range" data-k="turbidity" min="0" max="100" value="26"/>
+<label>Sky clarity (rayleigh) <span id="v_rayleigh">0.95</span></label><input type="range" data-k="rayleigh" min="0" max="100" value="32"/>
+<label>Sun elevation ° <span id="v_sunEl">21</span></label><input type="range" data-k="sunEl" min="2" max="85" value="21"/>
+<label>Sun intensity <span id="v_sunInt">4.5</span></label><input type="range" data-k="sunInt" min="5" max="100" value="45"/>
+<label>Exposure <span id="v_exposure">0.88</span></label><input type="range" data-k="exposure" min="30" max="150" value="88"/>
+<label>Snowline low m <span id="v_snowAlt0">490</span></label><input type="range" data-k="snowAlt0" min="200" max="900" value="490"/>
+<label>Snowline high m <span id="v_snowAlt1">700</span></label><input type="range" data-k="snowAlt1" min="300" max="1100" value="700"/>
+<label>Snow amount <span id="v_snowAmt">1.00</span></label><input type="range" data-k="snowAmt" min="0" max="100" value="100"/>
+<label>Cloud amount <span id="v_clouds">0</span></label><input type="range" data-k="clouds" min="0" max="100" value="0"/>
+<label>Colour warmth <span id="v_warmth">0</span></label><input type="range" data-k="warmth" min="0" max="100" value="0"/>
+<div class="btns">
+<button type="button" data-view="valley">LOW VALLEY</button>
+<button type="button" data-view="cruise">CRUISE</button>
+<button type="button" data-view="target">OVER TARGET</button>
+<button type="button" data-view="peaks">SNOWY PEAKS</button>
+<button type="button" id="resetScen">RESET TO s14</button>
+<button type="button" id="saveScen">SAVE LOOK</button>
+</div>
+<div id="code">Look code will appear here after Save.</div>
+</div>
+<!-- stubs -->
+<canvas id="hud" width="8" height="8"></canvas><div id="brief" class="hide"></div><div id="tut" class="hide"></div><div id="end" class="hide"></div>
+<div id="badge"></div><div id="setb"></div><div id="setp"></div><div id="pauseb"></div><div id="pauseOv"></div>
+<div id="go"></div><div id="lock"></div><div id="rel"></div><div id="relf"></div><div id="flr"></div><div id="brk"></div><div id="ecm"></div>
+<div id="thr"></div><div id="thrk"></div><div id="thrl"></div><div id="vig"></div><div id="teach"></div>
+<div id="flash"></div><div id="rot"></div><div id="hx"></div><canvas id="map" width="8" height="8"></canvas><div id="chat"></div><div id="snd"></div>
+<div id="clk"></div><div id="et"></div><div id="es"></div><div id="etab"></div><div id="retry"></div>
+
+<input type="range" id="s_eng" class="hide"/><input type="range" id="s_mus" class="hide"/><input type="range" id="s_bedvol" class="hide"/><input type="range" id="s_fx" class="hide"/>
+<select id="s_bed" class="hide"></select><span id="v_eng"></span><span id="v_mus"></span><span id="v_bed"></span><span id="v_fx"></span><button id="setx" type="button"></button><div id="resume"></div>
+<div id="tt"></div><div id="tp"></div><div id="tn"></div><div id="mapc"></div>
+<script>window.__DS_MODE='scenery';</script>
+<script type="module" src="./main.mjs?v=14"></script>
+</body>
+</html>
