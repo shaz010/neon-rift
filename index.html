@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#050605">
 <link rel="manifest" href="manifest.webmanifest">
 <!-- Credits: see CREDITS.txt (F-35 model by bohmerang/Sketchfab, non-commercial; textures ambientCG CC0) -->
-<title>DEEP STRIKE s7</title>
+<title>DEEP STRIKE s9</title>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
 <style>
 :root{--g:rgba(178,214,170,.88);--gd:rgba(178,214,170,.35);--m:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
@@ -68,7 +68,7 @@ table{width:100%;font-size:12px;border-collapse:collapse}td{padding:3px 0;border
 <div id="rel" class="btn off"><div id="relf"></div><span style="position:relative">RELEASE</span></div>
 <div id="flash"></div>
 <div id="setb" title="Sound">⚙</div><div id="setp"><div>SOUND</div><label>ENGINE <span id="v_eng"></span></label><input type="range" id="s_eng" min="0" max="100"><label>MUSIC / AMBIENCE <span id="v_mus"></span></label><input type="range" id="s_mus" min="0" max="100"><label>EFFECTS <span id="v_fx"></span></label><input type="range" id="s_fx" min="0" max="100"><div style="opacity:.55;margin-top:8px">Warnings always stay audible</div></div>
-<div id="badge">DEEP STRIKE · s8</div>
+<div id="badge">DEEP STRIKE · s9</div>
 <div id="brief" class="ov scan">
  <div id="bl"><div class="hdr"><span>DEEP STRIKE // IRON VEIL</span><span>SECRET//REL</span></div>
   <canvas id="map"></canvas>
@@ -85,7 +85,7 @@ table{width:100%;font-size:12px;border-collapse:collapse}td{padding:3px 0;border
   <div id="snd" style="opacity:.6;font-size:11px;letter-spacing:2px;margin:6px 0">♪ TAP ANYWHERE FOR SOUND</div><div class="sbtn" id="go">BEGIN SORTIE</div></div>
 </div>
 <div id="tut" class="ov hide"><div id="tutb"><div id="tt"></div><div id="tp"></div><div id="tn"></div></div></div>
-<div id="end" class="ov hide"><div id="endb"><div class="hdr"><span>DEBRIEF // IRON VEIL</span><span>s8</span></div><div id="et"></div><div id="es"></div><table id="etab"></table><div class="sbtn" id="retry">RETRY SORTIE</div></div></div>
+<div id="end" class="ov hide"><div id="endb"><div class="hdr"><span>DEBRIEF // IRON VEIL</span><span>s9</span></div><div id="et"></div><div id="es"></div><table id="etab"></table><div class="sbtn" id="retry">RETRY SORTIE</div></div></div>
 <div id="rot" class="ov">ROTATE DEVICE // LANDSCAPE</div>
 <script type="module">
 import * as THREE from 'three';
@@ -310,15 +310,15 @@ let AC=null,trkG=null,eng=null,lockBuf=null,warnG=null,seekG=null,tone=null;
 const _nb={};function noiseBuf(sec){if(_nb[sec])return _nb[sec];const b=AC.createBuffer(1,AC.sampleRate*sec,AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return _nb[sec]=b}
 function initAudio(){if(AC){AC.resume();return}const ACC=window.AudioContext||window.webkitAudioContext;try{AC=new ACC({latencyHint:'playback'})}catch(e){AC=new ACC()}AC.voices=0;
  const mg=AC.createGain();mg.gain.value=.8;mg.connect(AC.destination);const out=AC.createDynamicsCompressor();out.threshold.value=-14;out.knee.value=8;out.ratio.value=12;out.attack.value=.006;out.release.value=.3;out.connect(mg);
- AC.bigB=AC.createGain();const bl=AC.createDynamicsCompressor();bl.threshold.value=-4;bl.knee.value=2;bl.ratio.value=20;bl.attack.value=.002;bl.release.value=.4;const bg=AC.createGain();bg.gain.value=.9;AC.bigB.connect(bl).connect(bg).connect(AC.destination);AC.tap=AC.createAnalyser();AC.tap.fftSize=2048;mg.connect(AC.tap);bg.connect(AC.tap);window.__pk={max:0,clip:0,jump:0,n:0};setInterval(()=>{const d=new Float32Array(2048);AC.tap.getFloatTimeDomainData(d);const P=window.__pk;P.n++;for(let i=0;i<d.length;i++){const v=Math.abs(d[i]);if(v>P.max)P.max=v;if(v>.99)P.clip++;if(i&&Math.abs(d[i]-d[i-1])>.25)P.jump++}},100);
+ AC.bigB=AC.createGain();const bl=AC.createDynamicsCompressor();bl.threshold.value=-4;bl.knee.value=2;bl.ratio.value=20;bl.attack.value=.002;bl.release.value=.4;const bg=AC.createGain();bg.gain.value=.9;AC.bigB.connect(bl).connect(bg).connect(AC.destination);
  AC.tone=AC.createBiquadFilter();AC.tone.type='lowpass';AC.tone.frequency.value=1400;AC.tone.Q.value=.5;{const pk=AC.createBiquadFilter();pk.type='peaking';pk.frequency.value=3200;pk.Q.value=.7;pk.gain.value=-15;AC.tone.connect(pk).connect(out)}
  AC.fxB=AC.createGain();AC.fxB.connect(out);AC.out=AC.fxB;AC.engB=AC.createGain();AC.musB=AC.createGain();AC.an=AC.createAnalyser();AC.an.fftSize=1024;AC.musB.connect(AC.an);applyVol();
  eng={g:AC.createGain()};
  {const L=AC.listener;if(L.positionX){L.positionX.value=0}}
  // engine sub layer: 38 Hz + harmonics (phone speakers) under the jet loop
- AC.sub=AC.createGain();AC.sub.gain.value=0;{const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=180;AC.sub.connect(lp).connect(AC.engB);
-  for(const [f,v] of[[38,1],[76,.35],[114,.12]]){const o=AC.createOscillator();o.frequency.value=f;const g=AC.createGain();g.gain.value=v;o.connect(g).connect(AC.sub);o.start();(AC.subO=AC.subO||[]).push(o)}
-  const n=AC.createBufferSource();n.buffer=noiseBuf(4);n.loop=true;const nf=AC.createBiquadFilter();nf.type='lowpass';nf.frequency.value=90;const ng=AC.createGain();ng.gain.value=1.4;n.connect(nf).connect(ng).connect(AC.sub);n.start()}
+ AC.sub=AC.createGain();AC.sub.gain.value=0;{const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=200;AC.sub.connect(lp).connect(AC.engB);
+  for(const [f,v] of[[32,1.35],[64,.55],[96,.22],[128,.1]]){const o=AC.createOscillator();o.frequency.value=f;const g=AC.createGain();g.gain.value=v;o.connect(g).connect(AC.sub);o.start();(AC.subO=AC.subO||[]).push(o)}
+  const n=AC.createBufferSource();n.buffer=noiseBuf(4);n.loop=true;const nf=AC.createBiquadFilter();nf.type='lowpass';nf.frequency.value=110;const ng=AC.createGain();ng.gain.value=1.8;n.connect(nf).connect(ng).connect(AC.sub);n.start()}
  AC.dk=AC.createGain();AC.dk.connect(out);AC.mus=AC.createGain();AC.mus.gain.value=1;AC.mus.connect(AC.musB).connect(AC.dk);AC.amb=AC.createGain();AC.amb.gain.value=0;AC.amb.connect(AC.mus);
  // ambience sub drone
  {const n=AC.createBufferSource();n.buffer=noiseBuf(4);n.loop=true;n.playbackRate.value=.5;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=70;const g=AC.createGain();g.gain.value=.9;const o=AC.createOscillator();o.frequency.value=46;const og=AC.createGain();og.gain.value=.06;o.connect(og).connect(AC.amb);o.start();n.connect(f).connect(g).connect(AC.amb);n.start()}
@@ -333,7 +333,7 @@ function initAudio(){if(AC){AC.resume();return}const ACC=window.AudioContext||wi
 }
 // Briefing music: swap this ONE reference to change the entry track (sfx/<name>.mp3 + optional .ogg)
 const BRIEF_TRACK='brief';
-const SB={b:{},load(){for(const k of[BRIEF_TRACK,'nuke','sub01','sub08','jet','ambient','riser','jet8','drone','aaa','flak','flak2','impact','mlaunch','mmotor','sweep','subdrop'])this.get(k)},
+const SB={b:{},load(){for(const k of[BRIEF_TRACK,'nuke','sub01','sub08','jet','ambient','riser','jet8','drone','aaa','flak','flak2','impact','mlaunch','mmotor','sweep','subdrop','aaaw','msub','hitsub','rum'])this.get(k)},
  get(k){if(this.b[k])return this.b[k];const tryf=ext=>fetch('sfx/'+k+'.'+ext).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(a=>new Promise((res,rej)=>AC.decodeAudioData(a,res,rej)));
   return this.b[k]=tryf('mp3').catch(()=>tryf('ogg')).then(b=>(this[k]=b)).catch(()=>null)}};
 function src(buf,vol,dest,opt={}){const s=AC.createBufferSource();s.buffer=buf;s.loop=!!opt.loop;s.playbackRate.value=opt.rate||1;const g=AC.createGain(),t0=opt.when||AC.currentTime;const cap=!opt.loop&&!opt.pri&&AC.voices>=12;if(cap)vol=0;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol,t0+(opt.pri?.004:.012));if(!opt.loop){AC.voices++;s.onended=()=>{AC.voices--;try{g.disconnect()}catch(e){}}}if(cap)s.stop(t0+.03);
@@ -351,9 +351,9 @@ function thud(dest,v,f0=70,f1=32,dur=.35,t=AC.currentTime){for(const [m,a] of[[1
 function nburst(dest,v,lp,dur,t=AC.currentTime,bp){const n=AC.createBufferSource();n.buffer=noiseBuf(1.5);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(lp,t);f.frequency.exponentialRampToValueAtTime(Math.max(60,lp*.25),t+dur);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.004);g.gain.exponentialRampToValueAtTime(.0008,t+dur);n.connect(f).connect(g).connect(dest);n.start(t,Math.random());n.stop(t+dur+.02)}
 let hrtfN=0;
 // AAA cannon burst at world pos: heavy thud + crack per round, HRTF positioned
-function aaaBurst(P,rounds=5){if(!AC||AC.voices>10)return;const d=P.distanceTo(S.pos),pn=mkPan(hrtfN<4,200);hrtfN++;setP0(pn,P);const g=AC.createGain();g.gain.value=.9;pn.connect(g).connect(AC.out);const t=AC.currentTime+d/343*.25;AC.voices++;
- for(let k=0;k<rounds;k++){const tk=t+k*.11+Math.random()*.02;if(SB.aaa){const s=src(SB.aaa,.6,pn,{when:tk,rate:.9+Math.random()*.2,pri:1});AC.voices--;s.onended=null}else{thud(pn,.7,85,38,.22,tk);nburst(pn,.45,d>2500?500:1100,.12,tk)}}
- setTimeout(()=>{AC.voices--;hrtfN--;try{g.disconnect()}catch(e){}},(t-AC.currentTime+rounds*.11+.6)*1000)}
+function aaaBurst(P,rounds=5){if(!AC||AC.voices>10)return;const d=P.distanceTo(S.pos),pn=mkPan(hrtfN<4,180);hrtfN++;setP0(pn,P);const g=AC.createGain();g.gain.value=1;pn.connect(g).connect(AC.out);const t=AC.currentTime+d/343*.22;AC.voices++;
+ for(let k=0;k<Math.min(rounds,3);k++){const tk=t+k*.18+Math.random()*.03;if(SB.aaaw){const s=src(SB.aaaw,.72,pn,{when:tk,rate:.85+Math.random()*.2,pri:1});AC.voices--;s.onended=null}else{thud(pn,.85,70,28,.55,tk);nburst(pn,.35,220,.5,tk)}}
+ setTimeout(()=>{AC.voices--;hrtfN--;try{g.disconnect()}catch(e){}},(t-AC.currentTime+1.8)*1000)}
 // flak shell: deep boom at burst point
 function flakBoom(P){if(!AC||AC.voices>10)return;const pn=mkPan(hrtfN<4,90);hrtfN++;setP0(pn,P);const g=AC.createGain();g.gain.value=1;pn.connect(g).connect(AC.out);AC.voices++;const t=AC.currentTime+.02;
  const fk=Math.random()<.5?'flak':'flak2';if(SB[fk]){const s=src(SB[fk],.7,pn,{when:t,rate:.85+Math.random()*.25,pri:1});AC.voices--;s.onended=null}else{thud(pn,.9,62,26,.9,t);nburst(pn,.7,900,.5,t);nburst(pn,.35,240,1.6,t+.05)}
@@ -376,8 +376,9 @@ $('setb').addEventListener('pointerdown',()=>{$('setp').classList.toggle('on');i
 function musRMS(){if(!AC||!AC.an)return 0;const a=new Float32Array(AC.an.fftSize);AC.an.getFloatTimeDomainData(a);let s=0;for(const v of a)s+=v*v;return Math.sqrt(s/a.length)}
 let JET=null,briefSrc=null,briefT=null,riserS=null,flyCD=0,ambS=null;
 function startJet(){if(JET||!(SB.jet8||SB.jet))return;
- if(SB.jet8){JET=src(SB.jet8,1.2,AC.jet,{loop:true})}else{JET=src(SB.jet,1,AC.jet,{loop:true,off:.1});JET.loopStart=.1;JET.loopEnd=12.1}
- if(SB.drone)src(SB.drone,.55,AC.amb,{loop:true});
+ if(SB.jet8){JET=src(SB.jet8,1.25,AC.jet,{loop:true})}else{JET=src(SB.jet,1,AC.jet,{loop:true,off:.1});JET.loopStart=.1;JET.loopEnd=12.1}
+ if(SB.drone)src(SB.drone,.6,AC.amb,{loop:true});
+ if(SB.rum&&!AC.rumOn){AC.rumOn=1;src(SB.rum,.7,AC.sub,{loop:true})}
  ambS=src(SB.ambient,1,AC.amb,{loop:true})}
 function briefMusic(){if(!AC)return;const go=()=>{if(!$('brief')||$('brief').classList.contains('hide'))return;if(SB.ambient&&!briefSrc){briefSrc=src(SB.ambient,0,AC.mus,{loop:true});briefSrc.g.gain.cancelScheduledValues(AC.currentTime);briefSrc.g.gain.setValueAtTime(0,AC.currentTime);briefSrc.g.gain.linearRampToValueAtTime(.16,AC.currentTime+2)}};
  if(briefT)return;briefT=1;SB.get('ambient').then(()=>go())}
@@ -400,9 +401,9 @@ function reset(){if(S&&S.missile&&AC)mslAudioStop(S.missile);S={phase:'ingress',
  if(S&&S.missile)mslAudioStop(S.missile);mslG.visible=bomb.visible=msl.visible=ring.visible=dome.visible=bulge.visible=false;debris.forEach(d=>scene.remove(d.m));debris.length=0;parts.forEach(p=>scene.remove(p.m));parts.length=0;bunker.visible=true;$('end').classList.add('hide');setThr(.7)}
 // ---------- input ----------
 let steer=null;const inp={x:0,y:0};
-gl.addEventListener('pointerdown',e=>{if(steer)return;steer={id:e.pointerId,x:e.clientX,y:e.clientY}});
-addEventListener('pointermove',e=>{if(!steer||e.pointerId!==steer.id)return;const r=Math.min(innerWidth,innerHeight)*.22;inp.x=clamp((e.clientX-steer.x)/r,-1,1);inp.y=clamp((e.clientY-steer.y)/r,-1,1)});
-const endSteer=e=>{if(steer&&e.pointerId===steer.id){steer=null;inp.x=inp.y=0}};addEventListener('pointerup',endSteer);addEventListener('pointercancel',endSteer);
+gl.addEventListener('pointerdown',e=>{if(steer)return;e.preventDefault();try{gl.setPointerCapture(e.pointerId)}catch(x){}steer={id:e.pointerId,x:e.clientX,y:e.clientY}});
+gl.addEventListener('pointermove',e=>{if(!steer||e.pointerId!==steer.id)return;e.preventDefault();const r=Math.min(innerWidth,innerHeight)*.22;inp.x=clamp((e.clientX-steer.x)/r,-1,1);inp.y=clamp((e.clientY-steer.y)/r,-1,1)},{passive:false});
+const endSteer=e=>{if(steer&&e.pointerId===steer.id){try{gl.releasePointerCapture(e.pointerId)}catch(x){}steer=null;inp.x=inp.y=0}};gl.addEventListener('pointerup',endSteer);gl.addEventListener('pointercancel',endSteer);addEventListener('pointerup',endSteer);addEventListener('pointercancel',endSteer);
 document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault());
 function setThr(v){S&&(S.thr=v);$('thrk').style.bottom=(3+v*(130-12))+'px'}
 {const t=$('thr');let id=null;const f=e=>{const r=t.getBoundingClientRect();setThr(clamp(1-(e.clientY-r.top-3)/(r.height-6),0,1))};
@@ -425,7 +426,7 @@ function doBreak(){if(S.dead||S.cine||S.brkCD>0||S.phase==='done')return;S.brkCD
 function doECM(){if(S.dead||S.ecmCD>0||S.ecmN<=0||S.phase==='done')return;S.ecmN--;S.ecmCD=12;S.ecm=4;if(AC){for(let k=0;k<6;k++)blip(k%2?340:300,.12,.05);nburst(AC.out,.08,900,1.2)}
  const m=S.missile;if(m&&!m.decoy&&!m.lost){const d=m.p.distanceTo(S.pos);if(d>1600){m.lost=true;defeat(m,'ECM — MISSILE SEEKER JAMMED')}else msg('ECM ON — TOO CLOSE TO JAM, FLARE/BREAK')}else msg('ECM JAMMING — RADARS BLINDED 4 S')}
 function fireFlares(){if(S.flares<=0||S.flareCD>0||S.dead||S.phase==='done')return;S.flares--;S.flareCD=1;
- for(let i=0;i<8;i++){const v=new THREE.Vector3(rnd(20),-10-Math.random()*20,rnd(20)).add(fwd.clone().multiplyScalar(-40));spr(S.pos,0xffe0a0,5,3,v,{g:8,fog:false,add:true,tex:glowTex});spr(S.pos,0xbbbbbb,2,2.5,v.clone().multiplyScalar(.5),{grow:6,o:.35})}
+ for(let i=0;i<8;i++){const v=new THREE.Vector3(rnd(22),-8-Math.random()*18,rnd(22)).add(fwd.clone().multiplyScalar(-42));spr(S.pos,0xffe8b0,6,3.4,v,{g:7,fog:false,add:true,tex:glowTex,must:1,grow:4});spr(S.pos,0xc8c4bc,4,5.5,v.clone().multiplyScalar(.55),{grow:14,o:.55,drag:.25,must:1,fadeIn:.08,c1:new THREE.Color(0x6a6660)});spr(S.pos,0x9a968e,3,7,v.clone().multiplyScalar(.35),{grow:18,o:.4,drag:.35,must:1,fadeIn:.15})}
  flareSfx();
  const m=S.missile;if(m&&!m.decoy){const d=m.p.distanceTo(S.pos);if(d<flrWin()){m.decoy=S.pos.clone();m.decoyV=fwd.clone().multiplyScalar(-30);m.dt=1.3;defeat(m,'MISSILE DECOYED')}else msg('FLARE EARLY — WAIT FOR <'+(flrWin()/1000).toFixed(1)+' KM')}}
 function msg(t){S.msg=t;S.msgT=2}
@@ -434,10 +435,10 @@ function flareSfx(){if(!AC)return;const t=AC.currentTime;
  for(let k=0;k<2;k++){const tk=t+k*.07,n=AC.createBufferSource();n.buffer=noiseBuf(1.5);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=900;const g=AC.createGain();g.gain.setValueAtTime(0,tk);g.gain.linearRampToValueAtTime(.32,tk+.003);g.gain.exponentialRampToValueAtTime(.001,tk+.06);n.connect(f).connect(g).connect(AC.out);n.start(tk,Math.random());n.stop(tk+.08)}
  {const n=AC.createBufferSource();n.buffer=noiseBuf(4);const f=AC.createBiquadFilter();f.type='bandpass';f.frequency.value=1500;f.Q.value=.6;const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2600;const g=AC.createGain();g.gain.setValueAtTime(0,t+.05);g.gain.linearRampToValueAtTime(.05,t+.2);g.gain.exponentialRampToValueAtTime(.001,t+2);n.connect(f).connect(lp).connect(g).connect(AC.out);n.start(t+.05,Math.random()*2);n.stop(t+2.1)}}
 function launchSAM(i){if(S.missile||S.samShots>=7||S.cine)return;if(i==null){let bd=1e9;SITES.forEach((st,k)=>{const d=st.p.distanceTo(S.pos);if(d<bd){bd=d;i=k}});if(bd>9000)return}
- const P=SITES[i].p;S.samShots++;S.missile={p:P.clone().add(new THREE.Vector3(0,8,0)),v:new THREE.Vector3(0,90,0),life:20,decoy:null,site:i,blind:0,lost:false};msl.visible=true;mslAudioStart(S.missile);if(S.samShots===1&&!localStorage.ds8_def){localStorage.ds8_def=1;S.teachT=5}const sal=S.sites[i].shots>1;msg((sal?'SECOND LAUNCH — ':'LAUNCH LAUNCH — ')+SITES[i].n);S.lastLaunch=S.t;samRoar(P.distanceTo(S.pos));rwrLaunch(P,sal);
+ const P=SITES[i].p;S.samShots++;S.missile={p:P.clone().add(new THREE.Vector3(0,8,0)),v:new THREE.Vector3(0,90,0),life:20,decoy:null,site:i,blind:0,lost:false};msl.visible=true;mslAudioStart(S.missile);if(S.samShots===1&&!localStorage.ds9_def){localStorage.ds9_def=1;S.teachT=5}const sal=S.sites[i].shots>1;msg((sal?'SECOND LAUNCH — ':'LAUNCH LAUNCH — ')+SITES[i].n);S.lastLaunch=S.t;samRoar(P.distanceTo(S.pos));rwrLaunch(P,sal);
  for(let k=0;k<(MOB?16:28);k++){const a=Math.random()*6.283,sp=20+Math.random()*45;spr(tmp.copy(P).setY(P.y+3),k%3?0xcfc8bc:0xe8e2d8,14,6+Math.random()*5,new THREE.Vector3(Math.cos(a)*sp,4+Math.random()*12,Math.sin(a)*sp),{grow:16,o:.75,drag:.5,fadeIn:.15,must:1})}
  spr(tmp.copy(P).setY(P.y+6),0xffd8a0,70,.5,null,{add:true,tex:glowTex,fog:false,grow:60,must:1});for(let k=0;k<6;k++)spr(P,0xffa050,10,.6,new THREE.Vector3(rnd(30),20+Math.random()*30,rnd(30)),{add:true,fog:false,must:1})}
-function samRoar(d){if(!AC)return;const t=AC.currentTime,v=.5*clamp(1-d/9000,0.08,1),n=AC.createBufferSource();n.buffer=noiseBuf(4);const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(900,t);lp.frequency.exponentialRampToValueAtTime(260,t+3.5);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.12);g.gain.setTargetAtTime(v*.5,t+.4,.6);g.gain.setTargetAtTime(0,t+1.8,.9);n.connect(lp).connect(g).connect(AC.out);n.start(t);n.stop(t+4);heavy('sub08',.32*clamp(1-d/9000,.2,1),1.5);if(S.missile)psrc('mlaunch',.9,S.missile.p,true,{ref:400,pri:1})}
+function samRoar(d){if(!AC)return;const t=AC.currentTime,v=.5*clamp(1-d/9000,0.08,1),n=AC.createBufferSource();n.buffer=noiseBuf(4);const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(900,t);lp.frequency.exponentialRampToValueAtTime(260,t+3.5);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.12);g.gain.setTargetAtTime(v*.5,t+.4,.6);g.gain.setTargetAtTime(0,t+1.8,.9);n.connect(lp).connect(g).connect(AC.out);n.start(t);n.stop(t+4);heavy('sub08',.38*clamp(1-d/9000,.2,1),1.5);heavy('msub',.65*clamp(1-d/9000,.25,1),1,true);if(S.missile){psrc('mlaunch',1,S.missile.p,true,{ref:400,pri:1});psrc('msub',.8,S.missile.p,true,{ref:500,pri:1})}}
 function rwrLaunch(P,sal){if(!AC)return;const t=AC.currentTime;for(let k=0;k<12;k++){const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=k%2?760:560;g.gain.setValueAtTime(0,t+k*.075);g.gain.linearRampToValueAtTime(.04,t+k*.075+.01);g.gain.linearRampToValueAtTime(0,t+k*.075+.07);o.connect(g).connect(AC.tone);o.start(t+k*.075);o.stop(t+k*.075+.08)}
  try{if(false){const rx=P.x-S.pos.x,rz=P.z-S.pos.z;let a=Math.atan2(-rx,-rz)-S.yaw;let c=Math.round(((-a/(Math.PI*2))*12%12+12)%12)||12;const u=new SpeechSynthesisUtterance((sal?'Second missile, ':'Missile launch, ')+c+' o clock');u.rate=1.2;u.pitch=.75;u.volume=Math.min(1,VOL.fx+.2);speechSynthesis.cancel();speechSynthesis.speak(u)}}catch(e){}}
 function updSites(dt){let anyTrk=false,anySrch=false;if(S.cine||S.phase==='done'){return {anyTrk,anySrch}}
@@ -493,15 +494,15 @@ function bigBoom(){S.boomT=0;S.shake=.9;bunker.visible=false;bulge.visible=false
 let last=performance.now(),running=false,fpsA=[],slowT=0;
 window.__fps=()=>{const a=fpsA.slice(-120);return a.length?1000/(a.reduce((x,y)=>x+y)/a.length):0};
 let lastR=0;document.addEventListener('visibilitychange',()=>{if(!AC)return;if(document.hidden)AC.suspend();else{last=performance.now();AC.resume()}});
-function step(now){requestAnimationFrame(step);if(document.hidden)return;if(MOB&&now-lastR<1000/34)return;lastR=now;let dt=Math.min(.05,(now-last)/1000);last=now;fpsA.push(dt*1000);if(fpsA.length>300)fpsA.shift();
+function step(now){requestAnimationFrame(step);if(document.hidden)return;let dt=Math.min(.05,(now-last)/1000);last=now;
  if(running&&!S.dead&&S.phase!=='done')update(dt);else if(running&&S.dead)updParts(dt);
- // adaptive quality: drop bloom then resolution if sustained < 45 fps
+ if(MOB&&now-lastR<1000/34)return;lastR=now;fpsA.push(dt*1000);if(fpsA.length>300)fpsA.shift();
  if(running&&dt>(MOB?1/26:1/45))slowT+=dt;else slowT=Math.max(0,slowT-dt*.5);if(slowT>3&&!window.__noAdapt){slowT=0;if(useBloom){useBloom=false;bloom.enabled=false}else if(sun.castShadow){sun.castShadow=false;scene.traverse(o=>{if(o.material)o.material.needsUpdate=true})}else if(PR>1){PR=Math.max(1,PR-.25);R.setPixelRatio(PR);resize()}}
  render(dt)}
 function update(rdt){
  let target=1;if(S.phase==='bombfall')target=.45;if(S.bomb&&S.bomb.tti<1.8)target=.25;if(S.phase==='penetrate')target=.5;if(S.boomT>=0&&S.boomT<1.5)target=.5;if(S.teachT>0)target=.55;
  S.cine=S.phase==='bombfall'||S.phase==='penetrate'||(S.boomT>=0&&S.boomT<8);S.ts=lerp(S.ts,target,clamp(rdt*6,0,1));const dt=rdt*S.ts;S.t+=rdt;
- const tR=S.cine?0:S.brk>0?-S.brkDir*78*D2R:-inp.x*45*D2R,tP=S.cine?0:-inp.y*30*D2R;S.roll+=(tR-S.roll)*clamp(rdt*7,0,1);S.pitch+=(tP-S.pitch)*clamp(rdt*6,0,1);S.yaw+=S.roll*.75*dt;
+ const tR=S.cine?0:S.brk>0?-S.brkDir*78*D2R:-inp.x*45*D2R,tP=S.cine?0:-inp.y*30*D2R;S.roll+=(tR-S.roll)*clamp(rdt*8.5,0,1);S.pitch+=(tP-S.pitch)*clamp(rdt*7.5,0,1);S.yaw+=S.roll*.75*dt;
  const spd=110+S.thr*120;fwd.set(-Math.sin(S.yaw)*Math.cos(S.pitch),Math.sin(S.pitch),-Math.cos(S.yaw)*Math.cos(S.pitch));S.pos.addScaledVector(fwd,spd*dt);S.pos.y=Math.min(S.pos.y,2500);
  if(S.cine)S.pos.y=Math.max(S.pos.y,H(S.pos.x,S.pos.z)+60);const agl=S.pos.y-H(S.pos.x,S.pos.z);S.agl=agl;S.spd=spd;if(agl<2)return die('TERRAIN IMPACT');
  if(S.cine){}else if(agl>150){S.det=Math.min(100,S.det+(20+(agl-150)*.08)*dt);S.detT+=dt}else S.det=Math.max(0,S.det-12*dt);
@@ -524,10 +525,11 @@ function update(rdt){
   const gentle=S.samShots<=1,sp=Math.min(gentle?300:420,m.v.length()+160*dt),dir=m.v.clone().normalize(),want=tgt.clone().sub(m.p).normalize();dir.lerp(want,clamp(dt*(m.p.distanceTo(S.pos)<900?(gentle?2.4:3.4):(gentle?1.5:2)),0,1)).normalize();m.v.copy(dir).multiplyScalar(sp);const r0=m.p.clone().sub(S.pos);m.p.addScaledVector(m.v,dt);{const r1=m.p.clone().sub(S.pos),dd=r1.clone().sub(r0),L=dd.lengthSq();const t=L>0?clamp(-r0.dot(dd)/L,0,1):1;m.cpa=r0.addScaledVector(dd,t).length()}
   msl.position.copy(m.p);msl.lookAt(tmp.copy(m.p).add(m.v));m.tr=(m.tr||0)+dt;const boost=m.life>17;{const dj=m.p.distanceTo(S.pos);mslG.visible=true;mslG.position.copy(m.p);mslG.scale.setScalar((boost?60:38)*(1+.15*Math.sin(S.t*40))*Math.max(1,dj/1500));}if(m.tr>(MOB?.05:.035)){m.tr=0;spr(m.p,boost?0xf2eee6:0xe0dbd2,boost?11:8,boost?11:8,new THREE.Vector3(rnd(2),rnd(2),rnd(2)),{grow:boost?8:6,o:.75,drag:.3,must:1})}spr(m.p,0xffd090,boost?7:3,.12,null,{add:true,tex:glowTex,fog:false});
   mslAudioUpd(m,dt);{const dj=m.p.distanceTo(S.pos);if(!m.ws&&dj<260&&(m.decoy||m.lost)){m.ws=1;whoosh();passBy(m.p);S.shake=Math.max(S.shake,.25)}}
-  if(!m.decoy&&!m.lost&&Math.min(m.cpa??1e9,m.p.distanceTo(S.pos))<75){mslAudioStop(m);S.missile=null;msl.visible=false;mslG.visible=false;S.sites[m.site].next=S.t+4;$('flash').style.transition='none';$('flash').style.background='#ffb070';$('flash').style.opacity=.85;setTimeout(()=>{$('flash').style.transition='opacity 1.2s';$('flash').style.opacity=0},90);heavy('sub08',.8,1.1,true);heavy('sub01',.6,1.2);S.shake=1;if(AC&&!heavy('impact',.55,1,true))thud(AC.bigB,.8,55,24,1.4);S.hp--;if(S.hp>0){fire(tmp.copy(S.pos).addScaledVector(fwd,-30),.35);msg('HIT! AIRFRAME DAMAGED — ONE MORE HIT IS FATAL');S.dmgT=3;return}fire(S.pos,.9);return die('SHOT DOWN — SAM HIT')}
-  if(m.p.y<H(m.p.x,m.p.z)||m.life<=0||(m.decoy&&m.dt<=0)){const pd=m.p.distanceTo(S.pos);fire(m.p,m.decoy?.45:.25);if(m.decoy){spr(m.p,0xfff0d0,90,.35,null,{add:true,tex:glowTex,fog:false,grow:120,must:1});for(let k=0;k<30;k++)spr(m.p,0xffc080,3,1.4,new THREE.Vector3(rnd(160),rnd(160),rnd(160)),{add:true,tex:glowTex,g:20,fog:false,must:1});if(pd<1200){S.shake=Math.max(S.shake,.2+.5*(1-pd/1200));heavy('sub08',.45*(1-pd/1500),1.35)}}boomSfx(false);if(AC&&pd<4000){if(!psrc('impact',.6,m.p,false,{ref:250,rate:.9,pri:1})){const pn=mkPan(false,150);setP0(pn,m.p);pn.connect(AC.out);thud(pn,.8,60,26,1.2)}}mslAudioStop(m);S.sites[m.site].next=S.t+2.5;S.missile=null;msl.visible=false;mslG.visible=false;if(!S.dead&&!m.def){S.defeated++;msg(m.lost?'MISSILE LOST — TERRAIN MASK':'MISSILE DEFEATED')}}}
+  if(!m.decoy&&!m.lost&&Math.min(m.cpa??1e9,m.p.distanceTo(S.pos))<75){mslAudioStop(m);S.missile=null;msl.visible=false;mslG.visible=false;S.sites[m.site].next=S.t+4;$('flash').style.transition='none';$('flash').style.background='#ffb070';$('flash').style.opacity=.85;setTimeout(()=>{$('flash').style.transition='opacity 1.2s';$('flash').style.opacity=0},90);heavy('sub08',.85,1.1,true);heavy('sub01',.65,1.2);heavy('hitsub',.7,1,true);S.shake=1;if(AC&&!heavy('impact',.58,1,true))thud(AC.bigB,.85,50,22,1.5);S.hp--;if(S.hp>0){fire(tmp.copy(S.pos).addScaledVector(fwd,-30),.35);msg('HIT! AIRFRAME DAMAGED — ONE MORE HIT IS FATAL');S.dmgT=3;return}fire(S.pos,.9);return die('SHOT DOWN — SAM HIT')}
+  if(m.p.y<H(m.p.x,m.p.z)||m.life<=0||(m.decoy&&m.dt<=0)){const pd=m.p.distanceTo(S.pos);fire(m.p,m.decoy?.45:.25);if(m.decoy){spr(m.p,0xfff0d0,90,.35,null,{add:true,tex:glowTex,fog:false,grow:120,must:1});for(let k=0;k<30;k++)spr(m.p,0xffc080,3,1.4,new THREE.Vector3(rnd(160),rnd(160),rnd(160)),{add:true,tex:glowTex,g:20,fog:false,must:1});if(pd<1200){S.shake=Math.max(S.shake,.2+.5*(1-pd/1200));heavy('sub08',.45*(1-pd/1500),1.35)}}boomSfx(false);if(AC&&pd<4000){psrc('hitsub',.65,m.p,false,{ref:280,rate:.95,pri:1});if(!psrc('impact',.62,m.p,false,{ref:250,rate:.9,pri:1})){const pn=mkPan(false,150);setP0(pn,m.p);pn.connect(AC.out);thud(pn,.85,55,24,1.3)}}mslAudioStop(m);S.sites[m.site].next=S.t+2.5;S.missile=null;msl.visible=false;mslG.visible=false;if(!S.dead&&!m.def){S.defeated++;msg(m.lost?'MISSILE LOST — TERRAIN MASK':'MISSILE DEFEATED')}}}
  S.brk=Math.max(0,S.brk-rdt);S.brkCD=Math.max(0,S.brkCD-rdt);S.ecm=Math.max(0,S.ecm-rdt);S.ecmCD=Math.max(0,S.ecmCD-rdt);S.teachT=Math.max(0,S.teachT-rdt);S.dmgT=Math.max(0,(S.dmgT||0)-rdt);
- if(S.hp<2){S.smT-=rdt;if(S.smT<=0){S.smT=MOB?.09:.05;spr(tmp.copy(S.pos).addScaledVector(fwd,-9),0x2a2724,3,2.5,new THREE.Vector3(rnd(3),2,rnd(3)),{grow:6,o:.7,must:1});if(Math.random()<.3)spr(tmp.copy(S.pos).addScaledVector(fwd,-8),0xff8a40,2.5,.25,null,{add:true,tex:glowTex,fog:false})}}
+ S.exT=(S.exT||0)-rdt;if(!S.cine&&S.exT<=0){S.exT=MOB?.07:.045;const thr=S.thr,sz=1.5+thr*5,life=1.2+thr*2.2,op=.25+thr*.45;spr(tmp.copy(S.pos).addScaledVector(fwd,-8-thr*4),0x3a3732,sz,life,new THREE.Vector3(rnd(2+thr*3),1+thr*2,rnd(2+thr*3)),{grow:4+thr*10,o:op,drag:.4,must:thr>.55});if(thr>.75&&Math.random()<.4)spr(tmp.copy(S.pos).addScaledVector(fwd,-7),0xffa060,2+thr*2,.18,null,{add:true,tex:glowTex,fog:false})}
+ if(S.hp<2){S.smT-=rdt;if(S.smT<=0){S.smT=MOB?.09:.05;spr(tmp.copy(S.pos).addScaledVector(fwd,-9),0x2a2724,4,3,new THREE.Vector3(rnd(4),2,rnd(4)),{grow:8,o:.75,must:1});if(Math.random()<.35)spr(tmp.copy(S.pos).addScaledVector(fwd,-8),0xff8a40,2.8,.28,null,{add:true,tex:glowTex,fog:false})}}
  if(!S.cine&&bunker.visible&&bDist()<6500){S.aaaS-=rdt;if(S.aaaS<=0){S.aaaS=.7+Math.random()*.6;aaaBurst(tmp.copy(BUNK).add(new THREE.Vector3(Math.random()<.5?-60:55,4,0)).clone())}
   if(bDist()<4500){S.flakT-=rdt;if(S.flakT<=0){S.flakT=(MOB?1.6:1.2)+Math.random();const P=S.pos.clone().addScaledVector(fwd,150+Math.random()*350).add(new THREE.Vector3(rnd(220),40+Math.random()*160,rnd(220)));
    spr(P,0xfff0c0,30,.2,null,{add:true,tex:glowTex,fog:false,grow:80,must:1});for(let k=0;k<(MOB?4:7);k++)spr(P,0x1c1a18,14,3+Math.random()*2,new THREE.Vector3(rnd(14),rnd(10),rnd(14)),{grow:12,o:.85,drag:.6,must:1});flakBoom(P);const fd=P.distanceTo(S.pos);if(fd<260)S.shake=Math.max(S.shake,.5*(1-fd/260))}}}
@@ -536,7 +538,7 @@ function update(rdt){
  if(S.pos.z<EXZ-900&&S.phase!=='egress'&&S.phase!=='done')die('LEFT THE AO');
  if(AC&&eng){const tt=AC.currentTime;
   startJet();flyCD=Math.max(0,flyCD-rdt);const warnA=S.missile&&!S.missile.decoy&&!S.missile.lost;
-  if(JET){JET.playbackRate.setTargetAtTime(.88+S.thr*.18,tt,.5);AC.jet.gain.setTargetAtTime((S.cine?.1:.17+S.thr*.13)*(warnA?.6:1),tt,.5);AC.jlp.frequency.setTargetAtTime(S.cine?800:2600+S.thr*2600,tt,.5)}AC.sub.gain.setTargetAtTime(S.cine?.03:.07+S.thr*.07,tt,.4);AC.subO&&AC.subO.forEach((o,k)=>o.frequency.setTargetAtTime((38+S.thr*10)*(k+1),tt,.5));updListener();
+  if(JET){JET.playbackRate.setTargetAtTime(.88+S.thr*.18,tt,.5);AC.jet.gain.setTargetAtTime((S.cine?.1:.17+S.thr*.13)*(warnA?.6:1),tt,.5);AC.jlp.frequency.setTargetAtTime(S.cine?800:2600+S.thr*2600,tt,.5)}AC.sub.gain.setTargetAtTime(S.cine?.05:.14+S.thr*.16,tt,.35);AC.subO&&AC.subO.forEach((o,k)=>o.frequency.setTargetAtTime((32+S.thr*12)*(k+1),tt,.45));updListener();
   AC.wind.g.gain.setTargetAtTime(S.cine?.004:.014+S.thr*.008+Math.min(1,Math.abs(S.roll))*.008,tt,.6);AC.wind.bp.frequency.setTargetAtTime(380+S.thr*420,tt,.6);
   const tense=S.th&&(S.th.anyTrk||S.th.anySrch);AC.mus.gain.setTargetAtTime(warnA?.45:1,tt,.15);AC.amb.gain.setTargetAtTime(S.cine?.04:(warnA?.08:tense?.22:.17),tt,1.5);
 
@@ -656,13 +658,13 @@ const TUT=[['1/3  FLIGHT CONTROL','Drag anywhere with one finger. Left/right ban
  ['3/3  WEAPONS + DEFENCE','Place the target in the HUD box, tap LOCK, hold RELEASE. Missile inbound: tap ECM while it is far (> 1.6 km), FLARE when the HUD says FLARE NOW, or BREAK in the last ~1 km to make it overshoot. You survive one hit.']];
 let tutI=0;function showTut(){$('tt').textContent=TUT[tutI][0];$('tp').textContent=TUT[tutI][1];$('tn').textContent='TAP TO CONTINUE'}
 $('brief').addEventListener('pointerdown',()=>{initAudio();briefMusic();$('snd').textContent='♪ SOUND ON'});
-$('go').addEventListener('pointerdown',e=>{e.stopPropagation();goFS();initAudio();stopBrief();heavy('sub08',.28,.8);$('brief').classList.add('hide');if(localStorage.ds8_tut)begin();else{tutI=0;showTut();$('tut').classList.remove('hide')}});
-$('tut').addEventListener('pointerdown',e=>{e.stopPropagation();tutI++;if(tutI>=3){localStorage.ds8_tut=1;$('tut').classList.add('hide');begin()}else showTut()});
+$('go').addEventListener('pointerdown',e=>{e.stopPropagation();goFS();initAudio();stopBrief();heavy('sub08',.28,.8);$('brief').classList.add('hide');if(localStorage.ds9_tut)begin();else{tutI=0;showTut();$('tut').classList.remove('hide')}});
+$('tut').addEventListener('pointerdown',e=>{e.stopPropagation();tutI++;if(tutI>=3){localStorage.ds9_tut=1;$('tut').classList.add('hide');begin()}else showTut()});
 $('retry').addEventListener('pointerdown',e=>{e.stopPropagation();initAudio();stopWin();begin()});
 function goFS(){const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(f&&!document.fullscreenElement&&!document.webkitFullscreenElement){try{const p=f.call(d,{navigationUI:'hide'});p&&p.catch&&p.catch(()=>{})}catch(e){}}try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}
 addEventListener('pointerdown',goFS,{once:true});
 document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault());addEventListener('resize',()=>scrollTo(0,0));
 function begin(){reset();jet.visible=true;running=true;last=performance.now();if(AC)AC.resume()}
 reset();clock();drawMap();chat();addEventListener('resize',()=>{if(!$('brief').classList.contains('hide'))drawMap()});requestAnimationFrame(step);
-window.__S=()=>S;window.__brk=doBreak;window.__flr=fireFlares;window.__ecm=doECM;window.__begin=begin;window.__inp=inp;
+window.__S=()=>S;window.__brk=doBreak;window.__flr=fireFlares;window.__ecm=doECM;window.__begin=begin;window.__inp=inp;window.__aaa=P=>aaaBurst(P||BUNK.clone());window.__BUNK=()=>BUNK;
 </script></body></html>

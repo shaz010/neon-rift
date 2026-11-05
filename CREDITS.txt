@@ -13,7 +13,7 @@ s6 additions
 - Terrain textures aerial_grass_rock, rocky_terrain_02 (diffuse + normal): Poly Haven (polyhaven.com), CC0.
 - Removed: engine_loop, explosion, boomer stand-alone files (explosion is now baked into nuke.*).
 
-== Strike s8 — Apple Logic Pro library (Shahbaz's DS-logic pack), trimmed/normalised, mono 44.1k mp3+ogg ==
+== Strike s9 — Apple Logic Pro library (Shahbaz's DS-logic pack), trimmed/normalised, mono 44.1k mp3+ogg ==
 sfx/jet8      engine loop       <- Jet Take Off 3 (9-13 s, crossfade loop)
 sfx/mlaunch   SAM launch roar   <- Jet Take off 2 (11.5-16.5 s)
 sfx/mmotor    missile motor loop (HRTF+Doppler) <- Jet Take off 1 (16-20 s)
@@ -23,3 +23,10 @@ sfx/impact    missile hit/explosion <- Big Bang 01 + Subsonic Boom FX 03
 sfx/subdrop   release / pass-by sub <- Sub Drop 01
 sfx/drone     sub ambience bed  <- Subsonic Drone 01 (8-21 s loop)
 sfx/sweep     missile whoosh    <- Warm Embers Noise Sweep FX 01
+
+== Strike s9 — Apple Logic Pro library (Shahbaz's DS-logic pack), trimmed/normalised ==
+sfx/aaaw    AAA woofy swell (replaces snare) <- Subsonic Boom FX 05 + Sub Drop 01 + soft breath noise, swell envelope
+sfx/msub    SAM launch sub layer            <- Subsonic Boom FX 03
+sfx/hitsub  SAM hit/impact sub layer        <- Boom Stick Sub FX
+sfx/rum     engine rumble bed               <- Rumble Sub Bass
+(also keeps s8 samples: jet8, mlaunch, mmotor, flak/flak2, impact, drone, sweep, subdrop, aaa)
