@@ -39,3 +39,8 @@ Kept s9: aaaw, msub, hitsub, thicker flares, throttle exhaust, physics-every-fra
 Freeze: prewarm audio (noiseBuf + decodeAudioData), renderer.compile of bomb/msl/nuke/sprites, particle pool, wall-clock release hold.
 Terrain: multi-scale ridgelines, eroded slopes, rocky outcrops, dry wadi; colour/shader by slope & height.
 Textures (unchanged, still CC0): ambientCG Rock030, Grass004, Ground054, Snow006; Poly Haven aerial_grass_rock + rocky_terrain_02.
+
+== Strike s11 (steering) ==
+aaaw rebuilt: Thunder + Subsonic Boom FX 07 + Boomer FX 46, soft swell, steep LP — onset energy above 2 kHz ~0% (spectral check).
+Bomb-cam delayed .35s after release; failsafe 14s; prewarm compiles bunk/bomb-cam angle.
+Throttle: wider speed band, clearer engine pitch/volume; THROTTLE label + KTS + first-use hint.
