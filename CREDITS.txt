@@ -30,3 +30,7 @@ sfx/msub    SAM launch sub layer            <- Subsonic Boom FX 03
 sfx/hitsub  SAM hit/impact sub layer        <- Boom Stick Sub FX
 sfx/rum     engine rumble bed               <- Rumble Sub Bass
 (also keeps s8 samples: jet8, mlaunch, mmotor, flak/flak2, impact, drone, sweep, subdrop, aaa)
+
+== Strike s10 — engine + ambience restored to s8; keeps s9 SAM/AAA/smoke/steering ==
+Engine/music: identical to s8 (no rum bed; s8 sub osc levels; drone .55; jet8 1.2)
+Kept s9: aaaw, msub, hitsub, thicker flares, throttle exhaust, physics-every-frame steering
