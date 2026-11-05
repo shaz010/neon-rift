@@ -13,10 +13,10 @@
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
 <style>
 :root{--g:#b6dcae;--bg:#070908;--m:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
-html,body{margin:0;background:var(--bg);color:var(--g);font:13px var(--m);touch-action:manipulation;-webkit-user-select:none;user-select:none}
+html{height:100%}html,body{margin:0;min-height:100%;height:auto;background:var(--bg);color:var(--g);font:13px var(--m);touch-action:pan-y;-webkit-overflow-scrolling:touch;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:auto;position:relative;-webkit-user-select:none;user-select:none}
 #bar{position:sticky;top:0;z-index:8;background:rgba(6,10,8,.95);border-bottom:1px solid rgba(182,220,174,.35);padding:calc(10px + env(safe-area-inset-top)) 14px 10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 #bar h1{margin:0;font:700 14px var(--m);letter-spacing:2px}
-#bar a{color:#9eb896;margin-left:auto;min-height:40px;display:inline-flex;align-items:center}
+#bar a.back,#bar a{margin-left:auto;min-height:48px;min-width:132px;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(182,220,174,.6);border-radius:6px;background:rgba(40,60,40,.85);color:#e8ffe0;text-decoration:none;font:700 13px var(--m);letter-spacing:1px;touch-action:manipulation;position:relative;z-index:31}
 #picked{width:100%;margin-top:6px;padding:8px 10px;border:1px solid rgba(182,220,174,.45);background:rgba(30,50,34,.75);border-radius:6px;font:700 13px var(--m);letter-spacing:1px;display:none}
 #picked.on{display:block}
 #previewWrap{position:sticky;top:calc(58px + env(safe-area-inset-top));z-index:7;height:min(42dvh,320px);background:#000;border-bottom:1px solid rgba(182,220,174,.3)}
@@ -38,7 +38,7 @@ canvas#gl{position:absolute;inset:0;width:100%!important;height:100%!important;d
 <body>
 <div id="bar">
   <h1>DEEP STRIKE · s14 — SCENERY</h1>
-  <a href="./">← Game</a>
+  <a class="back" href="./index.html">← Back to game</a>
   <div id="picked">PICKED: —</div>
 </div>
 <div id="previewWrap">
@@ -60,6 +60,6 @@ canvas#gl{position:absolute;inset:0;width:100%!important;height:100%!important;d
 <button id="setx" type="button" class="hide"></button><button id="resume" type="button" class="hide"></button>
 <div id="tt"></div><div id="tp"></div><div id="tn"></div><div id="mapc"></div>
 <script>window.__DS_MODE='scenery';</script>
-<script type="module" src="./main.mjs?v=14e"></script>
+<script type="module" src="./main.mjs?v=14f"></script>
 </body>
 </html>
