@@ -335,7 +335,7 @@ function thud(dest,v,f0=70,f1=32,dur=.35,t=AC.currentTime){f0=Math.min(f0,55);fo
 function nburst(dest,v,lp,dur,t=AC.currentTime,bp){lp=Math.min(lp,220);const n=AC.createBufferSource();n.buffer=noiseBuf(1.5);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(lp,t);f.frequency.exponentialRampToValueAtTime(Math.max(40,lp*.2),t+dur);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.12);g.gain.exponentialRampToValueAtTime(.0008,t+dur);n.connect(f).connect(g).connect(dest);n.start(t,Math.random());n.stop(t+dur+.02);sfxLog('nburst',{v,lp,dur,fadeIn:.12})}
 let hrtfN=0;
 // AAA cannon burst at world pos: heavy thud + crack per round, HRTF positioned
-function aaaBurst(P,rounds=5){if(!AC||AC.voices>10)return;const d=P.distanceTo(S.pos),pn=mkPan(true,220);hrtfN++;setP0(pn,P);const g=AC.createGain();g.gain.value=1;pn.connect(g).connect(AC.out);const t=AC.currentTime+d/343*.28;AC.voices++;
+function aaaBurst(P,rounds=5){if(!AC||(AC.voices>10&&!window.__sfxTest))return;const d=P.distanceTo(S.pos),pn=mkPan(true,220);hrtfN++;setP0(pn,P);const g=AC.createGain();g.gain.value=1;pn.connect(g).connect(AC.out);const t=AC.currentTime+d/343*.28;AC.voices++;
  const near=clamp(1-d/9000,.15,1), rate=.58+Math.random()*.08;sfxLog('aaaBurst',{d:+d.toFixed(0),near:+near.toFixed(2)});
  // ONLY cannon aaaw — never old aaa.mp3; synth fallback is slow dark thud only (no nburst crack)
  if(SB.aaaw){const s=src(SB.aaaw,.6+near*.35,pn,{when:t,rate,pri:1,fadeIn:.35,tag:'aaaw'});AC.voices--;s.onended=null}
@@ -343,7 +343,7 @@ function aaaBurst(P,rounds=5){if(!AC||AC.voices>10)return;const d=P.distanceTo(S
  if(d>2000&&SB.aaaw){const s2=src(SB.aaaw,.22*near,pn,{when:t+.4,rate:rate*.8,pri:1,fadeIn:.5,tag:'aaaw_far'});AC.voices--;s2.onended=null}
  setTimeout(()=>{AC.voices--;hrtfN--;try{g.disconnect()}catch(e){}},(t-AC.currentTime+4.5)*1000)}
 // flak shell: deep boom at burst point
-function flakBoom(P){if(!AC||AC.voices>10)return;const pn=mkPan(hrtfN<4,90);hrtfN++;setP0(pn,P);const g=AC.createGain();g.gain.value=1;pn.connect(g).connect(AC.out);AC.voices++;const t=AC.currentTime+.02;
+function flakBoom(P){if(!AC||(AC.voices>10&&!window.__sfxTest))return;const pn=mkPan(hrtfN<4,90);hrtfN++;setP0(pn,P);const g=AC.createGain();g.gain.value=1;pn.connect(g).connect(AC.out);AC.voices++;const t=AC.currentTime+.02;
  const fk=Math.random()<.5?'flak':'flak2';sfxLog('flakBoom',{fk});
  if(SB[fk]){const s=src(SB[fk],.6,pn,{when:t,rate:.65+Math.random()*.1,pri:1,fadeIn:.28,tag:fk});AC.voices--;s.onended=null}
  else thud(pn,.85,45,20,1.2,t);
@@ -730,112 +730,135 @@ let testerPan='C', testerLoops={}, testerEngOn=false;
 function testerPos(){const d=420;const o={L:[-d,0,-40],R:[d,0,-40],C:[0,20,-80],B:[0,10,d]}[testerPan]||[0,20,-80];return S.pos.clone().add(new THREE.Vector3(...o))}
 function setupSoundTester(){
   document.body.classList.add('soundsMode');
-  // keep world light for HRTF listener; park jet
   running=false; S.cine=false; S.pos.set(vx(300),H(vx(300),300)+120,300);
   const list=$('list'); if(!list)return;
+  // Bypass combat voice caps while auditioning
+  window.__sfxTest=1;
   const rows=[
-    {id:'engine',name:'ENGINE',desc:'Jet engine loop in flight (s8 character). Use throttle slider.',loop:1,play:()=>startTesterEngine(),stop:()=>stopTesterEngine()},
-    {id:'bed_ambient',name:'MUSIC BED — Iron Veil',desc:'Default music bed under gameplay.',loop:1,play:()=>{BED='ambient';startBed()},stop:()=>stopBed()},
-    {id:'bed_depth',name:'MUSIC BED — Subsonic Depth',desc:'Optional bed (toned down).',loop:1,play:()=>{BED='mus_depth';startBed()},stop:()=>stopBed()},
-    {id:'bed_dream',name:'MUSIC BED — Dream Space',desc:'Optional bed.',loop:1,play:()=>{BED='mus_dream';startBed()},stop:()=>stopBed()},
-    {id:'bed_layers',name:'MUSIC BED — Propulsion Layers',desc:'Optional bed.',loop:1,play:()=>{BED='mus_layers';startBed()},stop:()=>stopBed()},
-    {id:'bed_waves',name:'MUSIC BED — Warm Waves',desc:'Optional bed (toned down).',loop:1,play:()=>{BED='mus_waves';startBed()},stop:()=>stopBed()},
-    {id:'wind',name:'AMBIENCE / WIND',desc:'Wind/ambience layer under the bed (moves with throttle/bank in game).',loop:1,play:()=>{if(!AC)return;AC.amb.gain.setTargetAtTime(.45,AC.currentTime,.2);if(AC.wind)AC.wind.g.gain.setTargetAtTime(.04,AC.currentTime,.2)},stop:()=>{if(!AC)return;AC.amb.gain.setTargetAtTime(0,AC.currentTime,.3);if(AC.wind)AC.wind.g.gain.setTargetAtTime(0,AC.currentTime,.3)}},
-    {id:'aaa_near',name:'ENEMY CANNON (AAA) NEAR',desc:'AAA bursts when close to the bunker guns.',play:()=>{const P=testerPos();aaaBurst(P)}},
-    {id:'aaa_far',name:'ENEMY CANNON (AAA) FAR',desc:'Distant AAA thunder.',play:()=>{const P=S.pos.clone().add(new THREE.Vector3(0,-20,-4500));aaaBurst(P)}},
-    {id:'flak',name:'FLAK',desc:'Flak shell burst near the jet.',play:()=>flakBoom(testerPos().add(new THREE.Vector3(0,40,0)))},
-    {id:'pass',name:'NEAR-MISS / BULLET PASS',desc:'Close pass rumble (whoosh + pass-by).',play:()=>{whoosh();passBy(testerPos())}},
-    {id:'overhead',name:'OVERHEAD JET PASS',desc:'Layered whoosh/pass-by spatial flyby (the pass sounds you liked).',play:()=>{const P=S.pos.clone().add(new THREE.Vector3(0,80,-20));whoosh();passBy(P);if(SB.jet8)psrc('jet8',.55,P,true,{ref:200,rate:1.05,fadeIn:.15,tag:'overhead'})}},
-    {id:'sam',name:'SAM LAUNCH',desc:'Enemy SAM leave-rail roar + RWR.',play:()=>{samRoar(600);rwrLaunch(testerPos(),false)}},
-    {id:'mmotor',name:'MISSILE MOTOR',desc:'Looping missile motor while a SAM tracks you.',loop:1,play:()=>{if(!AC)return;if(testerLoops.mm)return;const P=testerPos();const fake={p:P,v:new THREE.Vector3(0,0,-200)};mslAudioStart(fake);testerLoops.mm=fake},stop:()=>{if(testerLoops.mm){mslAudioStop(testerLoops.mm);testerLoops.mm=null}}},
-    {id:'hit',name:'MISSILE HIT ON JET',desc:'Airframe hit: sub + hitsub + impact.',play:()=>{if(SB.sub08)src(SB.sub08,.4,AC.bigB,{rate:1.1,pri:1,fadeIn:.18,tag:'heavy:sub08'});if(SB.hitsub)src(SB.hitsub,.45,AC.bigB,{pri:1,fadeIn:.2,tag:'heavy:hitsub'});if(SB.impact)src(SB.impact,.4,AC.bigB,{pri:1,fadeIn:.22,tag:'heavy:impact'});else thud(AC.bigB,.7,50,22,1.5)}},
-    {id:'flare',name:'PLAYER FLARE',desc:'Pyrotechnic flare: bass thump + fiery hiss.',play:()=>flareSfx()},
-    {id:'ecm',name:'ECM',desc:'ECM jammer chirps + noise.',play:()=>{for(let k=0;k<6;k++)blip(k%2?340:300,.12,.05);nburst(AC.out,.08,220,1.2)}},
-    {id:'break',name:'BREAK',desc:'Hard break turn thump.',play:()=>{thud(AC.out,.3,55,30,.5);nburst(AC.out,.12,200,.8)}},
-    {id:'rwr',name:'RWR WARNING TONES',desc:'Launch warning tones on the RWR bus.',play:()=>rwrLaunch(testerPos(),true)},
-    {id:'release',name:'BOMB RELEASE',desc:'Pickle: riser/subdrop/whoosh on release.',play:()=>{if(typeof riser==='function')try{riser(true)}catch(e){};heavy('sub08',.45,1.15);if(!heavy('subdrop',.8,1,true))thud(AC.out,.6,60,28,.8);blip(300,.2,.3);whoosh()}},
-    {id:'nuke',name:'BUNKER EXPLOSION / NUKE',desc:'Penetrator detonation boom.',play:()=>boomSfx(true)},
-    {id:'dub',name:'MISSION COMPLETE — Dub 02',desc:'Deep Space Dub 02 victory / debrief loop (brief track).',loop:1,play:()=>{SB.get(BRIEF_TRACK).then(b=>{if(!b||!AC)return;stopWin();winSrc=src(mkSeamless(b,.4),0,AC.musB,{loop:true,tag:'dub02'});winSrc.g.gain.setValueAtTime(0,AC.currentTime);winSrc.g.gain.linearRampToValueAtTime(.5,AC.currentTime+1)})},stop:()=>stopWin()},
+    {id:'engine',name:'ENGINE',desc:'Jet engine loop in flight (s8 character). Use throttle slider.',loop:1},
+    {id:'bed_ambient',name:'MUSIC BED — Iron Veil',desc:'Default music bed under gameplay.',loop:1},
+    {id:'bed_depth',name:'MUSIC BED — Subsonic Depth',desc:'Optional bed (toned down).',loop:1},
+    {id:'bed_dream',name:'MUSIC BED — Dream Space',desc:'Optional bed.',loop:1},
+    {id:'bed_layers',name:'MUSIC BED — Propulsion Layers',desc:'Optional bed.',loop:1},
+    {id:'bed_waves',name:'MUSIC BED — Warm Waves',desc:'Optional bed (toned down).',loop:1},
+    {id:'wind',name:'AMBIENCE / WIND',desc:'Wind/ambience layer under the bed (moves with throttle/bank in game).',loop:1},
+    {id:'aaa_near',name:'ENEMY CANNON (AAA) NEAR',desc:'AAA bursts when close to the bunker guns.'},
+    {id:'aaa_far',name:'ENEMY CANNON (AAA) FAR',desc:'Distant AAA thunder.'},
+    {id:'flak',name:'FLAK',desc:'Flak shell burst near the jet.'},
+    {id:'pass',name:'NEAR-MISS / BULLET PASS',desc:'Close pass rumble (whoosh + pass-by).'},
+    {id:'overhead',name:'OVERHEAD JET PASS',desc:'Layered whoosh/pass-by spatial flyby (the pass sounds you liked).'},
+    {id:'sam',name:'SAM LAUNCH',desc:'Enemy SAM leave-rail roar + RWR.'},
+    {id:'mmotor',name:'MISSILE MOTOR',desc:'Looping missile motor while a SAM tracks you.',loop:1},
+    {id:'hit',name:'MISSILE HIT ON JET',desc:'Airframe hit: sub + hitsub + impact.'},
+    {id:'flare',name:'PLAYER FLARE',desc:'Pyrotechnic flare: bass thump + fiery hiss.'},
+    {id:'ecm',name:'ECM',desc:'ECM jammer chirps + noise.'},
+    {id:'break',name:'BREAK',desc:'Hard break turn thump.'},
+    {id:'rwr',name:'RWR WARNING TONES',desc:'Launch warning tones on the RWR bus.'},
+    {id:'release',name:'BOMB RELEASE',desc:'Pickle: riser/subdrop/whoosh on release.'},
+    {id:'nuke',name:'BUNKER EXPLOSION / NUKE',desc:'Penetrator detonation boom.'},
+    {id:'dub',name:'MISSION COMPLETE — Dub 02',desc:'Deep Space Dub 02 victory / debrief loop (brief track).',loop:1},
   ];
   list.innerHTML='';
   for(const r of rows){
-    const el=document.createElement('div');el.className='row';el.dataset.id=r.id;
-    el.innerHTML=`<div class="meta"><div class="name">${r.name}</div><div class="desc">${r.desc}</div></div><div class="acts"><button type="button" data-act="play">▶ Play</button>${r.loop?'<label class="loop"><input type="checkbox" data-loop/> Loop</label><button type="button" data-act="stop">■ Stop</button>':'<button type="button" data-act="stop">■ Stop</button>'}</div>`;
-    el.addEventListener('click',e=>{
-      const btn=e.target.closest('button'); if(!btn)return;
-      initAudio(); AC.resume();
-      if(btn.dataset.act==='play'){ r.play(); if(r.id==='engine')$('thrbox')?.classList.add('on'); }
-      if(btn.dataset.act==='stop'){ r.stop?.(); if(r.id==='engine')$('thrbox')?.classList.remove('on'); }
+    const el=document.createElement('div'); el.className='row'; el.dataset.id=r.id;
+    el.innerHTML=`<div class="meta"><div class="name">${r.name}</div><div class="desc">${r.desc}</div></div><div class="acts"><button type="button" data-act="play">▶ Play</button>${r.loop?'<label class="loop"><input type="checkbox" data-loop checked/> Loop</label>':''}<button type="button" data-act="stop">■ Stop</button></div>`;
+    // Bind DIRECTLY on each button with pointerdown (iOS-safe: sync resume + start inside the gesture)
+    el.querySelectorAll('button[data-act]').forEach(btn=>{
+      const go=e=>{
+        e.preventDefault(); e.stopPropagation();
+        ensureAudioSync(); // MUST be sync inside gesture — no await before play
+        if(btn.dataset.act==='play') playTesterRow(r, el);
+        else stopTesterRow(r);
+      };
+      btn.addEventListener('pointerdown', go, {passive:false});
+      btn.addEventListener('click', e=>{e.preventDefault(); e.stopPropagation()}, {passive:false});
     });
     list.appendChild(el);
   }
-  document.querySelectorAll('#pan button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#pan button').forEach(x=>x.classList.remove('on'));b.classList.add('on');testerPan=b.dataset.pan}));
-  const bindVol=(id,fn)=>{const el=$(id);if(!el)return;el.addEventListener('input',()=>fn(+el.value/100));fn(+el.value/100)};
+  document.querySelectorAll('#pan button').forEach(b=>{
+    const go=e=>{e.preventDefault(); document.querySelectorAll('#pan button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); testerPan=b.dataset.pan;
+      // silent beep so pan change is audible feedback inside gesture
+      ensureAudioSync(); try{blip(440,.05,.08)}catch(err){}};
+    b.addEventListener('pointerdown', go, {passive:false});
+  });
+  const bindVol=(id,fn)=>{const el=$(id); if(!el)return; el.addEventListener('input',()=>fn(+el.value/100)); fn(+el.value/100)};
   bindVol('t_master',v=>{if(AC?.mg)AC.mg.gain.setTargetAtTime(v,AC.currentTime,.05)});
-  bindVol('t_mus',v=>{VOL.bed=v;VOL.mus=v;applyVol()});
-  bindVol('t_fx',v=>{VOL.fx=v;applyVol()});
-  bindVol('t_eng',v=>{VOL.eng=v;applyVol()});
-  const thr=$('t_thr'); if(thr)thr.addEventListener('input',()=>{const v=+thr.value/100; S.thr=v; $('t_thrv').textContent=Math.round(v*100)+'%'; if(JET&&AC){const pr=.72+v*.48; const nodes=JET.a?[JET.a,JET.b]:[JET]; nodes.forEach((n,i)=>{try{n.playbackRate.setTargetAtTime(pr*(i?1.002:1),AC.currentTime,.15)}catch(e){}}); AC.jet.gain.setTargetAtTime(.1+v*.32,AC.currentTime,.15); AC.jlp.frequency.setTargetAtTime(1800+v*4200,AC.currentTime,.15); AC.sub.gain.setTargetAtTime(.05+v*.12,AC.currentTime,.15)}});
-  const unlock=$('unlockBtn'); if(unlock)unlock.addEventListener('pointerdown',async()=>{initAudio();try{await AC.resume()}catch(e){} SB.load(); startJet(); stopTesterEngine(); $('unlock')?.remove();});
-  // listener follow
-  function tick(){requestAnimationFrame(tick); if(AC&&S){try{updListener()}catch(e){}} }
+  bindVol('t_mus',v=>{VOL.bed=v; VOL.mus=v; applyVol()});
+  bindVol('t_fx',v=>{VOL.fx=v; applyVol()});
+  bindVol('t_eng',v=>{VOL.eng=v; applyVol()});
+  const thr=$('t_thr'); if(thr)thr.addEventListener('input',()=>{const v=+thr.value/100; S.thr=v; const lab=$('t_thrv'); if(lab)lab.textContent=Math.round(v*100)+'%'; if(JET&&AC){const pr=.72+v*.48; const nodes=JET.a?[JET.a,JET.b]:[JET]; nodes.forEach((n,i)=>{try{n.playbackRate.setTargetAtTime(pr*(i?1.002:1),AC.currentTime,.15)}catch(e){}}); AC.jet.gain.setTargetAtTime(.1+v*.32,AC.currentTime,.15); AC.jlp.frequency.setTargetAtTime(1800+v*4200,AC.currentTime,.15); AC.sub.gain.setTargetAtTime(.05+v*.12,AC.currentTime,.15)}});
+  const unlock=$('unlockBtn');
+  if(unlock)unlock.addEventListener('pointerdown', async e=>{
+    e.preventDefault();
+    ensureAudioSync();
+    const st=$('unlock'); if(st){const p=st.querySelector('div[data-st]')||document.createElement('div'); p.dataset.st=1; p.style.cssText='opacity:.7;margin-top:8px;letter-spacing:1px'; p.textContent='Loading sounds…'; if(!p.parentNode)st.appendChild(p)}
+    try{
+      await preloadTesterSounds();
+    }catch(err){console.warn('preload',err)}
+    // Do NOT startJet/startBed here — that stole the only audible bus and confused later rows on iOS
+    $('unlock')?.remove();
+  }, {passive:false});
+  function tick(){requestAnimationFrame(tick); if(AC&&S){try{updListener()}catch(e){}} if(AC){const an=AC._testMeter||AC.an; if(an){const a=new Uint8Array(an.fftSize); try{an.getByteTimeDomainData(a); let m=0; for(const v of a){const d=Math.abs(v-128); if(d>m)m=d} window.__sfxMeter=m/128}catch(e){}}}}
+  window.__sfxMeter=0; window.__getMeter=()=>window.__sfxMeter;
   requestAnimationFrame(tick);
 }
-function startTesterEngine(){initAudio(); if(!JET)startJet(); testerEngOn=true; if(AC){AC.jet.gain.setTargetAtTime(.1+S.thr*.32,AC.currentTime,.1); AC.sub.gain.setTargetAtTime(.05+S.thr*.12,AC.currentTime,.1)} $('thrbox')?.classList.add('on')}
-function stopTesterEngine(){testerEngOn=false; if(AC){AC.jet.gain.setTargetAtTime(0,AC.currentTime,.2); AC.sub.gain.setTargetAtTime(0,AC.currentTime,.2)} }
-
-// ===== SCENERY TESTER (preset gallery, fixed cruise view, no orbit/sliders) =====
-const SCEN_PRESETS=[
-  {id:'s14',name:'s14 Default',desc:'Clear natural sky, real snowline — the shipping look.',
-   scen:{turbidity:2.6,rayleigh:.95,mie:.0025,mieG:.78,sunEl:21,sunAz:.62,sunInt:4.5,hemi:1.15,exposure:.88,env:.75,fogDen:0,snowAlt0:490,snowAlt1:700,snowAmt:1,warmth:0,clouds:0}},
-  {id:'morning',name:'Clear Morning',desc:'Crisper air, higher sun, cooler light — still no haze.',
-   scen:{turbidity:1.8,rayleigh:1.05,mie:.002,mieG:.76,sunEl:34,sunAz:.55,sunInt:5.0,hemi:1.25,exposure:.92,env:.8,fogDen:0,snowAlt0:500,snowAlt1:720,snowAmt:1,warmth:0.05,clouds:0}},
-  {id:'golden',name:'Golden Hour',desc:'Low warm sun, soft contrast, subtle colour warmth.',
-   scen:{turbidity:3.2,rayleigh:.85,mie:.0032,mieG:.8,sunEl:9,sunAz:.85,sunInt:3.8,hemi:1.05,exposure:.95,env:.7,fogDen:0,snowAlt0:480,snowAlt1:690,snowAmt:1,warmth:0.45,clouds:0.08}},
-  {id:'haze',name:'Light Haze',desc:'Very light atmospheric haze only — not the heavy s12 fog.',
-   scen:{turbidity:3.4,rayleigh:1.15,mie:.0035,mieG:.82,sunEl:24,sunAz:.62,sunInt:4.2,hemi:1.2,exposure:.86,env:.72,fogDen:0.000055,snowAlt0:500,snowAlt1:710,snowAmt:1,warmth:0.08,clouds:0.12}},
-  {id:'overcast',name:'Overcast',desc:'Soft grey sky, muted sun, gentle cloud cover.',
-   scen:{turbidity:6.5,rayleigh:1.4,mie:.004,mieG:.7,sunEl:28,sunAz:.5,sunInt:2.4,hemi:1.35,exposure:.78,env:.55,fogDen:0.00003,snowAlt0:510,snowAlt1:730,snowAmt:1,warmth:0,clouds:0.55}},
-  {id:'fresh',name:'Fresh Snow',desc:'Heavier snow cover lower on the slopes; still natural, not plastic.',
-   scen:{turbidity:2.4,rayleigh:.9,mie:.0024,mieG:.78,sunEl:20,sunAz:.62,sunInt:4.4,hemi:1.15,exposure:.9,env:.75,fogDen:0,snowAlt0:380,snowAlt1:620,snowAmt:1.15,warmth:0,clouds:0}},
-  {id:'bare',name:'Bare Rock',desc:'Higher snowline — more rock faces showing on the peaks.',
-   scen:{turbidity:2.7,rayleigh:.95,mie:.0026,mieG:.78,sunEl:22,sunAz:.62,sunInt:4.6,hemi:1.15,exposure:.88,env:.75,fogDen:0,snowAlt0:620,snowAlt1:860,snowAmt:0.7,warmth:0.05,clouds:0}},
-  {id:'dusk',name:'Dusk',desc:'Sun nearly down, cooler shadows, quiet evening light.',
-   scen:{turbidity:3.8,rayleigh:1.2,mie:.004,mieG:.84,sunEl:4,sunAz:1.05,sunInt:2.6,hemi:.95,exposure:.82,env:.6,fogDen:0.00002,snowAlt0:490,snowAlt1:700,snowAmt:1,warmth:0.25,clouds:0.18}},
-];
-let scenActiveId='s14';
-function setupSceneryTester(){
-  document.body.classList.add('sceneryMode');
-  running=false; S.dead=null; S.missile=null; S.phase='ingress';
-  // Fixed representative cruise view: behind the jet, valley + snowy peaks ahead
-  parkScenCruise();
-  const list=$('list'); if(!list)return;
-  list.innerHTML='';
-  for(const p of SCEN_PRESETS){
-    const el=document.createElement('div'); el.className='row'+(p.id==='s14'?' on':''); el.dataset.id=p.id;
-    el.innerHTML=`<div class="name">${p.name}</div><div class="desc">${p.desc}</div><div class="acts"><button type="button" class="live" data-act="live">VIEW LIVE</button><button type="button" class="pick" data-act="pick">PICK THIS</button></div>`;
-    el.addEventListener('click',e=>{
-      const btn=e.target.closest('button'); if(!btn)return;
-      if(btn.dataset.act==='live'){ applyScenPreset(p.id); }
-      if(btn.dataset.act==='pick'){ pickScenPreset(p.id); }
-    });
-    list.appendChild(el);
-  }
-  // restore prior pick if any
-  try{
-    const raw=JSON.parse(localStorage.ds14_scen_pick||'null');
-    if(raw?.id && SCEN_PRESETS.some(p=>p.id===raw.id)){ showPicked(raw); applyScenPreset(raw.id); }
-    else applyScenPreset('s14');
-  }catch(e){ applyScenPreset('s14'); }
-  // resize gl to preview wrap
-  function fit(){const w=$('previewWrap'); if(!w)return; const r=w.getBoundingClientRect(); R.setSize(r.width,r.height,false); cam.aspect=r.width/Math.max(1,r.height); cam.updateProjectionMatrix()}
-  fit(); addEventListener('resize',fit); if(window.visualViewport)visualViewport.addEventListener('resize',fit);
-  function frame(){requestAnimationFrame(frame); parkScenCruise(true); if(jet)jet.visible=true; if(msl)msl.visible=false; if(mslG)mslG.visible=false;
-    // keep jet oriented with camera path
-    if(jet){jet.position.copy(S.pos); jet.rotation.set(S.pitch,S.yaw,S.roll)}
-    if(useBloom&&composer)composer.render(); else R.render(scene,cam)}
-  requestAnimationFrame(frame);
+function ensureAudioSync(){
+  initAudio();
+  if(AC && AC.state!=='running'){ try{ AC.resume(); }catch(e){} }
+  if(AC && !AC._testMeter){ try{ const an=AC.createAnalyser(); an.fftSize=1024; AC.mg.connect(an); AC._testMeter=an; }catch(e){} }
+  // keep suspended contexts alive on iOS by scheduling a zero-gain blip in-gesture
+  if(AC){try{const o=AC.createOscillator(),g=AC.createGain(); g.gain.value=0.0001; o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime+.01)}catch(e){}}
 }
+async function preloadTesterSounds(){
+  if(!AC) initAudio();
+  const keys=['jet8','jet','ambient','drone','mus_depth','mus_dream','mus_layers','mus_waves','aaaw','flak','flak2','sub01','sub08','subdrop','mlaunch','mmotor','msub','hitsub','impact','flare_thump','flare_hiss','nuke','riser',BRIEF_TRACK];
+  await Promise.all(keys.map(k=>SB.get(k).catch(()=>null)));
+}
+let testerActiveId=null;
+function playTesterRow(r, el){
+  // stop prior loop row when switching (one-shots can overlap briefly)
+  if(testerActiveId && testerActiveId!==r.id){ const prev={id:testerActiveId}; stopTesterRow(prev); }
+  testerActiveId=r.id;
+  document.querySelectorAll('#list .row').forEach(x=>x.classList.toggle('playing', x.dataset.id===r.id));
+  const P=()=>testerPos();
+  try{
+    if(r.id==='engine'){ startTesterEngine(); $('thrbox')?.classList.add('on'); }
+    else if(r.id.startsWith('bed_')){ const map={bed_ambient:'ambient',bed_depth:'mus_depth',bed_dream:'mus_dream',bed_layers:'mus_layers',bed_waves:'mus_waves'}; BED=map[r.id]; startBed(); if(AC)AC.amb.gain.setTargetAtTime(.5,AC.currentTime,.05); }
+    else if(r.id==='wind'){ if(AC){ AC.amb.gain.setTargetAtTime(.35,AC.currentTime,.05); if(AC.wind)AC.wind.g.gain.setTargetAtTime(.05,AC.currentTime,.05);} }
+    else if(r.id==='aaa_near'){ const was=AC.voices; AC.voices=0; aaaBurst(P()); AC.voices=Math.min(AC.voices,was); }
+    else if(r.id==='aaa_far'){ AC.voices=0; aaaBurst(S.pos.clone().add(new THREE.Vector3(0,-20,-4500))); }
+    else if(r.id==='flak'){ AC.voices=0; flakBoom(P().add(new THREE.Vector3(0,40,0))); }
+    else if(r.id==='pass'){ whoosh(); passBy(P()); }
+    else if(r.id==='overhead'){ const Q=S.pos.clone().add(new THREE.Vector3(0,80,-20)); whoosh(); passBy(Q); if(SB.jet8)psrc('jet8',.55,Q,true,{ref:200,rate:1.05,fadeIn:.15,tag:'overhead'}); }
+    else if(r.id==='sam'){ samRoar(600); rwrLaunch(P(),false); }
+    else if(r.id==='mmotor'){ if(testerLoops.mm){mslAudioStop(testerLoops.mm); testerLoops.mm=null} const fake={p:P(),v:new THREE.Vector3(0,0,-200)}; mslAudioStart(fake); testerLoops.mm=fake; }
+    else if(r.id==='hit'){ if(SB.sub08)src(SB.sub08,.4,AC.bigB,{rate:1.1,pri:1,fadeIn:.18,tag:'heavy:sub08'}); if(SB.hitsub)src(SB.hitsub,.45,AC.bigB,{pri:1,fadeIn:.2,tag:'heavy:hitsub'}); if(SB.impact)src(SB.impact,.4,AC.bigB,{pri:1,fadeIn:.22,tag:'heavy:impact'}); else thud(AC.bigB,.7,50,22,1.5); }
+    else if(r.id==='flare'){ flareSfx(); }
+    else if(r.id==='ecm'){ for(let k=0;k<6;k++)blip(k%2?340:300,.12,.05); nburst(AC.out,.08,220,1.2); }
+    else if(r.id==='break'){ thud(AC.out,.3,55,30,.5); nburst(AC.out,.12,200,.8); }
+    else if(r.id==='rwr'){ rwrLaunch(P(),true); }
+    else if(r.id==='release'){ try{riser(true)}catch(e){}; heavy('sub08',.45,1.15); if(!heavy('subdrop',.8,1,true))thud(AC.out,.6,60,28,.8); blip(300,.2,.3); whoosh(); }
+    else if(r.id==='nuke'){ boomSfx(true); }
+    else if(r.id==='dub'){ const b=SB[BRIEF_TRACK]; if(b){ stopWin(); winSrc=src(mkSeamless(b,.4),.5,AC.musB,{loop:true,tag:'dub02',fadeIn:.3}); } else { SB.get(BRIEF_TRACK).then(buf=>{ if(!buf||!AC)return; stopWin(); winSrc=src(mkSeamless(buf,.4),.5,AC.musB,{loop:true,tag:'dub02',fadeIn:.3}); }); } }
+  }catch(err){ console.warn('playTesterRow', r.id, err); }
+}
+function stopTesterRow(r){
+  const id=r.id||testerActiveId;
+  try{
+    if(id==='engine'){ stopTesterEngine(); $('thrbox')?.classList.remove('on'); }
+    else if(id && id.startsWith('bed_')){ stopBed(); if(AC)AC.amb.gain.setTargetAtTime(0,AC.currentTime,.15); }
+    else if(id==='wind'){ if(AC){ AC.amb.gain.setTargetAtTime(0,AC.currentTime,.15); if(AC.wind)AC.wind.g.gain.setTargetAtTime(0,AC.currentTime,.15);} }
+    else if(id==='mmotor'){ if(testerLoops.mm){mslAudioStop(testerLoops.mm); testerLoops.mm=null} }
+    else if(id==='dub'){ stopWin(); }
+    else if(id==='release'){ try{riser(false)}catch(e){} }
+  }catch(err){ console.warn('stopTesterRow', id, err); }
+  if(testerActiveId===id) testerActiveId=null;
+  document.querySelectorAll('#list .row').forEach(x=>{ if(x.dataset.id===id) x.classList.remove('playing'); });
+}
+function startTesterEngine(){ ensureAudioSync(); if(!JET){ if(!(SB.jet8||SB.jet)) return; startJet(); stopBed(); if(AC)AC.amb.gain.setTargetAtTime(0,AC.currentTime,.05); } testerEngOn=true; if(AC){ AC.jet.gain.setTargetAtTime(.1+S.thr*.32,AC.currentTime,.08); AC.sub.gain.setTargetAtTime(.05+S.thr*.12,AC.currentTime,.08);} $('thrbox')?.classList.add('on'); }
+function stopTesterEngine(){ testerEngOn=false; if(AC){ AC.jet.gain.setTargetAtTime(0,AC.currentTime,.15); AC.sub.gain.setTargetAtTime(0,AC.currentTime,.15);} }
+
+
 function parkScenCruise(keepCam){
   // Fixed cruise: behind jet, looking down the target valley with snowy peaks in frame
   const z=-3200, x=vx(z)+40;

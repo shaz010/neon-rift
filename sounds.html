@@ -4,6 +4,11 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="DS SND 14"/>
+<meta name="theme-color" content="#14305c"/>
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-snd-180.png"/>
+<link rel="manifest" href="manifest-snd.webmanifest"/>
+
 <title>DEEP STRIKE s14 — Sound Tester</title>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
 <style>
@@ -26,6 +31,7 @@ html,body{margin:0;background:var(--bg);color:var(--g);font:13px var(--m);touch-
 .row .name{font:700 14px var(--m);letter-spacing:1px;color:#e4f0e0}
 .row .desc{opacity:.7;font-size:11px;line-height:1.35}
 .row .acts{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.row.playing{border-color:#cfe8c4;box-shadow:0 0 0 1px rgba(182,220,174,.4)}
 .row button{min-height:44px;min-width:88px;border:1px solid rgba(182,220,174,.5);background:rgba(30,48,34,.75);color:#d8f0d0;border-radius:6px;font:700 13px var(--m)}
 .row label.loop{display:flex;align-items:center;gap:6px;font-size:11px;opacity:.85}
 #thrbox{padding:8px 14px;border-bottom:1px solid rgba(182,220,174,.25);display:none}
@@ -66,6 +72,6 @@ canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:
 <select id="s_bed" class="hide"></select><span id="v_eng"></span><span id="v_mus"></span><span id="v_bed"></span><span id="v_fx"></span><button id="setx" type="button"></button><div id="resume"></div>
 <div id="tt"></div><div id="tp"></div><div id="tn"></div><div id="mapc"></div>
 <script>window.__DS_MODE='sounds';</script>
-<script type="module" src="./main.mjs?v=14c"></script>
+<script type="module" src="./main.mjs?v=14d"></script>
 </body>
 </html>
