@@ -34,3 +34,8 @@ sfx/rum     engine rumble bed               <- Rumble Sub Bass
 == Strike s10 — engine + ambience restored to s8; keeps s9 SAM/AAA/smoke/steering ==
 Engine/music: identical to s8 (no rum bed; s8 sub osc levels; drone .55; jet8 1.2)
 Kept s9: aaaw, msub, hitsub, thicker flares, throttle exhaust, physics-every-frame steering
+
+== Strike s11 — freeze fix + terrain realism ==
+Freeze: prewarm audio (noiseBuf + decodeAudioData), renderer.compile of bomb/msl/nuke/sprites, particle pool, wall-clock release hold.
+Terrain: multi-scale ridgelines, eroded slopes, rocky outcrops, dry wadi; colour/shader by slope & height.
+Textures (unchanged, still CC0): ambientCG Rock030, Grass004, Ground054, Snow006; Poly Haven aerial_grass_rock + rocky_terrain_02.
