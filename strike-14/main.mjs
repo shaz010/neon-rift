@@ -375,7 +375,7 @@ for(const ev of['pointerdown','pointermove','pointerup','touchstart','touchmove'
 $('setb').addEventListener('pointerdown',e=>{e.stopPropagation();if($('setp').classList.contains('on'))closeSettings();else openSettings()});
 if($('setx'))$('setx').addEventListener('pointerdown',e=>{e.stopPropagation();closeSettings()});
 if($('pauseb'))$('pauseb').addEventListener('pointerdown',e=>{e.stopPropagation();initAudio();if(!running)return;if(freezeWhy==='user')setFrozen(false);else{closeSettings();setFrozen(true,'user')}});
-if($('resume'))$('resume').addEventListener('pointerdown',e=>{e.stopPropagation();setFrozen(false)});
+if($('resume')){const _res=e=>{e.preventDefault();e.stopPropagation();setFrozen(false)};$('resume').addEventListener('pointerdown',_res,{passive:false});$('resume').addEventListener('click',_res)}
 [['s_eng','eng'],['s_mus','mus'],['s_bedvol','bed'],['s_fx','fx']].forEach(([id])=>{const el=$(id);if(!el)return;el.addEventListener('pointerdown',e=>{try{el.setPointerCapture(e.pointerId)}catch(x){}e.stopPropagation()});el.addEventListener('touchmove',e=>e.stopPropagation(),{passive:false})});
 applyVol();$('s_bed').value=BED;$('s_bed').addEventListener('change',e=>{initAudio();setBed(e.target.value)});
 function musRMS(){if(!AC||!AC.an)return 0;const a=new Float32Array(AC.an.fftSize);AC.an.getFloatTimeDomainData(a);let s=0;for(const v of a)s+=v*v;return Math.sqrt(s/a.length)}
@@ -431,11 +431,44 @@ function riser(on){if(!AC)return;const t=AC.currentTime;if(on&&!riserS&&SB.riser
  if(!on&&riserS){riserS.g.gain.cancelScheduledValues(t);riserS.g.gain.setTargetAtTime(0,t,.08);const r=riserS;setTimeout(()=>{try{r.stop()}catch(e){}},800);riserS=null}}
 function play(buf,vol=.5){if(!AC||!buf)return;src(buf,vol,AC.out)}
 function blip(f,d=.08,v=.15,type='sine'){if(!AC)return;sfxLog('blip',{f,d,v});const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=Math.min(f,600);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v*.45,t+.025);g.gain.exponentialRampToValueAtTime(.0005,t+d+.05);o.connect(g).connect(AC.tone);o.start(t);o.stop(t+d+.08)}
-function boomSfx(big){if(!AC)return;sfxLog('boomSfx',{big:!!big});if(big&&heavy('nuke',1,1,true)){duck(.35,2,6);return}const t=AC.currentTime,n=AC.createBufferSource();n.buffer=noiseBuf(big?4:1.5);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(big?900:180,t);f.frequency.exponentialRampToValueAtTime(60,t+(big?3.5:1.6));
- const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(big?1.2:.45,t+(big?.05:.18));g.gain.exponentialRampToValueAtTime(.001,t+(big?4:1.8));n.connect(f).connect(g).connect(AC.out);n.start();
- if(big){const r=AC.createBufferSource();r.buffer=noiseBuf(7);const rf=AC.createBiquadFilter();rf.type='lowpass';rf.frequency.value=140;const rg=AC.createGain();rg.gain.setValueAtTime(.001,t);rg.gain.linearRampToValueAtTime(1.1,t+.35);rg.gain.exponentialRampToValueAtTime(.001,t+7);r.connect(rf).connect(rg).connect(AC.out);r.start();
-  const o3=AC.createOscillator();o3.frequency.setValueAtTime(40,t);o3.frequency.exponentialRampToValueAtTime(18,t+4);const g3=AC.createGain();g3.gain.setValueAtTime(1,t);g3.gain.exponentialRampToValueAtTime(.001,t+4.5);o3.connect(g3).connect(AC.out);o3.start();o3.stop(t+4.6);
-  const o=AC.createOscillator();o.frequency.setValueAtTime(70,t);o.frequency.exponentialRampToValueAtTime(25,t+2.5);const og=AC.createGain();og.gain.setValueAtTime(.9,t);og.gain.exponentialRampToValueAtTime(.001,t+3);o.connect(og).connect(AC.out);o.start();o.stop(t+3)}}
+function boomSfx(big){if(!AC)return;sfxLog('boomSfx',{big:!!big});
+ if(big){try{duck(.35,2,6)}catch(e){}
+  if(SB.nuke)src(SB.nuke,1.15,AC.bigB,{pri:1,fadeIn:.05,rate:1,tag:'heavy:nuke'});
+  else if(SB.impact)src(SB.impact,1.0,AC.bigB,{pri:1,fadeIn:.05,rate:.75,tag:'boom:impact'});
+  if(SB.sub08)src(SB.sub08,.75,AC.bigB,{pri:1,fadeIn:.06,rate:.7,tag:'boom:sub08'});
+  const t=AC.currentTime;
+  const n=AC.createBufferSource();n.buffer=noiseBuf(4);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(500,t);f.frequency.exponentialRampToValueAtTime(55,t+3.5);
+  const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(1.15,t+.08);g.gain.exponentialRampToValueAtTime(.001,t+4);n.connect(f).connect(g).connect(AC.bigB);n.start();
+  const r=AC.createBufferSource();r.buffer=noiseBuf(7);const rf=AC.createBiquadFilter();rf.type='lowpass';rf.frequency.value=160;const rg=AC.createGain();rg.gain.setValueAtTime(.001,t);rg.gain.linearRampToValueAtTime(1.0,t+.3);rg.gain.exponentialRampToValueAtTime(.001,t+7);r.connect(rf).connect(rg).connect(AC.out);r.start();
+  for(const [f0,f1,v,dur] of[[40,16,1.1,4.5],[70,22,.85,3.2],[120,40,.4,2.4]]){const o=AC.createOscillator(),og=AC.createGain();o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);og.gain.setValueAtTime(0,t);og.gain.linearRampToValueAtTime(v,t+.04);og.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(og).connect(AC.bigB);o.start();o.stop(t+dur+.05)}
+  return}
+ // Non-big: deep but shorter than full crash (debris / near miss)
+ const t=AC.currentTime;
+ if(SB.sub08)src(SB.sub08,.55,AC.bigB,{pri:1,fadeIn:.05,rate:1.05,tag:'boom:sub08'});
+ if(SB.impact)src(SB.impact,.5,AC.bigB,{pri:1,fadeIn:.05,rate:.95,tag:'boom:impact'});
+ const n=AC.createBufferSource();n.buffer=noiseBuf(2);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(380,t);f.frequency.exponentialRampToValueAtTime(60,t+1.6);
+ const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.75,t+.07);g.gain.exponentialRampToValueAtTime(.001,t+1.8);n.connect(f).connect(g).connect(AC.bigB);n.start();
+ for(const [f0,f1,v,dur] of[[55,24,.85,1.5],[110,40,.4,1.2]]){const o=AC.createOscillator(),og=AC.createGain();o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);og.gain.setValueAtTime(0,t);og.gain.linearRampToValueAtTime(v,t+.05);og.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(og).connect(AC.bigB);o.start();o.stop(t+dur+.03)}
+}
+function crashSfx(){if(!AC)return;sfxLog('crashSfx',{});
+ // Big, deep, phone-audible crash (bass + low-mids). Soft attack — no snare crack. Always pri / bigB.
+ try{duck(.3,1.4,3.5)}catch(e){}
+ const t=AC.currentTime, dest=AC.bigB||AC.out, fx=AC.out;
+ // Sample stack — short fadeIn so attack is felt on iPhone speakers
+ if(SB.impact)src(SB.impact,.95,dest,{pri:1,fadeIn:.04,rate:.82,tag:'crash:impact'});
+ if(SB.hitsub)src(SB.hitsub,.9,dest,{pri:1,fadeIn:.05,rate:.88,tag:'crash:hitsub'});
+ if(SB.sub08)src(SB.sub08,.9,dest,{pri:1,fadeIn:.04,rate:.92,tag:'crash:sub08'});
+ if(SB.sub01)src(SB.sub01,.6,dest,{pri:1,fadeIn:.06,rate:.78,tag:'crash:sub01'});
+ // Deep osc layers (phone-audible low-mids up to ~240 Hz; no high crack)
+ for(const [f0,f1,v,dur] of[[48,20,1.05,2.4],[90,32,.7,2.0],[150,48,.42,1.6],[220,70,.28,1.2]]){
+  const o=AC.createOscillator(),g=AC.createGain();o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur*.9);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.05);g.gain.exponentialRampToValueAtTime(.0008,t+dur);
+  o.connect(g).connect(dest);o.start(t);o.stop(t+dur+.03)}
+ // Noise body: LP starts ~450 (presence), soft rise, sweeps down — not a snare transient
+ const mkN=(lp0,lp1,v,dur,bus)=>{const n=AC.createBufferSource();n.buffer=noiseBuf(Math.max(2,dur+0.5));const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(lp0,t);f.frequency.exponentialRampToValueAtTime(lp1,t+dur);
+  const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.08);g.gain.exponentialRampToValueAtTime(.001,t+dur);n.connect(f).connect(g).connect(bus);n.start();n.stop(t+dur+.05)};
+ mkN(450,65,.95,2.6,dest); mkN(380,55,.55,2.2,fx);
+}
 function whoosh(){if(!AC)return;sfxLog('whoosh',{});const t=AC.currentTime,n=AC.createBufferSource();n.buffer=noiseBuf(1.2);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(280,t);f.frequency.exponentialRampToValueAtTime(120,t+1.1);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.4,t+.35);g.gain.exponentialRampToValueAtTime(.001,t+1.4);n.connect(f).connect(g).connect(AC.out);n.start();thud(AC.out,.4,48,22,1.2)}
 function passBy(P){if(!AC)return;sfxLog('passBy',{});const pn=mkPan(true,80);setP0(pn,P);pn.connect(AC.out);const t=AC.currentTime,n=AC.createBufferSource();n.buffer=noiseBuf(1.5);n.playbackRate.setValueAtTime(.85,t);n.playbackRate.exponentialRampToValueAtTime(.55,t+1.2);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(320,t);f.frequency.exponentialRampToValueAtTime(100,t+1.2);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.7,t+.25);g.gain.exponentialRampToValueAtTime(.001,t+1.5);n.connect(f).connect(g).connect(pn);n.start();n.stop(t+1.6);thud(pn,.55,45,20,1.3);if(SB.subdrop)psrc('subdrop',.3,P,true,{ref:80,rate:.85,pri:1,fadeIn:.2,tag:'subdrop'})}
 // ---------- state ----------
@@ -447,7 +480,7 @@ let steer=null;const inp={x:0,y:0};
 gl.addEventListener('pointerdown',e=>{if(steer)return;e.preventDefault();try{gl.setPointerCapture(e.pointerId)}catch(x){}steer={id:e.pointerId,x:e.clientX,y:e.clientY}});
 gl.addEventListener('pointermove',e=>{if(!steer||e.pointerId!==steer.id)return;e.preventDefault();const r=Math.min(innerWidth,innerHeight)*.22;inp.x=clamp((e.clientX-steer.x)/r,-1,1);inp.y=clamp((e.clientY-steer.y)/r,-1,1)},{passive:false});
 const endSteer=e=>{if(steer&&e.pointerId===steer.id){try{gl.releasePointerCapture(e.pointerId)}catch(x){}steer=null;inp.x=inp.y=0}};gl.addEventListener('pointerup',endSteer);gl.addEventListener('pointercancel',endSteer);addEventListener('pointerup',endSteer);addEventListener('pointercancel',endSteer);
-document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault());
+if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.target.closest&&e.target.closest('#setp,#pauseOv,#pauseCard,input,select,textarea,a,button.label'))return;e.preventDefault()},{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault())}
 function setThr(v){S&&(S.thr=v);$('thrk').style.bottom=(3+v*(130-12))+'px';const kcas=Math.round((85+v*195)*1.94);$('thrl').innerHTML='THROTTLE<br><span style="opacity:.85">'+kcas+' KTS</span>';if(S&&!S._thrHint&&v>.05&&v<.95){S._thrHint=1;msg('THROTTLE — SLIDE FOR SPEED')}}
 {const t=$('thr');let id=null;const f=e=>{const r=t.getBoundingClientRect();setThr(clamp(1-(e.clientY-r.top-3)/(r.height-6),0,1))};
  t.addEventListener('pointerdown',e=>{e.stopPropagation();id=e.pointerId;t.setPointerCapture(id);f(e)});t.addEventListener('pointermove',e=>{if(e.pointerId===id)f(e)});t.addEventListener('pointerup',()=>id=null)}
@@ -496,7 +529,7 @@ function updSites(dt){let anyTrk=false,anySrch=false;if(S.cine||S.phase==='done'
   if(s.st==='track')anyTrk=true;else anySrch=true;
   if(s.trk>2.4&&!S.missile&&s.shots<(i>0?2:1)&&S.t>(s.next||0)&&S.phase!=='bombfall'){s.shots++;launchSAM(i)}});
  return {anyTrk,anySrch}}
-function die(why){if(S.dead)return;S.dead=why;boomSfx(false);fire(S.pos,.35);jet.visible=false;setTimeout(()=>showEnd(false),1800)}
+function die(why){if(S.dead)return;S.dead=why;crashSfx();fire(S.pos,.9);jet.visible=false;setTimeout(()=>showEnd(false),1800)}
 function fire(at,sc){for(let i=0;i<14;i++)spr(tmp.copy(at).add(new THREE.Vector3(rnd(20*sc),rnd(10*sc),rnd(20*sc))),0xffb060,40*sc,1+Math.random()*.8,new THREE.Vector3(rnd(30*sc),20*sc+Math.random()*40*sc,rnd(30*sc)),{add:true,grow:60*sc,fog:false,c1:new THREE.Color(0x902800)});
  for(let i=0;i<10;i++)spr(at,0x1e1b19,40*sc,4+Math.random()*3,new THREE.Vector3(rnd(15*sc),15*sc+Math.random()*25*sc,rnd(15*sc)),{grow:40*sc,o:.85,fadeIn:.4})}
 // ---------- nuclear-style mushroom (persistent sprite rig) ----------
@@ -577,7 +610,7 @@ function update(rdt){
   const gentle=S.samShots<=1,sp=Math.min(gentle?300:420,m.v.length()+160*dt),dir=m.v.clone().normalize(),want=tgt.clone().sub(m.p).normalize();dir.lerp(want,clamp(dt*(m.p.distanceTo(S.pos)<900?(gentle?2.4:3.4):(gentle?1.5:2)),0,1)).normalize();m.v.copy(dir).multiplyScalar(sp);const r0=m.p.clone().sub(S.pos);m.p.addScaledVector(m.v,dt);{const r1=m.p.clone().sub(S.pos),dd=r1.clone().sub(r0),L=dd.lengthSq();const t=L>0?clamp(-r0.dot(dd)/L,0,1):1;m.cpa=r0.addScaledVector(dd,t).length()}
   msl.position.copy(m.p);msl.lookAt(tmp.copy(m.p).add(m.v));m.tr=(m.tr||0)+dt;const boost=m.life>17;{const dj=m.p.distanceTo(S.pos);mslG.visible=true;mslG.position.copy(m.p);mslG.scale.setScalar((boost?60:38)*(1+.15*Math.sin(S.t*40))*Math.max(1,dj/1500));}if(m.tr>(MOB?.05:.035)){m.tr=0;spr(m.p,boost?0xf2eee6:0xe0dbd2,boost?11:8,boost?11:8,new THREE.Vector3(rnd(2),rnd(2),rnd(2)),{grow:boost?8:6,o:.75,drag:.3,must:1})}spr(m.p,0xffd090,boost?7:3,.12,null,{add:true,tex:glowTex,fog:false});
   mslAudioUpd(m,dt);{const dj=m.p.distanceTo(S.pos);if(!m.ws&&dj<260&&(m.decoy||m.lost)){m.ws=1;whoosh();passBy(m.p);S.shake=Math.max(S.shake,.25)}}
-  if(!m.decoy&&!m.lost&&Math.min(m.cpa??1e9,m.p.distanceTo(S.pos))<75){mslAudioStop(m);S.missile=null;msl.visible=false;mslG.visible=false;S.sites[m.site].next=S.t+4;$('flash').style.transition='none';$('flash').style.background='#ffb070';$('flash').style.opacity=.85;setTimeout(()=>{$('flash').style.transition='opacity 1.2s';$('flash').style.opacity=0},90);src(SB.sub08,.4,AC.bigB,{rate:1.1,pri:1,fadeIn:.18,tag:'heavy:sub08'});if(SB.hitsub)src(SB.hitsub,.45,AC.bigB,{pri:1,fadeIn:.2,tag:'heavy:hitsub'});S.shake=1;if(AC){if(SB.impact)src(SB.impact,.4,AC.bigB,{pri:1,fadeIn:.22,tag:'heavy:impact'});else thud(AC.bigB,.7,50,22,1.5)};S.hp--;if(S.hp>0){fire(tmp.copy(S.pos).addScaledVector(fwd,-30),.35);msg('HIT! AIRFRAME DAMAGED — ONE MORE HIT IS FATAL');S.dmgT=3;return}fire(S.pos,.9);return die('SHOT DOWN — SAM HIT')}
+  if(!m.decoy&&!m.lost&&Math.min(m.cpa??1e9,m.p.distanceTo(S.pos))<75){mslAudioStop(m);S.missile=null;msl.visible=false;mslG.visible=false;S.sites[m.site].next=S.t+4;$('flash').style.transition='none';$('flash').style.background='#ffb070';$('flash').style.opacity=.85;setTimeout(()=>{$('flash').style.transition='opacity 1.2s';$('flash').style.opacity=0},90);src(SB.sub08,.8,AC.bigB,{rate:1.05,pri:1,fadeIn:.04,tag:'heavy:sub08'});if(SB.hitsub)src(SB.hitsub,.85,AC.bigB,{pri:1,fadeIn:.05,tag:'heavy:hitsub'});S.shake=1;if(AC){if(SB.impact)src(SB.impact,.9,AC.bigB,{pri:1,fadeIn:.04,tag:'heavy:impact'});else thud(AC.bigB,.9,55,22,1.6); /* phone presence */ const _t=AC.currentTime;const _n=AC.createBufferSource();_n.buffer=noiseBuf(1.8);const _f=AC.createBiquadFilter();_f.type='lowpass';_f.frequency.setValueAtTime(400,_t);_f.frequency.exponentialRampToValueAtTime(70,_t+1.2);const _g=AC.createGain();_g.gain.setValueAtTime(0,_t);_g.gain.linearRampToValueAtTime(.7,_t+.05);_g.gain.exponentialRampToValueAtTime(.001,_t+1.4);_n.connect(_f).connect(_g).connect(AC.bigB);_n.start()};S.hp--;if(S.hp>0){fire(tmp.copy(S.pos).addScaledVector(fwd,-30),.35);msg('HIT! AIRFRAME DAMAGED — ONE MORE HIT IS FATAL');S.dmgT=3;return}fire(S.pos,.9);return die('SHOT DOWN — SAM HIT')}
   if(m.p.y<H(m.p.x,m.p.z)||m.life<=0||(m.decoy&&m.dt<=0)){const pd=m.p.distanceTo(S.pos);fire(m.p,m.decoy?.45:.25);if(m.decoy){spr(m.p,0xfff0d0,90,.35,null,{add:true,tex:glowTex,fog:false,grow:120,must:1});for(let k=0;k<30;k++)spr(m.p,0xffc080,3,1.4,new THREE.Vector3(rnd(160),rnd(160),rnd(160)),{add:true,tex:glowTex,g:20,fog:false,must:1});if(pd<1200){S.shake=Math.max(S.shake,.2+.5*(1-pd/1200));heavy('sub08',.45*(1-pd/1500),1.35)}}boomSfx(false);if(AC&&pd<4000){psrc('hitsub',.4,m.p,false,{ref:280,rate:.95,pri:1,fadeIn:.2,tag:'psrc:hitsub'});if(!psrc('impact',.4,m.p,false,{ref:250,rate:.9,pri:1,fadeIn:.22,tag:'psrc:impact'})){const pn=mkPan(false,150);setP0(pn,m.p);pn.connect(AC.out);thud(pn,.85,55,24,1.3)}}mslAudioStop(m);S.sites[m.site].next=S.t+2.5;S.missile=null;msl.visible=false;mslG.visible=false;if(!S.dead&&!m.def){S.defeated++;msg(m.lost?'MISSILE LOST — TERRAIN MASK':'MISSILE DEFEATED')}}}
  S.brk=Math.max(0,S.brk-rdt);S.brkCD=Math.max(0,S.brkCD-rdt);S.ecm=Math.max(0,S.ecm-rdt);S.ecmCD=Math.max(0,S.ecmCD-rdt);S.teachT=Math.max(0,S.teachT-rdt);S.dmgT=Math.max(0,(S.dmgT||0)-rdt);
  S.exT=(S.exT||0)-rdt;if(!S.cine&&S.exT<=0){S.exT=MOB?.07:.045;const thr=S.thr,sz=1.5+thr*5,life=1.2+thr*2.2,op=.25+thr*.45;spr(tmp.copy(S.pos).addScaledVector(fwd,-8-thr*4),0x3a3732,sz,life,new THREE.Vector3(rnd(2+thr*3),1+thr*2,rnd(2+thr*3)),{grow:4+thr*10,o:op,drag:.4,must:thr>.55});if(thr>.75&&Math.random()<.4)spr(tmp.copy(S.pos).addScaledVector(fwd,-7),0xffa060,2+thr*2,.18,null,{add:true,tex:glowTex,fog:false})}
@@ -716,10 +749,10 @@ let tutI=0;function showTut(){$('tt').textContent=TUT[tutI][0];$('tp').textConte
 $('brief').addEventListener('pointerdown',()=>{initAudio();briefMusic();$('snd').textContent='♪ SOUND ON'});
 $('go').addEventListener('pointerdown',e=>{e.stopPropagation();goFS();initAudio();stopBrief();heavy('sub08',.28,.8);prewarmGfx();$('brief').classList.add('hide');if(localStorage.ds14_tut)begin();else{tutI=0;showTut();$('tut').classList.remove('hide')}});
 $('tut').addEventListener('pointerdown',e=>{e.stopPropagation();tutI++;if(tutI>=3){localStorage.ds14_tut=1;$('tut').classList.add('hide');begin()}else showTut()});
-$('retry').addEventListener('pointerdown',e=>{e.stopPropagation();initAudio();stopWin();begin()});
+$('retry').addEventListener('pointerdown',e=>{e.stopPropagation();initAudio();stopWin();begin()});if($('retry'))$('retry').addEventListener('click',e=>{e.stopPropagation();initAudio();stopWin();begin()});
 function goFS(){const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(f&&!document.fullscreenElement&&!document.webkitFullscreenElement){try{const p=f.call(d,{navigationUI:'hide'});p&&p.catch&&p.catch(()=>{})}catch(e){}}try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}
-addEventListener('pointerdown',goFS,{once:true});
-document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault());addEventListener('resize',()=>scrollTo(0,0));
+if(DS_MODE==='game')addEventListener('pointerdown',goFS,{once:true});
+if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.target.closest&&e.target.closest('#setp,#pauseOv,#pauseCard,input,select,textarea,a,button.label'))return;e.preventDefault()},{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault())}if(DS_MODE==='game')addEventListener('resize',()=>scrollTo(0,0));
 async function begin(){reset();jet.visible=true;if(AC){AC.resume();await prewarmAudio()}prewarmGfx();running=true;last=performance.now()}
 reset();
 if(DS_MODE==='game'){clock();drawMap();chat();addEventListener('resize',()=>{if(!$('brief').classList.contains('hide'))drawMap()});requestAnimationFrame(step)}
@@ -749,7 +782,9 @@ function setupSoundTester(){
     {id:'overhead',name:'OVERHEAD JET PASS',desc:'Layered whoosh/pass-by spatial flyby (the pass sounds you liked).'},
     {id:'sam',name:'SAM LAUNCH',desc:'Enemy SAM leave-rail roar + RWR.'},
     {id:'mmotor',name:'MISSILE MOTOR',desc:'Looping missile motor while a SAM tracks you.',loop:1},
-    {id:'hit',name:'MISSILE HIT ON JET',desc:'Airframe hit: sub + hitsub + impact.'},
+    {id:'hit',name:'MISSILE HIT ON JET',desc:'Airframe hit: sub + hitsub + impact (loud).'},
+    {id:'crash',name:'CRASH / SHOT DOWN',desc:'Jet destroyed: deep bass + low-mids crash (terrain or SAM kill).'},
+    {id:'terrain',name:'TERRAIN IMPACT',desc:'Same crash path used when AGL hits the ground.'},
     {id:'flare',name:'PLAYER FLARE',desc:'Pyrotechnic flare: bass thump + fiery hiss.'},
     {id:'ecm',name:'ECM',desc:'ECM jammer chirps + noise.'},
     {id:'break',name:'BREAK',desc:'Hard break turn thump.'},
@@ -762,24 +797,34 @@ function setupSoundTester(){
   for(const r of rows){
     const el=document.createElement('div'); el.className='row'; el.dataset.id=r.id;
     el.innerHTML=`<div class="meta"><div class="name">${r.name}</div><div class="desc">${r.desc}</div></div><div class="acts"><button type="button" data-act="play">▶ Play</button>${r.loop?'<label class="loop"><input type="checkbox" data-loop checked/> Loop</label>':''}<button type="button" data-act="stop">■ Stop</button></div>`;
-    // Bind DIRECTLY on each button with pointerdown (iOS-safe: sync resume + start inside the gesture)
+    // Tap-to-play: resume on pointerdown (iOS gesture), fire on pointerup only if not scrolled
     el.querySelectorAll('button[data-act]').forEach(btn=>{
-      const go=e=>{
+      btn.addEventListener('pointerdown', e=>{
+        btn._pt={x:e.clientX,y:e.clientY,id:e.pointerId};
+        ensureAudioSync(); // sync unlock inside gesture; do NOT preventDefault (keeps page scroll)
+      }, {passive:true});
+      btn.addEventListener('pointerup', e=>{
+        const p=btn._pt; btn._pt=null;
+        if(!p||p.id!==e.pointerId) return;
+        if(Math.hypot(e.clientX-p.x, e.clientY-p.y)>14) return; // finger moved — was a scroll
         e.preventDefault(); e.stopPropagation();
-        ensureAudioSync(); // MUST be sync inside gesture — no await before play
+        ensureAudioSync();
         if(btn.dataset.act==='play') playTesterRow(r, el);
         else stopTesterRow(r);
-      };
-      btn.addEventListener('pointerdown', go, {passive:false});
+      });
+      btn.addEventListener('pointercancel', ()=>{btn._pt=null});
       btn.addEventListener('click', e=>{e.preventDefault(); e.stopPropagation()}, {passive:false});
     });
     list.appendChild(el);
   }
   document.querySelectorAll('#pan button').forEach(b=>{
-    const go=e=>{e.preventDefault(); document.querySelectorAll('#pan button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); testerPan=b.dataset.pan;
-      // silent beep so pan change is audible feedback inside gesture
-      ensureAudioSync(); try{blip(440,.05,.08)}catch(err){}};
-    b.addEventListener('pointerdown', go, {passive:false});
+    b.addEventListener('pointerdown', e=>{b._pt={x:e.clientX,y:e.clientY,id:e.pointerId}; ensureAudioSync()},{passive:true});
+    b.addEventListener('pointerup', e=>{
+      const p=b._pt; b._pt=null; if(!p||p.id!==e.pointerId)return;
+      if(Math.hypot(e.clientX-p.x,e.clientY-p.y)>14)return;
+      document.querySelectorAll('#pan button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); testerPan=b.dataset.pan;
+      ensureAudioSync(); try{blip(440,.05,.08)}catch(err){}
+    });
   });
   const bindVol=(id,fn)=>{const el=$(id); if(!el)return; el.addEventListener('input',()=>fn(+el.value/100)); fn(+el.value/100)};
   bindVol('t_master',v=>{if(AC?.mg)AC.mg.gain.setTargetAtTime(v,AC.currentTime,.05)});
@@ -805,7 +850,7 @@ function setupSoundTester(){
 function ensureAudioSync(){
   initAudio();
   if(AC && AC.state!=='running'){ try{ AC.resume(); }catch(e){} }
-  if(AC && !AC._testMeter){ try{ const an=AC.createAnalyser(); an.fftSize=1024; AC.mg.connect(an); AC._testMeter=an; }catch(e){} }
+  if(AC && !AC._testMeter){ try{ const an=AC.createAnalyser(); an.fftSize=1024; AC.mg.connect(an); try{AC.bigB&&AC.bigB.connect(an)}catch(x){} AC._testMeter=an; }catch(e){} }
   // keep suspended contexts alive on iOS by scheduling a zero-gain blip in-gesture
   if(AC){try{const o=AC.createOscillator(),g=AC.createGain(); g.gain.value=0.0001; o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime+.01)}catch(e){}}
 }
@@ -832,7 +877,8 @@ function playTesterRow(r, el){
     else if(r.id==='overhead'){ const Q=S.pos.clone().add(new THREE.Vector3(0,80,-20)); whoosh(); passBy(Q); if(SB.jet8)psrc('jet8',.55,Q,true,{ref:200,rate:1.05,fadeIn:.15,tag:'overhead'}); }
     else if(r.id==='sam'){ samRoar(600); rwrLaunch(P(),false); }
     else if(r.id==='mmotor'){ if(testerLoops.mm){mslAudioStop(testerLoops.mm); testerLoops.mm=null} const fake={p:P(),v:new THREE.Vector3(0,0,-200)}; mslAudioStart(fake); testerLoops.mm=fake; }
-    else if(r.id==='hit'){ if(SB.sub08)src(SB.sub08,.4,AC.bigB,{rate:1.1,pri:1,fadeIn:.18,tag:'heavy:sub08'}); if(SB.hitsub)src(SB.hitsub,.45,AC.bigB,{pri:1,fadeIn:.2,tag:'heavy:hitsub'}); if(SB.impact)src(SB.impact,.4,AC.bigB,{pri:1,fadeIn:.22,tag:'heavy:impact'}); else thud(AC.bigB,.7,50,22,1.5); }
+    else if(r.id==='hit'){ if(SB.sub08)src(SB.sub08,.8,AC.bigB,{rate:1.05,pri:1,fadeIn:.04,tag:'heavy:sub08'}); if(SB.hitsub)src(SB.hitsub,.85,AC.bigB,{pri:1,fadeIn:.05,tag:'heavy:hitsub'}); if(SB.impact)src(SB.impact,.9,AC.bigB,{pri:1,fadeIn:.04,tag:'heavy:impact'}); else thud(AC.bigB,.9,55,22,1.6); }
+    else if(r.id==='crash'||r.id==='terrain'){ crashSfx(); }
     else if(r.id==='flare'){ flareSfx(); }
     else if(r.id==='ecm'){ for(let k=0;k<6;k++)blip(k%2?340:300,.12,.05); nburst(AC.out,.08,220,1.2); }
     else if(r.id==='break'){ thud(AC.out,.3,55,30,.5); nburst(AC.out,.12,200,.8); }
@@ -894,7 +940,7 @@ function showPicked(payload){
   el.classList.add('on');
 }
 
-window.__S=()=>S;window.__brk=doBreak;window.__flr=fireFlares;window.__ecm=doECM;window.__begin=begin;window.__inp=inp;window.__aaa=P=>aaaBurst(P||BUNK.clone());window.__flak=P=>flakBoom(P||BUNK.clone().add(new THREE.Vector3(0,80,0)));window.__whoosh=whoosh;window.__passBy=P=>passBy(P||S.pos.clone());window.__sam=d=>samRoar(d||800);window.__rwr=P=>rwrLaunch(P||BUNK.clone(),false);window.__boom=b=>boomSfx(!!b);window.__thud=()=>thud(AC.out,.5,48,20,1);window.__nburst=()=>nburst(AC.out,.3,220,.5);window.__BUNK=()=>BUNK;window.__release=release;window.__H=H;window.__setThr=setThr;window.__AC=()=>AC;window.__ft={max:0,relMax:0,n:0,markRel(){this._r=performance.now()}};window.__sfx=()=>window.__sfxLog.slice();window.__clearSfx=()=>{window.__sfxLog=[]};
+window.__S=()=>S;window.__brk=doBreak;window.__flr=fireFlares;window.__ecm=doECM;window.__begin=begin;window.__inp=inp;window.__aaa=P=>aaaBurst(P||BUNK.clone());window.__flak=P=>flakBoom(P||BUNK.clone().add(new THREE.Vector3(0,80,0)));window.__whoosh=whoosh;window.__passBy=P=>passBy(P||S.pos.clone());window.__sam=d=>samRoar(d||800);window.__rwr=P=>rwrLaunch(P||BUNK.clone(),false);window.__boom=b=>boomSfx(!!b);window.__crash=()=>crashSfx();window.__die=w=>die(w||'TEST CRASH');window.__thud=()=>thud(AC.out,.5,48,20,1);window.__nburst=()=>nburst(AC.out,.3,220,.5);window.__BUNK=()=>BUNK;window.__release=release;window.__H=H;window.__setThr=setThr;window.__AC=()=>AC;window.__ft={max:0,relMax:0,n:0,markRel(){this._r=performance.now()}};window.__sfx=()=>window.__sfxLog.slice();window.__clearSfx=()=>{window.__sfxLog=[]};
 
 // mode boot (after all lets)
 if(DS_MODE==='sounds')setupSoundTester();
