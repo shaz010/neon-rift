@@ -511,7 +511,7 @@ function prewarmGfx(){if(window.__pwG)return;window.__pwG=1;
 }
 const C=(id,name,key)=>({id,name,key});
 const SND=[
- {id:'engine',title:'Engine — choose one',loop:1,notLogic:1,cur:'Jet loop plus a synth sub layer.',cands:[C('current','',null),C('e1','Airplane Engine Off 01.caf','snd_e1'),C('e2','Airplane Engine Off 02.caf','snd_e2'),C('e3','Airplane Engine Off 03.caf','snd_e3'),C('e4','Airplane Engine Off 04.caf','snd_e4'),C('e5','Jet Propulsion Synth Layers.caf','snd_e5')]},
+ {id:'engine',title:'Engine — choose one',loop:1,notLogic:1,cur:'Jet loop plus a synth sub layer.',cands:[C('current','',null),C('t1','Jet Take off 1 (roar)','snd_t1'),C('t2','Jet Take off 2 (roar)','snd_t2'),C('t3','Jet Take Off 3 (roar)','snd_t3'),C('t1h','Jet Take off 1 (hold)','snd_t1h'),C('js','Jet Stream Synth (cycle)','snd_js'),C('jp','Jet Propulsion Synth Layers (steady)','snd_jp')]},
  {id:'aaa',title:'Cannon / AAA — choose one',loop:0,notLogic:0,cur:'Thunder cannon sample, as the game plays it now.',cands:[C('current','',null),C('a1','Deep Space Boomer 02.caf','snd_a1'),C('a2','Boomer FX 09.caf','snd_a2'),C('a3','Boomer FX 04.caf','snd_a3'),C('a4','Boomer FX 35.caf','snd_a4'),C('a5','Boomer FX 36.caf','snd_a5')]},
  {id:'sam',title:'SAM launch — choose one',loop:0,notLogic:1,cur:'Layered launch roar, not one Logic file.',cands:[C('current','',null),C('s1','Boomer FX 15.caf','snd_s1'),C('s2','Boomer FX 45.caf','snd_s2'),C('s3','Boomer FX 02.caf','snd_s3'),C('s4','Asteroid Dust Impact.caf','snd_s4'),C('s5','Boomer FX 16.caf','snd_s5')]},
  {id:'pass',title:'Missile pass — choose one',loop:0,notLogic:1,cur:'Synth whoosh plus a thud. Not one Logic file.',cands:[C('current','',null),C('p1','Subsonic Bass 01.caf','snd_p1'),C('p2','Boomer FX 12.caf','snd_p2'),C('p3','Boomer FX 28.caf','snd_p3'),C('p4','Boomer FX 32.caf','snd_p4'),C('p5','Boomer FX 44.caf','snd_p5')]},
@@ -525,7 +525,7 @@ const SND=[
  {id:'bed',title:'Music bed — choose one',loop:1,notLogic:1,cur:'Bed loop plus a drone layer.',cands:[C('current','',null),C('b1','Jet Set Bass.caf','snd_b1'),C('b2','Jet Set Piano.caf','snd_b2'),C('b3','Jet Set Strings.caf','snd_b3'),C('b4','Jet Set Horns.caf','snd_b4'),C('b5','Warm Summer Waves Sub Bass.caf','snd_m1')]},
 ];
 function sndSec(id){return SND.find(s=>s.id===id)}
-function sndChoice(id){const s=sndSec(id); if(!s)return {id:'current'}; let pick='current'; try{pick=localStorage['ds15_snd_'+id]||'current'}catch(e){} return s.cands.find(c=>c.id===pick)||s.cands[0]}
+function sndChoice(id){const s=sndSec(id); if(!s)return {id:'current'}; let pick='current'; try{pick=localStorage['ds15_snd_'+id]||'current'}catch(e){} const found=s.cands.find(c=>c.id===pick); if(found)return found; if(id==='engine'){try{localStorage.removeItem('ds15_snd_engine')}catch(e){}} return s.cands[0]}
 let sndBypass=0, sndPrev=[];
 function stopSndPrev(){const a=sndPrev; sndPrev=[]; for(const s of a){try{s&&s.stop&&s.stop()}catch(e){}}}
 function plainLoop(buf,vol,dest,meta){if(!AC||!buf)return null; const s=AC.createBufferSource(); s.buffer=buf; s.loop=true; s.playbackRate.value=1; const g=AC.createGain(); g.gain.value=0; g.gain.setTargetAtTime(vol,AC.currentTime,.05); s.connect(g).connect(dest); s.start(); sfxLog('sndPlay',Object.assign({rate:1,vol,mode:'plain'},meta||{})); return {a:s,g,plain:1,stop(t){try{g.gain.setTargetAtTime(0,AC.currentTime,.08); s.stop((t||AC.currentTime)+.2)}catch(e){}}}}
