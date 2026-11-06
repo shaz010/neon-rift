@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','15m'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','15n'])[1];
 const PATCH_LABEL='s15 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -603,9 +603,44 @@ function reset(){if(S&&S.missile&&AC)mslAudioStop(S.missile);S={phase:'ingress',
  if(S&&S.missile)mslAudioStop(S.missile);mslG.visible=bomb.visible=msl.visible=ring.visible=dome.visible=bulge.visible=false;debris.forEach(d=>scene.remove(d.m));debris.length=0;parts.forEach(p=>scene.remove(p.m));parts.length=0;bunker.visible=true;$('end').classList.add('hide');setThr(.7)}
 // ---------- input ----------
 let steer=null;const inp={x:0,y:0};
-gl.addEventListener('pointerdown',e=>{if(steer)return;e.preventDefault();try{gl.setPointerCapture(e.pointerId)}catch(x){}steer={id:e.pointerId,x:e.clientX,y:e.clientY}});
-gl.addEventListener('pointermove',e=>{if(!steer||e.pointerId!==steer.id)return;e.preventDefault();const r=Math.min(innerWidth,innerHeight)*.22;inp.x=clamp((e.clientX-steer.x)/r,-1,1);inp.y=clamp((e.clientY-steer.y)/r,-1,1)},{passive:false});
-const endSteer=e=>{if(steer&&e.pointerId===steer.id){try{gl.releasePointerCapture(e.pointerId)}catch(x){}steer=null;inp.x=inp.y=0}};gl.addEventListener('pointerup',endSteer);gl.addEventListener('pointercancel',endSteer);addEventListener('pointerup',endSteer);addEventListener('pointercancel',endSteer);
+// Steering listens on the document, not only #gl. The HUD canvas sits on top of
+// the WebGL canvas; on iPhone that top canvas can take the touch even when it
+// is marked pointer-events:none, so a drag never reached #gl.
+const steerBlock='#brief,#tut,#end,#thr,#setb,#pauseb,#setp,#setx,#pauseOv,#pauseCard,.btn,a,button,input,select,textarea,label';
+function steerBlocked(t){return !!(t&&t.closest&&t.closest(steerBlock))}
+function steerTo(x,y){const r=Math.max(48,Math.min(innerWidth,innerHeight)*.22);inp.x=clamp((x-steer.x)/r,-1,1);inp.y=clamp((y-steer.y)/r,-1,1)}
+if(DS_MODE==='game'){
+  const hud=$('hud'); if(hud)hud.style.setProperty('pointer-events','none','important');
+  let sawPointer=false;
+  document.addEventListener('pointerdown',e=>{
+    sawPointer=true;
+    if(steer||e.button>0||steerBlocked(e.target))return;
+    steer={id:e.pointerId,x:e.clientX,y:e.clientY};
+    try{e.target.setPointerCapture&&e.target.setPointerCapture(e.pointerId)}catch(x){}
+  },{capture:true});
+  document.addEventListener('pointermove',e=>{
+    if(!steer||steer.touch||e.pointerId!==steer.id)return;
+    if(e.cancelable)e.preventDefault();
+    steerTo(e.clientX,e.clientY);
+  },{capture:true,passive:false});
+  const endSteer=e=>{if(steer&&e.pointerId===steer.id){try{e.target.releasePointerCapture&&e.target.releasePointerCapture(e.pointerId)}catch(x){}steer=null;inp.x=inp.y=0}};
+  document.addEventListener('pointerup',endSteer,{capture:true});
+  document.addEventListener('pointercancel',endSteer,{capture:true});
+  // Touch fallback only if this browser never delivers pointer events.
+  document.addEventListener('touchstart',e=>{
+    if(sawPointer||steer||e.touches.length!==1||steerBlocked(e.target))return;
+    const t=e.touches[0]; steer={id:'t'+t.identifier,x:t.clientX,y:t.clientY,touch:1};
+  },{capture:true,passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!steer||!steer.touch)return;
+    const t=[...e.touches].find(t=>'t'+t.identifier===steer.id); if(!t)return;
+    if(e.cancelable)e.preventDefault();
+    steerTo(t.clientX,t.clientY);
+  },{capture:true,passive:false});
+  const endTouch=e=>{if(!steer||!steer.touch)return; const t=[...e.changedTouches].find(t=>'t'+t.identifier===steer.id); if(!t)return; steer=null; inp.x=inp.y=0};
+  document.addEventListener('touchend',endTouch,{capture:true});
+  document.addEventListener('touchcancel',endTouch,{capture:true});
+}
 if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.target.closest&&e.target.closest('#brief,#tut,#end,#go,#retry,#setp,#pauseOv,#pauseCard,input,select,textarea,a,button.label'))return;e.preventDefault()},{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault())}
 function setThr(v){S&&(S.thr=v);$('thrk').style.bottom=(3+v*(130-12))+'px';const kcas=Math.round((85+v*195)*1.94);$('thrl').innerHTML='THROTTLE<br><span style="opacity:.85">'+kcas+' KTS</span>';if(S&&!S._thrHint&&v>.05&&v<.95){S._thrHint=1;msg('THROTTLE — SLIDE FOR SPEED')}}
 {const t=$('thr');let id=null;const f=e=>{const r=t.getBoundingClientRect();setThr(clamp(1-(e.clientY-r.top-3)/(r.height-6),0,1))};
@@ -641,6 +676,35 @@ const FLARE_OPTS=[
  {id:'body',name:'Full Body',desc:'Bass with more body. Source: Boomer FX 14.caf.',key:'flare_body'},
 ];
 function flareChoice(){let id='current'; try{id=localStorage.ds15_flare||'current'}catch(e){} return FLARE_OPTS.find(o=>o.id===id)||FLARE_OPTS[0]}
+// Safari and an iPhone Home Screen icon do not share localStorage. sounds.html
+// can hand the ticks over by opening index.html?ds=flare:thunder,boom:rl1
+function applySndFromUrl(){
+  let raw=''; try{raw=new URLSearchParams(location.search).get('ds')||''}catch(e){return}
+  if(!raw)return;
+  for(const part of raw.split(',')){
+    const i=part.indexOf(':'); if(i<1)continue;
+    const k=decodeURIComponent(part.slice(0,i)), v=decodeURIComponent(part.slice(i+1));
+    if(!v)continue;
+    if(k==='flare'){ if(FLARE_OPTS.some(o=>o.id===v)){try{localStorage.ds15_flare=v}catch(e){}} }
+    else { const s=sndSec(k); if(s&&sndList(s).some(c=>c.id===v)){try{localStorage['ds15_snd_'+k]=v}catch(e){}} }
+  }
+  try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}
+}
+const SND_SHORT={engine:'Engine',aaa:'Cannon',sam:'SAM',pass:'Pass',boom:'Explosion',release:'Release',nuke:'Nuke',radar:'Radar',crash:'Crash',overhead:'Overhead',ambience:'Ambience',bed:'Bed'};
+function sndSummary(){
+  const bits=[];
+  const fl=flareChoice(); if(fl.id!=='current')bits.push('Flare '+(fl.name||fl.id));
+  for(const s of SND){ const c=sndChoice(s.id); if(!c||c.id==='current')continue; bits.push((SND_SHORT[s.id]||s.id)+' '+(c.name||c.id)); }
+  return bits.length?('Sounds: '+bits.join(' · ')):'Sounds: all Current';
+}
+function paintSndLive(){const el=$('sndlive'); if(el)el.textContent=sndSummary()}
+applySndFromUrl(); paintSndLive();
+function sndHandoff(){
+  const parts=[];
+  const fl=flareChoice().id; if(fl&&fl!=='current')parts.push('flare:'+fl);
+  for(const s of SND){ const id=sndChoice(s.id).id; if(id&&id!=='current')parts.push(s.id+':'+id); }
+  return parts.join(',');
+}
 let flareLive=[];
 function stopFlareVoices(){const live=flareLive; flareLive=[]; for(const group of live){for(const s of group){try{s&&s.stop&&s.stop()}catch(e){}}}}
 function startFlare(opt){if(!AC)return; const choice=opt||flareChoice();
@@ -1032,14 +1096,16 @@ function setupSoundTester(){
     list.appendChild(el);
   }
   document.querySelectorAll('#pan button').forEach(b=>{
-    b.addEventListener('pointerdown', e=>{b._pt={x:e.clientX,y:e.clientY,id:e.pointerId}; ensureAudioSync()},{passive:true});
+    const pick=()=>{document.querySelectorAll('#pan button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); testerPan=b.dataset.pan; ensureAudioSync()};
     b.addEventListener('pointerup', e=>{
-      const p=b._pt; b._pt=null; if(!p||p.id!==e.pointerId)return;
-      if(Math.hypot(e.clientX-p.x,e.clientY-p.y)>14)return;
-      document.querySelectorAll('#pan button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); testerPan=b.dataset.pan;
-      ensureAudioSync();
+      const p=b._pt; b._pt=null; if(p&&p.id===e.pointerId&&Math.hypot(e.clientX-p.x,e.clientY-p.y)>18)return;
+      pick();
     });
+    b.addEventListener('click', e=>{e.preventDefault(); pick()});
+    b.addEventListener('pointerdown', e=>{b._pt={x:e.clientX,y:e.clientY,id:e.pointerId}; ensureAudioSync()},{passive:true});
   });
+  const apply=$('applyGame');
+  if(apply){const go=()=>{const q=sndHandoff(); apply.href='./index.html'+(q?('?ds='+encodeURIComponent(q)):'')}; apply.addEventListener('pointerdown',go); apply.addEventListener('click',go)}
   const bindVol=(id,fn)=>{const el=$(id); if(!el)return; el.addEventListener('input',()=>fn(+el.value/100)); fn(+el.value/100)};
   bindVol('t_master',v=>{if(AC?.mg)AC.mg.gain.setTargetAtTime(v,AC.currentTime,.05)});
   bindVol('t_mus',v=>{VOL.bed=v; VOL.mus=v; applyVol()});
