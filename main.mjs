@@ -9,104 +9,114 @@ import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js';
 const $=id=>document.getElementById(id);
-// Rotate gate. The CSS orientation query is not enough on iOS: in Safari, and
-// especially a Home Screen standalone app, it can stay stuck on portrait after
-// the phone is landscape. screen.orientation is missing before iOS 16.4.
-// window.orientation (0/180 portrait, 90/-90 landscape) updates on
-// orientationchange, but innerWidth/innerHeight often still show the old size
-// for a few hundred ms — and in standalone they sometimes never catch up.
-// Any landscape signal hides the gate. Tester pages never show it.
+// Orientation hint only. Rotation lock on iOS never fires orientationchange and
+// never updates the angle, so a full-screen gate stays up and swallows taps.
+// The hint is not a hit target. It fades on its own, and the first tap dismisses
+// it. That same tap still reaches the brief, which unlocks audio.
 function installOrientGuard(){
   const root=document.documentElement, rot=document.getElementById('rot');
-  const forceHide=()=>{
+  const passThrough=()=>{
+    if(!rot)return;
+    rot.classList.remove('ov');
+    rot.style.setProperty('pointer-events','none','important');
+    rot.style.setProperty('touch-action','none','important');
+    rot.style.setProperty('position','fixed','important');
+    rot.style.setProperty('inset','auto','important');
+    rot.style.setProperty('left','50%','important');
+    rot.style.setProperty('right','auto','important');
+    rot.style.setProperty('top','auto','important');
+    rot.style.setProperty('bottom','calc(12px + env(safe-area-inset-bottom))','important');
+    rot.style.setProperty('transform','translateX(-50%)','important');
+    rot.style.setProperty('width','max-content','important');
+    rot.style.setProperty('max-width','calc(100vw - 24px)','important');
+    rot.style.setProperty('height','auto','important');
+    rot.style.setProperty('z-index','8','important');
+  };
+  const kill=()=>{
     root.classList.remove('ds-port'); root.classList.add('ds-land');
     if(!rot)return;
-    rot.classList.add('hide'); rot.setAttribute('aria-hidden','true');
+    rot.classList.remove('ov'); rot.classList.add('hide');
+    rot.setAttribute('aria-hidden','true');
     rot.style.setProperty('display','none','important');
     rot.style.setProperty('pointer-events','none','important');
   };
-  if(DS_MODE!=='game'){forceHide(); window.__dsOrient='off'; return}
-  let gen=0, kickAt=0;
-  function signals(){
-    let angleLand=false, anglePort=false, dimLand=false, dimPort=false;
+  if(DS_MODE!=='game'){kill(); window.__dsOrient='off'; return}
+  passThrough();
+  let dismissed=false;
+  function landscape(){
+    let land=false, port=false;
     const noteA=a=>{
       if(typeof a!=='number'||!isFinite(a))return;
       const n=((a%360)+360)%360;
-      if(n===90||n===270)angleLand=true; else if(n===0||n===180)anglePort=true;
-    };
-    const noteT=t=>{
-      if(typeof t!=='string')return;
-      if(t.indexOf('landscape')>=0)angleLand=true; else if(t.indexOf('portrait')>=0)anglePort=true;
-    };
-    const noteB=(w,h)=>{
-      if(!(w>0)||!(h>0))return;
-      if(w>h+24)dimLand=true; else if(h>w+24)dimPort=true;
+      if(n===90||n===270)land=true; else if(n===0||n===180)port=true;
     };
     try{noteA(window.orientation)}catch(e){}
-    try{const so=window.screen&&window.screen.orientation; if(so){noteA(so.angle); noteT(so.type)}}catch(e){}
-    try{noteB(window.innerWidth,window.innerHeight)}catch(e){}
-    try{noteB(root.clientWidth,root.clientHeight)}catch(e){}
-    try{const vv=window.visualViewport; if(vv)noteB(vv.width,vv.height)}catch(e){}
-    return {angleLand,anglePort,dimLand,dimPort};
-  }
-  function wantPort(){
-    const s=signals();
-    if(s.angleLand||s.dimLand)return false;
-    if(s.anglePort||s.dimPort)return true;
-    try{return window.matchMedia('(orientation: portrait)').matches}catch(e){return false}
-  }
-  function maybeKick(s){
-    // Layout viewport still portrait while the device angle is landscape
-    // (user-scalable=no / standalone). Nudge the viewport meta so Safari remeasures.
-    if(!s.angleLand||s.dimLand)return;
-    const now=performance.now(); if(now-kickAt<700)return; kickAt=now;
-    const vp=document.querySelector('meta[name=viewport]'); if(!vp)return;
-    const base=vp.dataset.dsVp||vp.getAttribute('content')||''; if(!base)return;
-    vp.dataset.dsVp=base;
     try{
-      vp.setAttribute('content',base.replace('maximum-scale=1','maximum-scale=1.0001'));
-      setTimeout(()=>{try{vp.setAttribute('content',base)}catch(e){}},80);
+      const so=window.screen&&window.screen.orientation;
+      if(so){noteA(so.angle); if(typeof so.type==='string'&&so.type.indexOf('landscape')>=0)land=true}
     }catch(e){}
+    try{
+      const w=window.innerWidth, h=window.innerHeight;
+      if(w>h+24)land=true; else if(h>w+24)port=true;
+    }catch(e){}
+    if(land)return true;
+    if(port)return false;
+    try{return !window.matchMedia('(orientation: portrait)').matches}catch(e){return false}
   }
   function apply(){
-    let port=false; try{port=wantPort()}catch(e){port=false}
-    root.classList.toggle('ds-port',port); root.classList.toggle('ds-land',!port);
-    window.__dsOrient=port?'portrait':'landscape';
+    passThrough();
+    const land=landscape();
+    root.classList.remove('ds-port');
+    root.classList.toggle('ds-land',!!land||dismissed);
+    window.__dsOrient=land?'landscape':'portrait';
     if(!rot)return;
-    if(port){
-      rot.classList.remove('hide'); rot.setAttribute('aria-hidden','false');
-      rot.style.setProperty('display','flex','important');
-      rot.style.setProperty('pointer-events','auto','important');
-      rot.style.setProperty('z-index','20','important');
-    }else{
+    if(land||dismissed){
       rot.classList.add('hide'); rot.setAttribute('aria-hidden','true');
       rot.style.setProperty('display','none','important');
-      rot.style.setProperty('pointer-events','none','important');
-      try{maybeKick(signals())}catch(e){}
+    }else{
+      rot.classList.remove('hide'); rot.removeAttribute('aria-hidden');
+      rot.style.setProperty('display','flex','important');
     }
+    rot.style.setProperty('pointer-events','none','important');
   }
-  function burst(){
-    const g=++gen; const run=()=>{if(g===gen)apply()};
-    apply();
-    requestAnimationFrame(()=>{if(g!==gen)return; apply(); requestAnimationFrame(()=>{if(g===gen)apply()})});
-    // innerWidth/innerHeight lag orientationchange; standalone may update even later
-    for(const ms of [40,100,180,320,600,1000,1600,2500])setTimeout(run,ms);
-  }
-  burst();
+  apply();
+  // Arm the hide only after the first paint. The startup terrain build blocks
+  // the main thread, and a timer started before that fires before the hint is seen.
+  const arm=()=>setTimeout(()=>{dismissed=true; apply()},4500);
+  if(window.requestAnimationFrame)requestAnimationFrame(()=>requestAnimationFrame(arm));
+  else setTimeout(arm,0);
+  window.addEventListener('pointerdown',()=>{if(dismissed)return; dismissed=true; apply()},{capture:true,passive:true});
+  const burst=()=>{apply(); setTimeout(apply,150); setTimeout(apply,500)};
   window.addEventListener('resize',burst,{passive:true});
   window.addEventListener('orientationchange',burst);
   window.addEventListener('pageshow',burst);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)burst()});
+  try{const so=window.screen&&window.screen.orientation; if(so&&so.addEventListener)so.addEventListener('change',burst)}catch(e){}
+  function menuOpen(){return ['brief','tut','end'].some(id=>{const el=document.getElementById(id); return el&&!el.classList.contains('hide')})}
+  function syncMenuTouch(){
+    const open=menuOpen();
+    const v=open?'manipulation':'';
+    root.style.touchAction=v;
+    if(document.body)document.body.style.touchAction=v;
+    const gl=document.getElementById('gl');
+    if(gl){if(open)gl.style.setProperty('pointer-events','none','important'); else gl.style.removeProperty('pointer-events')}
+    if(!open){
+      document.querySelectorAll('[data-ds-pass]').forEach(el=>{el.style.removeProperty('pointer-events'); el.removeAttribute('data-ds-pass')});
+      return;
+    }
+    const vw=window.innerWidth||1, vh=window.innerHeight||1;
+    document.querySelectorAll('body *').forEach(el=>{
+      if(el===rot||el.closest&&el.closest('#brief,#tut,#end,#pauseOv,#setp,#setb,#pauseb'))return;
+      let cs; try{cs=getComputedStyle(el)}catch(e){return}
+      if(cs.display==='none'||cs.visibility==='hidden'||cs.pointerEvents==='none')return;
+      if(cs.position!=='fixed'&&cs.position!=='absolute')return;
+      const r=el.getBoundingClientRect();
+      if(r.width>=vw*.92&&r.height>=vh*.92){el.style.setProperty('pointer-events','none','important'); el.setAttribute('data-ds-pass','1')}
+    });
+  }
+  syncMenuTouch();
   try{
-    const so=window.screen&&window.screen.orientation;
-    if(so&&so.addEventListener)so.addEventListener('change',burst);
-    else if(so)so.onchange=burst;
-  }catch(e){}
-  try{if(window.visualViewport){window.visualViewport.addEventListener('resize',burst); window.visualViewport.addEventListener('scroll',apply)}}catch(e){}
-  try{
-    const mq=window.matchMedia('(orientation: portrait)');
-    if(mq&&mq.addEventListener)mq.addEventListener('change',burst);
-    else if(mq&&mq.addListener)mq.addListener(burst);
+    const mo=new MutationObserver(syncMenuTouch);
+    for(const id of ['brief','tut','end']){const el=document.getElementById(id); if(el)mo.observe(el,{attributes:true,attributeFilter:['class']})}
   }catch(e){}
   window.__dsSyncOrient=apply;
 }
@@ -547,7 +557,7 @@ let steer=null;const inp={x:0,y:0};
 gl.addEventListener('pointerdown',e=>{if(steer)return;e.preventDefault();try{gl.setPointerCapture(e.pointerId)}catch(x){}steer={id:e.pointerId,x:e.clientX,y:e.clientY}});
 gl.addEventListener('pointermove',e=>{if(!steer||e.pointerId!==steer.id)return;e.preventDefault();const r=Math.min(innerWidth,innerHeight)*.22;inp.x=clamp((e.clientX-steer.x)/r,-1,1);inp.y=clamp((e.clientY-steer.y)/r,-1,1)},{passive:false});
 const endSteer=e=>{if(steer&&e.pointerId===steer.id){try{gl.releasePointerCapture(e.pointerId)}catch(x){}steer=null;inp.x=inp.y=0}};gl.addEventListener('pointerup',endSteer);gl.addEventListener('pointercancel',endSteer);addEventListener('pointerup',endSteer);addEventListener('pointercancel',endSteer);
-if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.target.closest&&e.target.closest('#setp,#pauseOv,#pauseCard,input,select,textarea,a,button.label'))return;e.preventDefault()},{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault())}
+if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.target.closest&&e.target.closest('#brief,#tut,#end,#go,#retry,#setp,#pauseOv,#pauseCard,input,select,textarea,a,button.label'))return;e.preventDefault()},{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault())}
 function setThr(v){S&&(S.thr=v);$('thrk').style.bottom=(3+v*(130-12))+'px';const kcas=Math.round((85+v*195)*1.94);$('thrl').innerHTML='THROTTLE<br><span style="opacity:.85">'+kcas+' KTS</span>';if(S&&!S._thrHint&&v>.05&&v<.95){S._thrHint=1;msg('THROTTLE — SLIDE FOR SPEED')}}
 {const t=$('thr');let id=null;const f=e=>{const r=t.getBoundingClientRect();setThr(clamp(1-(e.clientY-r.top-3)/(r.height-6),0,1))};
  t.addEventListener('pointerdown',e=>{e.stopPropagation();id=e.pointerId;t.setPointerCapture(id);f(e)});t.addEventListener('pointermove',e=>{if(e.pointerId===id)f(e)});t.addEventListener('pointerup',()=>id=null)}
@@ -819,7 +829,7 @@ $('tut').addEventListener('pointerdown',e=>{e.stopPropagation();tutI++;if(tutI>=
 $('retry').addEventListener('pointerdown',e=>{e.stopPropagation();initAudio();stopWin();begin()});if($('retry'))$('retry').addEventListener('click',e=>{e.stopPropagation();initAudio();stopWin();begin()});
 function goFS(){const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(f&&!document.fullscreenElement&&!document.webkitFullscreenElement){try{const p=f.call(d,{navigationUI:'hide'});p&&p.catch&&p.catch(()=>{})}catch(e){}}try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}
 if(DS_MODE==='game')addEventListener('pointerdown',goFS,{once:true});
-if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.target.closest&&e.target.closest('#setp,#pauseOv,#pauseCard,input,select,textarea,a,button.label'))return;e.preventDefault()},{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault())}if(DS_MODE==='game')addEventListener('resize',()=>scrollTo(0,0));
+if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.target.closest&&e.target.closest('#brief,#tut,#end,#go,#retry,#setp,#pauseOv,#pauseCard,input,select,textarea,a,button.label'))return;e.preventDefault()},{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault())}if(DS_MODE==='game')addEventListener('resize',()=>scrollTo(0,0));
 async function begin(){reset();jet.visible=true;if(AC){AC.resume(); await Promise.all(['jet8','jet','ambient','aaaw','sub08'].map(k=>SB.get(k).catch(()=>null))); try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3);}catch(e){} prewarmAudio(); /* background, non-blocking */ } prewarmGfx();running=true;last=performance.now()}
 reset();
 if(DS_MODE==='game'){clock();drawMap();chat();addEventListener('resize',()=>{if(!$('brief').classList.contains('hide'))drawMap()});requestAnimationFrame(step)}
