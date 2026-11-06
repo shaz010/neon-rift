@@ -56,6 +56,11 @@ html,body{margin:0;min-height:100%;height:auto;background:var(--bg);color:var(--
 .frow.chosen{border-color:#e8ffe0;box-shadow:0 0 0 1px rgba(200,240,190,.5)}
 .frow.chosen button.choose{background:rgba(70,110,60,.95);color:#f4ffe8}
 .frow.playing{border-color:#cfe8c4}
+#sndSecs{touch-action:pan-y}
+details.sndSec{border-bottom:1px solid rgba(182,220,174,.28);padding:0 14px}
+details.sndSec summary{min-height:52px;display:flex;align-items:center;font:700 16px var(--m);letter-spacing:.4px;color:#d7ecd0;touch-action:manipulation;cursor:pointer}
+details.sndSec[open] summary{color:#e8ffe0}
+details.sndSec .body{display:flex;flex-direction:column;gap:10px;padding:0 0 12px}
 canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:1px}
 .hud,.btn,#brief,#tut,#end,#badge,#setb,#pauseb,#pauseOv,#setp,#vig,#teach,#thr,#lock,#rel,#flr,#brk,#ecm,#rot,#mvig{display:none!important}
 .hide{display:none!important}
@@ -83,6 +88,7 @@ canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:
   <p>Softer single shots. ✓ Choose saves on this phone and the game uses it. Until you choose, the game keeps Current.</p>
   <div id="flareList"></div>
 </section>
+<div id="sndSecs"></div>
 <div id="list"></div>
 <canvas id="gl"></canvas>
 <canvas id="hud" width="8" height="8"></canvas><div id="brief" class="hide"></div><div id="tut" class="hide"></div><div id="end" class="hide"></div>
@@ -95,6 +101,6 @@ canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:
 <select id="s_bed" class="hide"></select><span id="v_eng"></span><span id="v_mus"></span><span id="v_bed"></span><span id="v_fx"></span><button id="setx" type="button"></button><div id="resume"></div>
 <div id="tt"></div><div id="tp"></div><div id="tn"></div><div id="mapc"></div>
 <script>window.__DS_MODE='sounds';</script>
-<script type="module" src="./main.mjs?v=15d"></script>
+<script type="module" src="./main.mjs?v=15e"></script>
 </body>
 </html>
