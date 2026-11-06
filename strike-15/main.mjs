@@ -9,6 +9,108 @@ import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js';
 const $=id=>document.getElementById(id);
+// Rotate gate. The CSS orientation query is not enough on iOS: in Safari, and
+// especially a Home Screen standalone app, it can stay stuck on portrait after
+// the phone is landscape. screen.orientation is missing before iOS 16.4.
+// window.orientation (0/180 portrait, 90/-90 landscape) updates on
+// orientationchange, but innerWidth/innerHeight often still show the old size
+// for a few hundred ms — and in standalone they sometimes never catch up.
+// Any landscape signal hides the gate. Tester pages never show it.
+function installOrientGuard(){
+  const root=document.documentElement, rot=document.getElementById('rot');
+  const forceHide=()=>{
+    root.classList.remove('ds-port'); root.classList.add('ds-land');
+    if(!rot)return;
+    rot.classList.add('hide'); rot.setAttribute('aria-hidden','true');
+    rot.style.setProperty('display','none','important');
+    rot.style.setProperty('pointer-events','none','important');
+  };
+  if(DS_MODE!=='game'){forceHide(); window.__dsOrient='off'; return}
+  let gen=0, kickAt=0;
+  function signals(){
+    let angleLand=false, anglePort=false, dimLand=false, dimPort=false;
+    const noteA=a=>{
+      if(typeof a!=='number'||!isFinite(a))return;
+      const n=((a%360)+360)%360;
+      if(n===90||n===270)angleLand=true; else if(n===0||n===180)anglePort=true;
+    };
+    const noteT=t=>{
+      if(typeof t!=='string')return;
+      if(t.indexOf('landscape')>=0)angleLand=true; else if(t.indexOf('portrait')>=0)anglePort=true;
+    };
+    const noteB=(w,h)=>{
+      if(!(w>0)||!(h>0))return;
+      if(w>h+24)dimLand=true; else if(h>w+24)dimPort=true;
+    };
+    try{noteA(window.orientation)}catch(e){}
+    try{const so=window.screen&&window.screen.orientation; if(so){noteA(so.angle); noteT(so.type)}}catch(e){}
+    try{noteB(window.innerWidth,window.innerHeight)}catch(e){}
+    try{noteB(root.clientWidth,root.clientHeight)}catch(e){}
+    try{const vv=window.visualViewport; if(vv)noteB(vv.width,vv.height)}catch(e){}
+    return {angleLand,anglePort,dimLand,dimPort};
+  }
+  function wantPort(){
+    const s=signals();
+    if(s.angleLand||s.dimLand)return false;
+    if(s.anglePort||s.dimPort)return true;
+    try{return window.matchMedia('(orientation: portrait)').matches}catch(e){return false}
+  }
+  function maybeKick(s){
+    // Layout viewport still portrait while the device angle is landscape
+    // (user-scalable=no / standalone). Nudge the viewport meta so Safari remeasures.
+    if(!s.angleLand||s.dimLand)return;
+    const now=performance.now(); if(now-kickAt<700)return; kickAt=now;
+    const vp=document.querySelector('meta[name=viewport]'); if(!vp)return;
+    const base=vp.dataset.dsVp||vp.getAttribute('content')||''; if(!base)return;
+    vp.dataset.dsVp=base;
+    try{
+      vp.setAttribute('content',base.replace('maximum-scale=1','maximum-scale=1.0001'));
+      setTimeout(()=>{try{vp.setAttribute('content',base)}catch(e){}},80);
+    }catch(e){}
+  }
+  function apply(){
+    let port=false; try{port=wantPort()}catch(e){port=false}
+    root.classList.toggle('ds-port',port); root.classList.toggle('ds-land',!port);
+    window.__dsOrient=port?'portrait':'landscape';
+    if(!rot)return;
+    if(port){
+      rot.classList.remove('hide'); rot.setAttribute('aria-hidden','false');
+      rot.style.setProperty('display','flex','important');
+      rot.style.setProperty('pointer-events','auto','important');
+      rot.style.setProperty('z-index','20','important');
+    }else{
+      rot.classList.add('hide'); rot.setAttribute('aria-hidden','true');
+      rot.style.setProperty('display','none','important');
+      rot.style.setProperty('pointer-events','none','important');
+      try{maybeKick(signals())}catch(e){}
+    }
+  }
+  function burst(){
+    const g=++gen; const run=()=>{if(g===gen)apply()};
+    apply();
+    requestAnimationFrame(()=>{if(g!==gen)return; apply(); requestAnimationFrame(()=>{if(g===gen)apply()})});
+    // innerWidth/innerHeight lag orientationchange; standalone may update even later
+    for(const ms of [40,100,180,320,600,1000,1600,2500])setTimeout(run,ms);
+  }
+  burst();
+  window.addEventListener('resize',burst,{passive:true});
+  window.addEventListener('orientationchange',burst);
+  window.addEventListener('pageshow',burst);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)burst()});
+  try{
+    const so=window.screen&&window.screen.orientation;
+    if(so&&so.addEventListener)so.addEventListener('change',burst);
+    else if(so)so.onchange=burst;
+  }catch(e){}
+  try{if(window.visualViewport){window.visualViewport.addEventListener('resize',burst); window.visualViewport.addEventListener('scroll',apply)}}catch(e){}
+  try{
+    const mq=window.matchMedia('(orientation: portrait)');
+    if(mq&&mq.addEventListener)mq.addEventListener('change',burst);
+    else if(mq&&mq.addListener)mq.addListener(burst);
+  }catch(e){}
+  window.__dsSyncOrient=apply;
+}
+try{installOrientGuard()}catch(e){}
 const D2R=Math.PI/180, clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t, rnd=(a=1)=>(Math.random()-.5)*2*a;
 const sstep=(a,b,x)=>{x=clamp((x-a)/(b-a),0,1);return x*x*(3-2*x)};
 // ---------- terrain function (same valley as s0) ----------
