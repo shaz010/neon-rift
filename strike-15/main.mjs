@@ -1,5 +1,9 @@
 const DS_MODE=(window.__DS_MODE)||(/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','15k'])[1];
+const PATCH_LABEL='s15 · '+PATCH_V;
+function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
+showPatch();
 
 import * as THREE from 'three';
 import {Sky} from './vendor/jsm/objects/Sky.js';
