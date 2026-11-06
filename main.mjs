@@ -515,7 +515,7 @@ const SND=[
  {id:'aaa',title:'Cannon / AAA — choose one',loop:0,notLogic:0,cur:'Thunder cannon sample, as the game plays it now.',cands:[C('current','',null),C('tv','Thunder_VideoStar (hit)','snd_tv'),C('ds1','Deep Space Boomer 01 (hit)','snd_ds1'),C('ds2','Deep Space Boomer 02 (hit)','snd_ds2'),C('ths','Thunder (strike)','snd_ths'),C('thu','Thunder (single)','snd_thu'),C('thl','Thunder (late hit)','snd_thl')]},
  {id:'sam',title:'SAM launch — choose one',loop:0,notLogic:1,cur:'Layered launch roar, not one Logic file.',cands:[C('current','',null),C('s1','Boomer FX 15.caf','snd_s1'),C('s2','Boomer FX 45.caf','snd_s2'),C('s3','Boomer FX 02.caf','snd_s3'),C('s4','Asteroid Dust Impact.caf','snd_s4'),C('s5','Boomer FX 16.caf','snd_s5')]},
  {id:'pass',title:'Missile pass — choose one',loop:0,notLogic:1,cur:'Synth whoosh plus a thud. Not one Logic file.',cands:[C('current','',null),C('p1','Subsonic Bass 01.caf','snd_p1'),C('p2','Boomer FX 12.caf','snd_p2'),C('p3','Boomer FX 28.caf','snd_p3'),C('p4','Boomer FX 32.caf','snd_p4'),C('p5','Boomer FX 44.caf','snd_p5')]},
- {id:'boom',title:'Explosions — choose one',loop:0,notLogic:1,cur:'Impact, hit and sub stacked together.',cands:[C('current','',null),C('dbi','Deep Boom Impact','snd_xdbi'),C('sei','Smoldering Embers Impact 01','snd_xsei'),C('cci','Cosmic Craze Impact 01','snd_xcci'),C('bai','Back at It Bass Impact','snd_xbai'),C('nb','Noisy Boomer','snd_xnb'),C('dlb','Deep Laser Boomer','snd_xdlb')]},
+ {id:'boom',title:'Explosions — choose one',loop:0,notLogic:1,cur:'Impact, hit and sub stacked together.',cands:[C('current','',null),C('dbi','Deep Boom Impact','snd_xdbi'),C('sei','Smoldering Embers Impact 01','snd_xsei'),C('cci','Cosmic Craze Impact 01','snd_xcci'),C('bai','Back at It Bass Impact','snd_xbai'),C('nb','Noisy Boomer','snd_xnb'),C('dlb','Deep Laser Boomer','snd_xdlb')],bounces:[C('b29','Boomer FX 29','snd_b29'),C('sun','Sun Up Impact 01','snd_sun'),C('pnd','Pound Down Impact','snd_pnd'),C('rot','In Rotation FX','snd_rot'),C('s06','Subsonic Boom FX 06','snd_s06'),C('s01','Subsonic Boom FX 01','snd_s01')]},
  {id:'release',title:'Bomb release — choose one',loop:0,notLogic:1,cur:'Riser, sub and whoosh layered together.',cands:[C('current','',null),C('r1','Warped Resonance Riser.caf','snd_r1'),C('r2','Warm Embers Synth Sweep FX 01.caf','snd_r2'),C('r3','Warm Embers Synth Sweep FX 02.caf','snd_r3'),C('r4','Boomer FX 23.caf','snd_r4'),C('r5','Boomer FX 47.caf','snd_r5')]},
  {id:'nuke',title:'Nuclear blast — choose one',loop:0,notLogic:0,cur:'The single bunker-blast sample used now.',cands:[C('current','',null),C('n1','Boomer FX 49.caf','snd_n1'),C('n2','Boomer FX 50.caf','snd_n2'),C('n3','Boomer FX 51.caf','snd_n3'),C('n4','Boomer FX 18.caf','snd_n4'),C('n5','Boomer FX 30.caf','snd_n5')]},
  {id:'radar',title:'Radar / lock — choose one',loop:0,notLogic:1,cur:'Synth beeps, not a Logic file.',cands:[C('current','',null),C('d1','Boomer FX 40.caf','snd_d1'),C('d2','Rumble Sub Bass.caf','snd_d2'),C('d3','Rumble Noise FX.caf','snd_d3'),C('d4','Boomer FX 26.caf','snd_d4'),C('d5','Boomer FX 21.caf','snd_d5')]},
@@ -525,7 +525,8 @@ const SND=[
  {id:'bed',title:'Music bed — choose one',loop:1,notLogic:1,cur:'Bed loop plus a drone layer.',cands:[C('current','',null),C('b1','Jet Set Bass.caf','snd_b1'),C('b2','Jet Set Piano.caf','snd_b2'),C('b3','Jet Set Strings.caf','snd_b3'),C('b4','Jet Set Horns.caf','snd_b4'),C('b5','Warm Summer Waves Sub Bass.caf','snd_m1')]},
 ];
 function sndSec(id){return SND.find(s=>s.id===id)}
-function sndChoice(id){const s=sndSec(id); if(!s)return {id:'current'}; let pick='current'; try{pick=localStorage['ds15_snd_'+id]||'current'}catch(e){} const found=s.cands.find(c=>c.id===pick); if(found)return found; if(id==='engine'||id==='aaa'||id==='boom'){try{localStorage.removeItem('ds15_snd_'+id)}catch(e){}} return s.cands[0]}
+function sndList(s){return s.bounces?s.cands.concat(s.bounces):s.cands}
+function sndChoice(id){const s=sndSec(id); if(!s)return {id:'current'}; let pick='current'; try{pick=localStorage['ds15_snd_'+id]||'current'}catch(e){} const found=sndList(s).find(c=>c.id===pick); if(found)return found; if(id==='engine'||id==='aaa'||id==='boom'){try{localStorage.removeItem('ds15_snd_'+id)}catch(e){}} return s.cands[0]}
 let sndBypass=0, sndPrev=[];
 function stopSndPrev(){const a=sndPrev; sndPrev=[]; for(const s of a){try{s&&s.stop&&s.stop()}catch(e){}}}
 function plainLoop(buf,vol,dest,meta){if(!AC||!buf)return null; const s=AC.createBufferSource(); s.buffer=buf; s.loop=true; s.playbackRate.value=1; const g=AC.createGain(); g.gain.value=0; g.gain.setTargetAtTime(vol,AC.currentTime,.05); s.connect(g).connect(dest); s.start(); sfxLog('sndPlay',Object.assign({rate:1,vol,mode:'plain'},meta||{})); return {a:s,g,plain:1,stop(t){try{g.gain.setTargetAtTime(0,AC.currentTime,.08); s.stop((t||AC.currentTime)+.2)}catch(e){}}}}
@@ -939,7 +940,9 @@ function buildSndSections(){const host=$('sndSecs'); if(!host)return; host.inner
  for(const sec of SND){const det=document.createElement('details'); det.className='sndSec'; det.dataset.sec=sec.id;
   const body=document.createElement('div'); body.className='body';
   const sum=document.createElement('summary'); sum.textContent=sec.title; det.appendChild(sum); det.appendChild(body);
-  for(const c of sec.cands){const el=document.createElement('div'); el.className='frow'; el.dataset.id=c.id; el.dataset.sec=sec.id;
+  const groups=[{label:'',list:sec.cands}]; if(sec.bounces) groups.push({label:'Your Logic bounces',list:sec.bounces});
+  for(const g of groups){ if(g.label){const lab=document.createElement('div'); lab.className='sndGroup'; lab.textContent=g.label; body.appendChild(lab)}
+  for(const c of g.list){const el=document.createElement('div'); el.className='frow'; el.dataset.id=c.id; el.dataset.sec=sec.id;
    const nm=c.id==='current'?(sec.notLogic?'Current (not Logic)':'Current'):c.name;
    const ds=c.id==='current'?sec.cur:'Logic original. One file, as recorded.';
    el.innerHTML=`<div class="meta"><div class="name"></div><div class="desc"></div></div><div class="acts"><button type="button" class="play" data-act="play">▶ PLAY</button><button type="button" class="stop" data-act="stop">■ STOP</button><button type="button" class="choose" data-act="choose">✓ Choose</button></div>`;
@@ -960,7 +963,7 @@ function buildSndSections(){const host=$('sndSecs'); if(!host)return; host.inner
     });
    });
    body.appendChild(el);
-  }
+  }}
   host.appendChild(det); paintSnd(sec);
  }
 }
