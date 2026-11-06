@@ -42,6 +42,20 @@ html,body{margin:0;min-height:100%;height:auto;background:var(--bg);color:var(--
 #thrbox{padding:8px 14px;border-bottom:1px solid rgba(182,220,174,.25);display:none}
 #thrbox.on{display:block}
 #note{padding:8px 14px;opacity:.65;font-size:11px;line-height:1.4}
+#flareSec{padding:12px 14px 8px;border-bottom:1px solid rgba(182,220,174,.35)}
+#flareSec h2{margin:0 0 6px;font:700 16px var(--m);letter-spacing:1.4px;color:#e8ffe0}
+#flareSec p{margin:0 0 10px;opacity:.72;font-size:12px;line-height:1.4}
+#flareList{display:flex;flex-direction:column;gap:10px}
+.frow{display:grid;grid-template-columns:1fr;gap:8px;padding:12px;border:1px solid rgba(182,220,174,.32);border-radius:8px;background:rgba(12,16,14,.9);touch-action:manipulation}
+.frow .name{font:700 15px var(--m);letter-spacing:1px;color:#e8ffe0}
+.frow .desc{opacity:.72;font-size:12px;line-height:1.35;margin-top:4px}
+.frow .acts{display:flex;flex-wrap:wrap;gap:8px}
+.frow button{min-height:52px;min-width:104px;flex:1;border:1px solid rgba(182,220,174,.55);background:rgba(30,48,34,.85);color:#d8f0d0;border-radius:6px;font:700 14px var(--m);letter-spacing:.4px;touch-action:manipulation}
+.frow button.stop{background:rgba(40,28,28,.75);border-color:rgba(220,160,150,.45)}
+.frow button.choose{background:rgba(20,28,24,.9)}
+.frow.chosen{border-color:#e8ffe0;box-shadow:0 0 0 1px rgba(200,240,190,.5)}
+.frow.chosen button.choose{background:rgba(70,110,60,.95);color:#f4ffe8}
+.frow.playing{border-color:#cfe8c4}
 canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:1px}
 .hud,.btn,#brief,#tut,#end,#badge,#setb,#pauseb,#pauseOv,#setp,#vig,#teach,#thr,#lock,#rel,#flr,#brk,#ecm,#rot,#mvig{display:none!important}
 .hide{display:none!important}
@@ -64,6 +78,11 @@ canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:
 </div>
 <div id="thrbox"><label>ENGINE THROTTLE <span id="t_thrv">70%</span></label><input type="range" id="t_thr" min="0" max="100" value="70"/></div>
 <div id="note">Every row has ▶ PLAY and ■ STOP. A/B: <b>In game</b> = through the game audio chain; <b>Logic original</b> = raw Logic source file, dry.</div>
+<section id="flareSec">
+  <h2>FLARE — choose one</h2>
+  <p>Softer single shots. ✓ Choose saves on this phone and the game uses it. Until you choose, the game keeps Current.</p>
+  <div id="flareList"></div>
+</section>
 <div id="list"></div>
 <canvas id="gl"></canvas>
 <canvas id="hud" width="8" height="8"></canvas><div id="brief" class="hide"></div><div id="tut" class="hide"></div><div id="end" class="hide"></div>
@@ -76,6 +95,6 @@ canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:
 <select id="s_bed" class="hide"></select><span id="v_eng"></span><span id="v_mus"></span><span id="v_bed"></span><span id="v_fx"></span><button id="setx" type="button"></button><div id="resume"></div>
 <div id="tt"></div><div id="tp"></div><div id="tn"></div><div id="mapc"></div>
 <script>window.__DS_MODE='sounds';</script>
-<script type="module" src="./main.mjs?v=15c"></script>
+<script type="module" src="./main.mjs?v=15d"></script>
 </body>
 </html>

@@ -432,7 +432,10 @@ const BRIEF_TRACK='brief';
 const ASSET_V='15';
 const SB={b:{},load(){for(const k of[BRIEF_TRACK,'nuke','sub01','sub08','jet','ambient','riser','jet8','drone','flak','flak2','impact','mlaunch','mmotor','sweep','subdrop','aaaw','msub','hitsub','mus_depth','mus_dream','mus_layers','mus_waves','flare_thump','flare_hiss'])this.get(k)},
  get(k){if(this.b[k])return this.b[k];const tryf=ext=>fetch('sfx/'+k+'.'+ext+'?v='+ASSET_V).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(a=>new Promise((res,rej)=>AC.decodeAudioData(a.slice(0),res,rej)));
-  return this.b[k]=tryf('m4a').catch(()=>tryf('wav')).catch(()=>tryf('mp3')).catch(()=>tryf('ogg')).then(b=>(this[k]=b)).catch(()=>null)}};
+  const wavFirst=/^flare_(thunder|soft|deep|sub|body)$/.test(k);
+  const order=wavFirst?['wav','m4a','mp3','ogg']:['m4a','wav','mp3','ogg'];
+  const chain=order.slice(1).reduce((p,ext)=>p.catch(()=>tryf(ext)), tryf(order[0]));
+  return this.b[k]=chain.then(b=>(this[k]=b)).catch(()=>null)}};
 window.__sfxLog=[];function sfxLog(name,extra={}){try{window.__sfxLog.push(Object.assign({t:AC?AC.currentTime:0,name},extra));if(window.__sfxLog.length>400)window.__sfxLog.shift()}catch(e){}}
 function src(buf,vol,dest,opt={}){if(!AC||!buf)return {onended:null,stop(){}}; const s=AC.createBufferSource();s.buffer=buf;s.loop=!!opt.loop;s.playbackRate.value=opt.rate||1;const g=AC.createGain(),t0=opt.when||AC.currentTime; const cap=!opt.loop&&!opt.pri&&AC.voices>=18; if(cap){sfxLog(opt.tag||'buf',{vol:0,skipped:1}); return {onended:null,stop(){}}; } const fi=opt.fadeIn!=null?opt.fadeIn:0.008; // 8ms declick only — preserve Logic attack
   g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+Math.max(.005,fi)); sfxLog(opt.tag||'buf',{vol,rate:opt.rate||1,fadeIn:fi,pri:!!opt.pri}); if(!opt.loop){AC.voices++; s.onended=()=>{AC.voices--; try{g.disconnect()}catch(e){}}} s.connect(g).connect(dest||AC.out); s.start(t0); s.g=g; return s}
@@ -583,14 +586,31 @@ function fireFlares(){if(S.flares<=0||S.flareCD>0||S.dead||S.phase==='done')retu
  flareSfx();
  const m=S.missile;if(m&&!m.decoy){const d=m.p.distanceTo(S.pos);if(d<flrWin()){m.decoy=S.pos.clone();m.decoyV=fwd.clone().multiplyScalar(-30);m.dt=1.3;defeat(m,'MISSILE DECOYED')}else msg('FLARE EARLY — WAIT FOR <'+(flrWin()/1000).toFixed(1)+' KM')}}
 function msg(t){S.msg=t;S.msgT=2}
-function flareSfx(){if(!AC)return;sfxLog('flareSfx',{});const t=AC.currentTime;
- const P=tmp.copy(S.pos).addScaledVector(fwd,-18);const pn=mkPan(true,90);setP0(pn,P);pn.connect(AC.out);
- if(SB.flare_thump){src(SB.flare_thump,.95,pn,{pri:1,fadeIn:.03,rate:.9+Math.random()*.08,tag:'flare_thump'});src(SB.flare_thump,.55,AC.bigB,{pri:1,fadeIn:.04,rate:.75,tag:'flare_thump_sub'})}
- else{thud(pn,.85,70,28,.5,t);thud(AC.bigB,.5,48,22,.7,t)}
- if(SB.flare_hiss){src(SB.flare_hiss,.7,pn,{pri:1,fadeIn:.1,rate:.95+Math.random()*.1,tag:'flare_hiss'});src(SB.flare_hiss,.35,AC.out,{pri:1,fadeIn:.14,rate:1.05,tag:'flare_hiss_b'})}
- else{const n=AC.createBufferSource();n.buffer=noiseBuf(3);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(900,t);f.frequency.exponentialRampToValueAtTime(280,t+2.2);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.35,t+.12);g.gain.exponentialRampToValueAtTime(.001,t+2.4);n.connect(f).connect(g).connect(pn);n.start(t,Math.random());n.stop(t+2.6)}
- nburst(pn,.2,200,1.6,t+.05);
- setTimeout(()=>{try{pn.disconnect()}catch(e){}},3200)}
+const FLARE_OPTS=[
+ {id:'current',name:'Current',desc:'Thump + hiss. Quieter single shot, no pitch shift.',key:null},
+ {id:'thunder',name:'Clean Thunder',desc:'Soft rumble. Source: Thunder_VideoStar.aif (PCM).',key:'flare_thunder'},
+ {id:'soft',name:'Soft Boom',desc:'Single bass boom. Source: Boomer FX 11.caf.',key:'flare_soft'},
+ {id:'deep',name:'Deep Space',desc:'Short deep hit. Source: Deep Space Boomer 01.caf.',key:'flare_deep'},
+ {id:'sub',name:'Deep Sub',desc:'Long sub tail. Source: Boomer FX 03.caf.',key:'flare_sub'},
+ {id:'body',name:'Full Body',desc:'Bass with more body. Source: Boomer FX 14.caf.',key:'flare_body'},
+];
+function flareChoice(){let id='current'; try{id=localStorage.ds15_flare||'current'}catch(e){} return FLARE_OPTS.find(o=>o.id===id)||FLARE_OPTS[0]}
+let flareLive=[];
+function stopFlareVoices(){const live=flareLive; flareLive=[]; for(const group of live){for(const s of group){try{s&&s.stop&&s.stop()}catch(e){}}}}
+function startFlare(opt){if(!AC)return; const choice=opt||flareChoice();
+ if(choice.key&&!SB[choice.key]){if(choice._ld)return; choice._ld=1; SB.get(choice.key).then(b=>{choice._ld=0; if(b)startFlare(choice)}); return}
+ if(!choice.key&&!SB.flare_thump){if(choice._ld)return; choice._ld=1; Promise.all(['flare_thump','flare_hiss'].map(k=>SB.get(k).catch(()=>null))).then(()=>{choice._ld=0; if(SB.flare_thump||SB.flare_hiss)startFlare(choice)}); return}
+ while(flareLive.length>=2){const old=flareLive.shift(); for(const s of old){try{s&&s.stop&&s.stop()}catch(e){}}}
+ const lvl=0.32*(0.92+Math.random()*0.08);
+ const P=tmp.copy(S.pos).addScaledVector(fwd,-18); const pn=mkPan(true,90); setP0(pn,P); pn.connect(AC.out);
+ const nodes=[];
+ const add=(buf,vol,tag)=>{if(!buf)return; const s=src(buf,vol,pn,{pri:1,rate:1,fadeIn:.012,tag}); if(s&&s.stop)nodes.push(s)};
+ if(!choice.key){ if(SB.flare_thump)add(SB.flare_thump,lvl,'flare:current'); else thud(pn,lvl*.8,48,22,.55); if(SB.flare_hiss)add(SB.flare_hiss,lvl*.45,'flare:current-hiss') }
+ else add(SB[choice.key],lvl,'flare:'+choice.id);
+ flareLive.push(nodes); sfxLog('flareSfx',{id:choice.id,lvl:+lvl.toFixed(3),rate:1});
+ const dur=((choice.key&&SB[choice.key]&&SB[choice.key].duration)||2.4)+.35;
+ setTimeout(()=>{try{pn.disconnect()}catch(e){} const i=flareLive.indexOf(nodes); if(i>=0)flareLive.splice(i,1)}, dur*1000)}
+function flareSfx(){startFlare(flareChoice())}
 function launchSAM(i){if(S.missile||S.samShots>=7||S.cine)return;if(i==null){let bd=1e9;SITES.forEach((st,k)=>{const d=st.p.distanceTo(S.pos);if(d<bd){bd=d;i=k}});if(bd>9000)return}
  const P=SITES[i].p;S.samShots++;S.missile={p:P.clone().add(new THREE.Vector3(0,8,0)),v:new THREE.Vector3(0,90,0),life:20,decoy:null,site:i,blind:0,lost:false};msl.visible=true;mslAudioStart(S.missile);if(S.samShots===1&&!localStorage.ds14_def){localStorage.ds14_def=1;S.teachT=5}const sal=S.sites[i].shots>1;msg((sal?'SECOND LAUNCH — ':'LAUNCH LAUNCH — ')+SITES[i].n);S.lastLaunch=S.t;samRoar(P.distanceTo(S.pos));rwrLaunch(P,sal);
  for(let k=0;k<(MOB?16:28);k++){const a=Math.random()*6.283,sp=20+Math.random()*45;spr(tmp.copy(P).setY(P.y+3),k%3?0xcfc8bc:0xe8e2d8,14,6+Math.random()*5,new THREE.Vector3(Math.cos(a)*sp,4+Math.random()*12,Math.sin(a)*sp),{grow:16,o:.75,drag:.5,fadeIn:.15,must:1})}
@@ -830,7 +850,7 @@ $('retry').addEventListener('pointerdown',e=>{e.stopPropagation();initAudio();st
 function goFS(){const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(f&&!document.fullscreenElement&&!document.webkitFullscreenElement){try{const p=f.call(d,{navigationUI:'hide'});p&&p.catch&&p.catch(()=>{})}catch(e){}}try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}
 if(DS_MODE==='game')addEventListener('pointerdown',goFS,{once:true});
 if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.target.closest&&e.target.closest('#brief,#tut,#end,#go,#retry,#setp,#pauseOv,#pauseCard,input,select,textarea,a,button.label'))return;e.preventDefault()},{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault())}if(DS_MODE==='game')addEventListener('resize',()=>scrollTo(0,0));
-async function begin(){reset();jet.visible=true;if(AC){AC.resume(); await Promise.all(['jet8','jet','ambient','aaaw','sub08'].map(k=>SB.get(k).catch(()=>null))); try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3);}catch(e){} prewarmAudio(); /* background, non-blocking */ } prewarmGfx();running=true;last=performance.now()}
+async function begin(){reset();jet.visible=true;if(AC){AC.resume(); await Promise.all(['jet8','jet','ambient','aaaw','sub08'].map(k=>SB.get(k).catch(()=>null))); try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3);}catch(e){} const fk=flareChoice().key; if(fk)SB.get(fk).catch(()=>{}); prewarmAudio(); /* background, non-blocking */ } prewarmGfx();running=true;last=performance.now()}
 reset();
 if(DS_MODE==='game'){clock();drawMap();chat();addEventListener('resize',()=>{if(!$('brief').classList.contains('hide'))drawMap()});requestAnimationFrame(step)}
 
@@ -839,9 +859,31 @@ if(DS_MODE==='game'){clock();drawMap();chat();addEventListener('resize',()=>{if(
 let testerPan='C', testerLoops={}, testerEngOn=false;
 function testerPos(){const d=420;const o={L:[-d,0,-40],R:[d,0,-40],C:[0,20,-80],B:[0,10,d]}[testerPan]||[0,20,-80];return S.pos.clone().add(new THREE.Vector3(...o))}
 
+function paintFlareChoice(){const id=flareChoice().id; document.querySelectorAll('#flareList .frow').forEach(el=>{const on=el.dataset.id===id; el.classList.toggle('chosen',on); const b=el.querySelector('.choose'); if(b)b.textContent=on?'✓ Chosen':'✓ Choose'})}
+function buildFlarePicker(){const host=$('flareList'); if(!host)return; host.innerHTML='';
+ for(const c of FLARE_OPTS){const el=document.createElement('div'); el.className='frow'; el.dataset.id=c.id;
+  el.innerHTML=`<div class="meta"><div class="name">${c.name}</div><div class="desc">${c.desc}</div></div><div class="acts"><button type="button" class="play" data-act="play">▶ PLAY</button><button type="button" class="stop" data-act="stop">■ STOP</button><button type="button" class="choose" data-act="choose">✓ Choose</button></div>`;
+  el.querySelectorAll('button').forEach(btn=>{
+   btn.addEventListener('pointerdown',e=>{btn._pt={x:e.clientX,y:e.clientY,id:e.pointerId}; ensureAudioSync()},{passive:true});
+   btn.addEventListener('pointerup',e=>{
+    const p=btn._pt; btn._pt=null; if(!p||p.id!==e.pointerId)return;
+    if(Math.hypot(e.clientX-p.x,e.clientY-p.y)>18)return;
+    e.preventDefault(); ensureAudioSync();
+    if(btn.dataset.act==='play'){document.querySelectorAll('#flareList .frow').forEach(x=>x.classList.toggle('playing',x===el));
+     const run=()=>startFlare(c);
+     if(c.key&&!SB[c.key])SB.get(c.key).then(b=>{if(b)run()});
+     else if(!c.key)Promise.all(['flare_thump','flare_hiss'].map(k=>SB.get(k).catch(()=>null))).then(run);
+     else run();
+    }else if(btn.dataset.act==='stop'){stopFlareVoices(); el.classList.remove('playing')}
+    else{const cur=flareChoice().id; const next=(cur===c.id&&c.id!=='current')?'current':c.id; try{localStorage.ds15_flare=next}catch(err){} paintFlareChoice()}
+   });
+  });
+  host.appendChild(el)}
+ paintFlareChoice()}
 function setupSoundTester(){
   document.body.classList.add('soundsMode');
   running=false; if(S){S.cine=false; S.pos.set(vx(300),H(vx(300),300)+120,300)}
+  buildFlarePicker();
   const list=$('list'); if(!list)return;
   window.__sfxTest=1;
   const rows=[
@@ -862,7 +904,7 @@ function setupSoundTester(){
     {id:'hit',name:'MISSILE HIT ON JET',desc:'Airframe hit (Logic impact/sub).'},
     {id:'crash',name:'CRASH / SHOT DOWN',desc:'Jet destroyed crash.'},
     {id:'terrain',name:'TERRAIN IMPACT',desc:'Ground impact crash.'},
-    {id:'flare',name:'PLAYER FLARE',desc:'Flare thump + hiss.'},
+    {id:'flare',name:'PLAYER FLARE',desc:'Plays the flare chosen above.'},
     {id:'ecm',name:'ECM',desc:'ECM chirps.'},
     {id:'break',name:'BREAK',desc:'Hard break thump.'},
     {id:'rwr',name:'RWR WARNING',desc:'RWR tones.'},
@@ -946,7 +988,7 @@ function ensureAudioSync(){
 }
 async function preloadTesterSounds(){
   if(!AC) initAudio();
-  const keys=['jet8','jet','ambient','drone','mus_depth','mus_dream','mus_layers','mus_waves','aaaw','flak','flak2','sub01','sub08','subdrop','mlaunch','mmotor','msub','hitsub','impact','flare_thump','flare_hiss','nuke','riser',BRIEF_TRACK];
+  const keys=['jet8','jet','ambient','drone','mus_depth','mus_dream','mus_layers','mus_waves','aaaw','flak','flak2','sub01','sub08','subdrop','mlaunch','mmotor','msub','hitsub','impact','flare_thump','flare_hiss','flare_thunder','flare_soft','flare_deep','flare_sub','flare_body','nuke','riser',BRIEF_TRACK];
   await Promise.all(keys.map(k=>SB.get(k).catch(()=>null)));
 }
 let testerActiveId=null;
@@ -1095,7 +1137,7 @@ window.__ftLog=[]; window.__longTasks=[]; window.__ftMark='';
 try{ const _po=new PerformanceObserver((list)=>{ for(const e of list.getEntries()){ window.__longTasks.push({d:e.duration,n:e.name,t:e.startTime}); if(window.__longTasks.length>80)window.__longTasks.shift(); }}); _po.observe({entryTypes:['longtask']}); }catch(e){}
 window.__ft={max:0,relMax:0,n:0,over100:0, mark(m){window.__ftMark=m}, snap(){return {max:this.max,over100:this.over100,n:this.n,top:[...window.__ftLog].sort((a,b)=>b.dt-a.dt).slice(0,8), lt:window.__longTasks.slice(-8)}}};
 
-window.__S=()=>S;window.__brk=doBreak;window.__flr=fireFlares;window.__ecm=doECM;window.__begin=begin;window.__inp=inp;window.__aaa=P=>aaaBurst(P||BUNK.clone());window.__flak=P=>flakBoom(P||BUNK.clone().add(new THREE.Vector3(0,80,0)));window.__whoosh=whoosh;window.__passBy=P=>passBy(P||S.pos.clone());window.__sam=d=>samRoar(d||800);window.__rwr=P=>rwrLaunch(P||BUNK.clone(),false);window.__boom=b=>boomSfx(!!b);window.__crash=()=>crashSfx();window.__die=w=>die(w||'TEST CRASH');window.__thud=()=>thud(AC.out,.5,48,20,1);window.__nburst=()=>nburst(AC.out,.3,220,.5);window.__BUNK=()=>BUNK;window.__release=release;window.__H=H;window.__setThr=setThr;window.__AC=()=>AC;window.__ft={max:0,relMax:0,n:0,markRel(){this._r=performance.now()}};window.__sfx=()=>window.__sfxLog.slice();window.__clearSfx=()=>{window.__sfxLog=[]};
+window.__S=()=>S;window.__brk=doBreak;window.__flr=fireFlares;window.__ecm=doECM;window.__begin=begin;window.__inp=inp;window.__aaa=P=>aaaBurst(P||BUNK.clone());window.__flak=P=>flakBoom(P||BUNK.clone().add(new THREE.Vector3(0,80,0)));window.__whoosh=whoosh;window.__passBy=P=>passBy(P||S.pos.clone());window.__sam=d=>samRoar(d||800);window.__rwr=P=>rwrLaunch(P||BUNK.clone(),false);window.__boom=b=>boomSfx(!!b);window.__crash=()=>crashSfx();window.__die=w=>die(w||'TEST CRASH');window.__thud=()=>thud(AC.out,.5,48,20,1);window.__nburst=()=>nburst(AC.out,.3,220,.5);window.__BUNK=()=>BUNK;window.__release=release;window.__H=H;window.__setThr=setThr;window.__AC=()=>AC;window.__ft={max:0,relMax:0,n:0,markRel(){this._r=performance.now()}};window.__sfx=()=>window.__sfxLog.slice();window.__clearSfx=()=>{window.__sfxLog=[]};window.__flareId=()=>flareChoice().id;window.__flarePlay=id=>{ensureAudioSync(); const c=FLARE_OPTS.find(o=>o.id===id)||flareChoice(); const go=()=>startFlare(c); if(c.key&&!SB[c.key])return SB.get(c.key).then(b=>b&&go()); if(!c.key)return Promise.all(['flare_thump','flare_hiss'].map(k=>SB.get(k).catch(()=>null))).then(go); return Promise.resolve(go())};
 
 // mode boot (after all lets)
 if(DS_MODE==='sounds')setupSoundTester();
