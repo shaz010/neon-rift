@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="DS SCN 15"/>
+<meta name="theme-color" content="#164830"/>
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-scn-180.png"/>
+<link rel="manifest" href="manifest-scn.webmanifest"/>
+<title>DEEP STRIKE s15 — Scenery Tester</title>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+<style>
+:root{--g:#b6dcae;--bg:#070908;--m:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+html{height:100%}
+html,body{margin:0;min-height:100%;height:auto;background:var(--bg);color:var(--g);font:13px var(--m);touch-action:pan-y;-webkit-overflow-scrolling:touch;overflow-x:hidden;overflow-y:auto;position:relative;-webkit-user-select:none;user-select:none}
+#bar{position:sticky;top:0;z-index:20;background:rgba(6,10,8,.96);border-bottom:1px solid rgba(182,220,174,.35);padding:calc(10px + env(safe-area-inset-top)) 14px 10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#bar h1{margin:0;font:700 14px var(--m);letter-spacing:2px;flex:1}
+#bar a.back{margin-left:auto;min-height:48px;min-width:132px;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(182,220,174,.6);border-radius:6px;background:rgba(40,60,40,.85);color:#e8ffe0;text-decoration:none;font:700 13px var(--m);touch-action:manipulation;z-index:31;position:relative}
+#picked{width:100%;margin-top:6px;padding:8px 10px;border:1px solid rgba(182,220,174,.45);background:rgba(30,50,34,.75);border-radius:6px;font:700 13px var(--m);display:none}
+#picked.on{display:block}
+#previewWrap{display:none;position:sticky;top:calc(58px + env(safe-area-inset-top));z-index:7;height:min(42dvh,320px);background:#000;border-bottom:1px solid rgba(182,220,174,.3)}
+#previewWrap.on{display:block}
+canvas#gl{position:absolute;inset:0;width:100%!important;height:100%!important;display:block;touch-action:none}
+#previewLabel{position:absolute;left:10px;bottom:8px;z-index:2;padding:4px 8px;background:rgba(0,0,0,.55);border:1px solid rgba(182,220,174,.35);border-radius:4px;font:11px var(--m);pointer-events:none}
+#list{padding:10px 10px calc(28px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+.row{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid rgba(182,220,174,.32);border-radius:8px;background:rgba(12,16,14,.9)}
+.row.on{border-color:#cfe8c4;box-shadow:0 0 0 1px rgba(182,220,174,.35)}
+.row img.still{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;background:#111;display:block}
+.row .name{font:700 15px var(--m);letter-spacing:1.5px;color:#e8ffe0}
+.row .desc{opacity:.75;font-size:12px;line-height:1.4}
+.row .acts{display:flex;gap:8px;flex-wrap:wrap}
+.row button{flex:1;min-height:48px;min-width:120px;border:1px solid rgba(182,220,174,.55);background:rgba(30,48,34,.8);color:#d8f0d0;border-radius:6px;font:700 13px var(--m);letter-spacing:1px;touch-action:manipulation}
+.row button.pick{background:rgba(60,90,50,.85);border-color:#cfe8c4}
+.row button.live{background:rgba(20,36,40,.85)}
+.hud,.btn,#brief,#tut,#end,#badge,#setb,#pauseb,#pauseOv,#setp,#vig,#teach,#thr,#lock,#rel,#flr,#brk,#ecm,#rot,#mvig,#hx,#ui,#panel{display:none!important}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<div id="bar">
+  <h1>DEEP STRIKE · s15 — SCENERY</h1>
+  <a class="back" href="./index.html">← Back to game</a>
+  <div id="picked">PICKED: —</div>
+</div>
+<div id="previewWrap">
+  <canvas id="gl"></canvas>
+  <div id="previewLabel">LIVE PREVIEW</div>
+</div>
+<div id="list"></div>
+<canvas id="hud" class="hide" width="8" height="8"></canvas>
+<canvas id="map" class="hide" width="8" height="8"></canvas>
+<div id="brief" class="hide"></div><div id="tut" class="hide"></div><div id="end" class="hide"></div>
+<div id="badge"></div><div id="setb"></div><div id="setp"></div><div id="pauseb"></div><div id="pauseOv"></div>
+<div id="go"></div><div id="lock"></div><div id="rel"></div><div id="relf"></div><div id="flr"></div><div id="brk"></div><div id="ecm"></div>
+<div id="thr"></div><div id="thrk"></div><div id="thrl"></div><div id="vig"></div><div id="teach"></div>
+<div id="flash"></div><div id="rot"></div><div id="hx"></div><div id="chat"></div><div id="snd"></div>
+<div id="clk"></div><div id="et"></div><div id="es"></div><div id="etab"></div><div id="retry"></div>
+<input type="range" id="s_eng" class="hide"/><input type="range" id="s_mus" class="hide"/><input type="range" id="s_bedvol" class="hide"/><input type="range" id="s_fx" class="hide"/>
+<select id="s_bed" class="hide"></select><span id="v_eng"></span><span id="v_mus"></span><span id="v_bed"></span><span id="v_fx"></span><button id="setx" type="button"></button><div id="resume"></div>
+<div id="tt"></div><div id="tp"></div><div id="tn"></div><div id="mapc"></div><div id="previewLabel" class="hide"></div>
+<script>window.__DS_MODE='scenery';</script>
+<script type="module" src="./main.mjs?v=15a"></script>
+</body>
+</html>
