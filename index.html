@@ -77,7 +77,7 @@ table{width:100%;font-size:12px;border-collapse:collapse}td{padding:3px 0;border
 #pauseCard .k{color:#8fa88a;letter-spacing:1px}#pauseCard .v{color:#e4f0e0}
 #pauseCard .res{margin-top:16px;width:100%;min-height:56px;border:1px solid rgba(182,220,174,.6);background:rgba(40,60,40,.55);color:#d8f0d0;font:600 15px monospace;letter-spacing:2px;border-radius:6px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;position:relative;z-index:52}
 #flash{position:fixed;inset:0;background:#fff0d8;opacity:0;pointer-events:none;z-index:3}
-#badge{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;color:#d8f0d0;font:700 13px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:3px;padding:6px 14px;border:1px solid rgba(182,220,174,.55);background:rgba(6,10,8,.72);border-radius:4px;text-shadow:0 1px 2px #000}#verpill{margin:8px 0 10px;display:inline-block;color:#e8ffe0;font:700 15px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:2.5px;padding:8px 14px;border:1px solid rgba(182,220,174,.65);background:rgba(20,36,24,.85);border-radius:4px}
+#badge{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;color:#d8f0d0;font:700 15px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:1.5px;padding:6px 14px;border:1px solid rgba(182,220,174,.55);background:rgba(6,10,8,.72);border-radius:4px;text-shadow:0 1px 2px #000;white-space:nowrap}#verpill{margin:8px 0 10px;display:inline-block;color:#e8ffe0;font:700 16px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:1.2px;padding:8px 14px;border:1px solid rgba(182,220,174,.65);background:rgba(20,36,24,.85);border-radius:4px}
 #rot{display:none;position:fixed;inset:auto;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:max-content;max-width:calc(100vw - 24px);height:auto;z-index:8;align-items:center;justify-content:center;pointer-events:none!important;touch-action:none;background:rgba(6,10,8,.8);color:#d8f0d0;border:1px solid rgba(182,220,174,.45);border-radius:4px;padding:8px 12px;letter-spacing:1.4px;font-size:11px;line-height:1.35;text-align:center}
 @media (orientation:portrait){#rot{display:flex}}
 html.ds-land #rot,#rot.hide{display:none!important;pointer-events:none!important}
@@ -112,9 +112,9 @@ html.ds-land #rot,#rot.hide{display:none!important;pointer-events:none!important
 <div class="row"><div class="k">RELEASE</div><div class="v">Hold to pickle the bomb after LOCK. Fill the bar, then release.</div></div>
 <div class="row"><div class="k">HEALTH</div><div class="v">Two hits from SAMs and you are down. DMG appears on the HUD when wounded.</div></div>
 <button type="button" class="res" id="resume">RESUME</button></div></div>
-<div id="badge">DEEP STRIKE · s15</div>
+<div id="badge" data-patch>s15 · 15k</div>
 <div id="brief" class="ov scan">
- <div id="bl"><div class="hdr"><span>DEEP STRIKE // IRON VEIL</span><span>s15</span></div><div id="verpill">DEEP STRIKE · s15</div>
+ <div id="bl"><div class="hdr"><span>DEEP STRIKE // IRON VEIL</span><span>s15</span></div><div id="verpill" data-patch>s15 · 15k</div>
   <canvas id="map"></canvas>
   <div class="hdr" style="border:0;margin:4px 0 0"><span id="mapc">SAT-4 0412Z · VARKESH (FICTIONAL)</span><span>1KM GRID</span></div></div>
  <div id="br"><div class="hdr"><span>MISSION BRIEF</span><span id="clk">0412Z</span></div>
