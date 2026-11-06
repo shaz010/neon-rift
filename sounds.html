@@ -4,12 +4,11 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-title" content="DS SND 14"/>
+<meta name="apple-mobile-web-app-title" content="DS SND 15"/>
 <meta name="theme-color" content="#14305c"/>
 <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-snd-180.png"/>
 <link rel="manifest" href="manifest-snd.webmanifest"/>
-
-<title>DEEP STRIKE s14 — Sound Tester</title>
+<title>DEEP STRIKE s15 — Sound Tester</title>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
 <style>
 :root{--g:#b6dcae;--bg:#070908;--m:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
@@ -17,38 +16,39 @@ html{height:100%}
 html,body{margin:0;min-height:100%;height:auto;background:var(--bg);color:var(--g);font:13px var(--m);touch-action:pan-y;-webkit-overflow-scrolling:touch;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:auto;position:relative;-webkit-user-select:none;user-select:none}
 #bar{position:sticky;top:0;z-index:30;background:rgba(6,10,8,.96);border-bottom:1px solid rgba(182,220,174,.35);padding:calc(10px + env(safe-area-inset-top)) 14px 10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 #bar h1{margin:0;font:700 15px var(--m);letter-spacing:2px;flex:1;min-width:140px}
-#bar a.back,#bar a{margin-left:auto;min-height:48px;min-width:132px;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(182,220,174,.6);border-radius:6px;background:rgba(40,60,40,.85);color:#e8ffe0;text-decoration:none;font:700 13px var(--m);letter-spacing:1px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;position:relative;z-index:31}
+#bar a.back{margin-left:auto;min-height:48px;min-width:132px;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(182,220,174,.6);border-radius:6px;background:rgba(40,60,40,.85);color:#e8ffe0;text-decoration:none;font:700 13px var(--m);letter-spacing:1px;touch-action:manipulation;position:relative;z-index:31}
 #unlock{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(4,8,6,.92);flex-direction:column;gap:14px;touch-action:manipulation}
-#unlock button{min-height:56px;min-width:70vw;font:700 16px var(--m);letter-spacing:2px;border:1px solid var(--g);background:rgba(40,60,40,.7);color:#e8ffe0;border-radius:8px;touch-action:manipulation}
+#unlock button{min-height:56px;min-width:70vw;font:700 16px var(--m);letter-spacing:2px;border:1px solid var(--g);background:rgba(40,60,40,.7);color:#e8ffe0;border-radius:8px}
 #vols{display:flex;flex-wrap:wrap;gap:10px 16px;padding:10px 14px;border-bottom:1px solid rgba(182,220,174,.25);touch-action:pan-y}
-#vols label{display:flex;flex-direction:column;gap:6px;min-width:150px;flex:1;touch-action:pan-y}
+#vols label{display:flex;flex-direction:column;gap:6px;min-width:150px;flex:1}
 #vols input[type=range],#thrbox input[type=range]{width:100%;height:48px;margin:0;accent-color:#b6dcae;touch-action:none;-webkit-appearance:none;appearance:none;background:transparent}
 #vols input[type=range]::-webkit-slider-runnable-track,#thrbox input[type=range]::-webkit-slider-runnable-track{height:12px;background:rgba(182,220,174,.28);border-radius:6px}
-#vols input[type=range]::-webkit-slider-thumb,#thrbox input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;height:32px;border-radius:50%;background:#b6dcae;margin-top:-10px;border:2px solid #0c100e;box-shadow:0 0 0 4px rgba(182,220,174,.18)}
-#vols input[type=range]::-moz-range-track,#thrbox input[type=range]::-moz-range-track{height:12px;background:rgba(182,220,174,.28);border-radius:6px}
-#vols input[type=range]::-moz-range-thumb,#thrbox input[type=range]::-moz-range-thumb{width:32px;height:32px;border-radius:50%;background:#b6dcae;border:2px solid #0c100e}
-#pan{display:flex;gap:8px;padding:8px 14px;flex-wrap:wrap;align-items:center;border-bottom:1px solid rgba(182,220,174,.25);touch-action:pan-y}
+#vols input[type=range]::-webkit-slider-thumb,#thrbox input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;height:32px;border-radius:50%;background:#b6dcae;margin-top:-10px;border:2px solid #0c100e}
+#pan{display:flex;gap:8px;padding:8px 14px;flex-wrap:wrap;align-items:center;border-bottom:1px solid rgba(182,220,174,.25)}
 #pan button{min-height:44px;padding:0 14px;border:1px solid rgba(182,220,174,.45);background:rgba(20,28,22,.8);color:var(--g);border-radius:6px;font:12px var(--m);touch-action:manipulation}
 #pan button.on{background:rgba(80,120,80,.55);border-color:var(--g)}
-#list{padding:8px 10px calc(28px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;touch-action:pan-y}
-.row{display:grid;grid-template-columns:1fr auto;gap:8px;padding:12px;border:1px solid rgba(182,220,174,.3);border-radius:8px;background:rgba(12,16,14,.85);touch-action:pan-y}
-.row .meta{display:flex;flex-direction:column;gap:4px;min-width:0;touch-action:pan-y}
+#list{padding:8px 10px calc(28px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;touch-action:pan-y}
+.row{display:grid;grid-template-columns:1fr auto;gap:10px;padding:14px;border:1px solid rgba(182,220,174,.3);border-radius:8px;background:rgba(12,16,14,.85);touch-action:pan-y}
 .row .name{font:700 14px var(--m);letter-spacing:1px;color:#e4f0e0}
-.row .desc{opacity:.7;font-size:11px;line-height:1.35}
-.row .acts{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.row .desc{opacity:.7;font-size:11px;line-height:1.35;margin-top:4px}
+.row .ab{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.row .abbtn{min-height:36px;padding:0 10px;border:1px solid rgba(182,220,174,.4);background:rgba(20,28,22,.75);color:#9eb896;border-radius:6px;font:700 11px var(--m);touch-action:manipulation}
+.row .abbtn.on{background:rgba(60,90,50,.85);color:#e8ffe0;border-color:#cfe8c4}
+.row .acts{display:flex;flex-direction:column;gap:8px;align-items:stretch}
 .row.playing{border-color:#cfe8c4;box-shadow:0 0 0 1px rgba(182,220,174,.4)}
-.row button{min-height:48px;min-width:96px;border:1px solid rgba(182,220,174,.5);background:rgba(30,48,34,.75);color:#d8f0d0;border-radius:6px;font:700 13px var(--m);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-.row label.loop{display:flex;align-items:center;gap:6px;font-size:11px;opacity:.85}
-#thrbox{padding:8px 14px;border-bottom:1px solid rgba(182,220,174,.25);display:none;touch-action:pan-y}
+.row button.play,.row button.stop{min-height:52px;min-width:110px;border:1px solid rgba(182,220,174,.55);background:rgba(30,48,34,.8);color:#d8f0d0;border-radius:6px;font:700 14px var(--m);letter-spacing:1px;touch-action:manipulation}
+.row button.stop{background:rgba(40,28,28,.75);border-color:rgba(220,160,150,.45)}
+#thrbox{padding:8px 14px;border-bottom:1px solid rgba(182,220,174,.25);display:none}
 #thrbox.on{display:block}
+#note{padding:8px 14px;opacity:.65;font-size:11px;line-height:1.4}
 canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:1px}
 .hud,.btn,#brief,#tut,#end,#badge,#setb,#pauseb,#pauseOv,#setp,#vig,#teach,#thr,#lock,#rel,#flr,#brk,#ecm,#rot,#mvig{display:none!important}
 .hide{display:none!important}
 </style>
 </head>
 <body>
-<div id="unlock"><div style="letter-spacing:3px;font-weight:700">DEEP STRIKE · s14</div><div style="opacity:.75">SOUND TESTER</div><button type="button" id="unlockBtn">TAP TO UNLOCK AUDIO</button></div>
-<div id="bar"><h1>DEEP STRIKE · s14 — SOUND TESTER</h1><a class="back" href="./index.html">← Back to game</a></div>
+<div id="unlock"><div style="letter-spacing:3px;font-weight:700">DEEP STRIKE · s15</div><div style="opacity:.75">SOUND TESTER</div><button type="button" id="unlockBtn">TAP TO UNLOCK AUDIO</button></div>
+<div id="bar"><h1>DEEP STRIKE · s15 — SOUND TESTER</h1><a class="back" href="./index.html">← Back to game</a></div>
 <div id="vols">
 <label>MASTER <input type="range" id="t_master" min="0" max="100" value="80"/></label>
 <label>MUSIC / BED <input type="range" id="t_mus" min="0" max="100" value="85"/></label>
@@ -62,20 +62,19 @@ canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:
 <button type="button" data-pan="B">BEHIND</button>
 </div>
 <div id="thrbox"><label>ENGINE THROTTLE <span id="t_thrv">70%</span></label><input type="range" id="t_thr" min="0" max="100" value="70"/></div>
+<div id="note">Every row has ▶ PLAY and ■ STOP. A/B: <b>In game</b> = through the game audio chain; <b>Logic original</b> = raw Logic source file, dry.</div>
 <div id="list"></div>
 <canvas id="gl"></canvas>
-<!-- hidden game chrome stubs so main.mjs $-lookups don't throw before mode gate -->
 <canvas id="hud" width="8" height="8"></canvas><div id="brief" class="hide"></div><div id="tut" class="hide"></div><div id="end" class="hide"></div>
 <div id="badge"></div><div id="setb"></div><div id="setp"></div><div id="pauseb"></div><div id="pauseOv"></div>
 <div id="go"></div><div id="lock"></div><div id="rel"></div><div id="relf"></div><div id="flr"></div><div id="brk"></div><div id="ecm"></div>
 <div id="thr"></div><div id="thrk"></div><div id="thrl"></div><div id="vig"></div><div id="teach"></div>
 <div id="flash"></div><div id="rot"></div><div id="hx"></div><canvas id="map" width="8" height="8"></canvas><div id="chat"></div><div id="snd"></div>
 <div id="clk"></div><div id="et"></div><div id="es"></div><div id="etab"></div><div id="retry"></div>
-
 <input type="range" id="s_eng" class="hide"/><input type="range" id="s_mus" class="hide"/><input type="range" id="s_bedvol" class="hide"/><input type="range" id="s_fx" class="hide"/>
 <select id="s_bed" class="hide"></select><span id="v_eng"></span><span id="v_mus"></span><span id="v_bed"></span><span id="v_fx"></span><button id="setx" type="button"></button><div id="resume"></div>
 <div id="tt"></div><div id="tp"></div><div id="tn"></div><div id="mapc"></div>
 <script>window.__DS_MODE='sounds';</script>
-<script type="module" src="./main.mjs?v=14f"></script>
+<script type="module" src="./main.mjs?v=15a"></script>
 </body>
 </html>
