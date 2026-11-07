@@ -5,6 +5,14 @@ Branch: `strike-16`. Pages folder: `/strike-16/` only.
 
 Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
 
+## s16 · 16e — take-off pad, and SAMs you can kill
+
+Take-off keeps the 16d flight mix and adds the s15 Propulsion Layers pad (`mus_layers`, the synth layer from the sound tester) under it. No whoosh and no new noise. Shahbaz's own intro replaces that pad by setting `INTRO_TRACK` in `main.mjs` to an `sfx/` key and adding the file. `startIntroMusic()` is the only function that starts it, and it stops when the valley begins.
+
+A SAM battery shows a lock light and a short tone, then about two seconds before it fires. Hold GUN and put the pipper on the battery, or put it in the HUD box and hold RELEASE (two bombs). An inbound missile is a bright body you can gun down: a hit is a mid-air burst and the warning stops. The gun never fires on its own. The camera is the same steady chase cam.
+
+Stamp `s16 · 16e`.
+
 ## s16 · 16d — sound put back to s15
 
 The catapult no longer plays a noise whoosh. Take-off uses the same flight mix as the valley sortie (`mixFlightAudio`), which is the s15 graph: master gain 0.8 into the gentle compressor. The golden-hour environment rebuild is deferred so it does not stall the audio thread on the first frame. Standing crew skeletons are frozen after their pose. Stamp `s16 · 16d`.
