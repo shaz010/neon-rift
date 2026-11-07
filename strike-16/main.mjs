@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16j'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16k'])[1];
 const PATCH_LABEL='s16 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -743,6 +743,15 @@ const SND=[
  {id:'boom',title:'Explosions — choose one',loop:0,notLogic:1,cur:'Impact, hit and sub stacked together.',reals:[C('rl1','Real 1','snd_rl1','Nikkō single blast + long debris tail + Subsonic 06 and 01.'),C('rl2','Real 2','snd_rl2','Nikkō multi-blast take + Subsonic 06 + Boomer FX 29.'),C('rl3','Real 3','snd_rl3','Nikkō three-hit demolition + Subsonic 06 + Boomer FX 29.'),C('rl4','Real 4','snd_rl4','Nikkō long take, Subsonic 06 on the first hit, Boomer FX 29 on the loudest.'),C('rl5','Real 5','snd_rl5','Reversed Nikkō debris suck-in + late blast + Subsonic 06 + Boomer FX 29.'),C('rl6','Real 6','snd_rl6','Nikkō cluster + Subsonic 06 + Boomer FX 29 + long debris tail.')],mixes:[C('nk1','Mix 1','snd_nk1','Reversed Subsonic 06 suck-in + Boomer FX 29 + Subsonic 06 tail.'),C('nk2','Mix 2','snd_nk2','Kick crack + Pound Down impact + Sun Up rumble.'),C('nk3','Mix 3','snd_nk3','Reversed Sun Up suck-in + Subsonic 01 + In Rotation debris.'),C('nk4','Mix 4','snd_nk4','Subsonic 09 pre-blast + Boomer FX 29 + Subsonic 06 + Subsonic 07 bed.'),C('nk5','Mix 5','snd_nk5','Pound Down + Boomer FX 29 + Subsonic 06, then Sun Up tail.'),C('nk6','Mix 6','snd_nk6','Reversed In Rotation suck-in + Sun Up + delayed Subsonic 09 + Subsonic 08 bed.')],cands:[C('current','',null),C('dbi','Deep Boom Impact','snd_xdbi'),C('sei','Smoldering Embers Impact 01','snd_xsei'),C('cci','Cosmic Craze Impact 01','snd_xcci'),C('bai','Back at It Bass Impact','snd_xbai'),C('nb','Noisy Boomer','snd_xnb'),C('dlb','Deep Laser Boomer','snd_xdlb')],bounces:[C('b29','Boomer FX 29','snd_b29'),C('sun','Sun Up Impact 01','snd_sun'),C('pnd','Pound Down Impact','snd_pnd'),C('rot','In Rotation FX','snd_rot'),C('s06','Subsonic Boom FX 06','snd_s06'),C('s01','Subsonic Boom FX 01','snd_s01')]},
  {id:'bombrelease',title:'Bomb release — choose one',loop:0,notLogic:1,cur:'Riser, sub and whoosh layered together.',cands:[C('current','',null),C('br1','Rack clunk','snd_br1','Kick strike from the pylon.'),C('br2','Latch thunk','snd_br2','Low latch after the store leaves.'),C('br3','Pylon release','snd_br3','Rack clunk, then the latch.'),C('br4','Store away','snd_br4','Heavy latch, then a smaller clunk.'),C('br5','Release whoosh','snd_br5','Clunk plus a short falling whoosh.'),C('br6','Heavy pickle','snd_br6','Heavy clunk plus a short whistle.')]},
  {id:'nuke',title:'Nuclear blast — choose one',loop:0,notLogic:0,cur:'The single bunker-blast sample used now.',cands:[C('current','',null),C('n1','Boomer FX 49.caf','snd_n1'),C('n2','Boomer FX 50.caf','snd_n2'),C('n3','Boomer FX 51.caf','snd_n3'),C('n4','Boomer FX 18.caf','snd_n4'),C('n5','Boomer FX 30.caf','snd_n5')]},
+ {id:'bunker',title:'Bunker blast — choose one',loop:0,notLogic:1,cur:'The single bunker sample the game used before these blasts.',cands:[
+  C('current','',null),
+  Object.assign(C('b1','Shock Front',null,'Real flash, a short gap, then Subsonic 06 and Back at It. The strongest blast.'),{layers:[{k:'bk_crack',v:.6,d:0,hold:1.6},{k:'lx_drop',v:.28,d:.16,hold:1.1},{k:'lx_s06',v:.48,d:.28,hold:11},{k:'lx_back',v:.34,d:.55,hold:12}]}),
+  Object.assign(C('b2','Long Roll',null,'Ten-second field recording under Subsonic 09 and Boomer FX 29.'),{layers:[{k:'bk_long',v:.52,d:0,hold:10},{k:'lx_s09',v:.4,d:.2,hold:12},{k:'lx_b29',v:.34,d:.65,hold:12}]}),
+  Object.assign(C('b3','Double Wave',null,'Field blast, Deep Space Boomer, then a second Subsonic 06.'),{layers:[{k:'bk_mid',v:.55,d:0,hold:5.3},{k:'lx_boomer',v:.46,d:.18,hold:8},{k:'lx_s01k',v:.36,d:.5,hold:12},{k:'lx_s06',v:.3,d:1.05,hold:10}]}),
+  Object.assign(C('b4','Titan Break',null,'Flash, SubDrop, Titan Call, then the Back at It tail.'),{layers:[{k:'bk_crack',v:.5,d:0,hold:1.6},{k:'lx_drop',v:.34,d:.1,hold:1.1},{k:'lx_titan',v:.52,d:.22,hold:12},{k:'lx_back',v:.32,d:.75,hold:11}]}),
+  Object.assign(C('b5','Valley Hammer',null,'Seven-second field roll, Subsonic 09, Boomer FX 29 and Subsonic 01.'),{layers:[{k:'bk_roll',v:.5,d:0,hold:7.1},{k:'lx_s09',v:.38,d:.22,hold:12},{k:'lx_b29',v:.36,d:.5,hold:12},{k:'lx_s01k',v:.26,d:.9,hold:10}]}),
+  Object.assign(C('b6','Deep End',null,'Long field roll, SubDrop, Deep Space Boomer, Subsonic 06 and Back at It.'),{layers:[{k:'bk_long',v:.46,d:0,hold:10},{k:'lx_drop',v:.26,d:.14,hold:1.1},{k:'lx_boomer',v:.4,d:.24,hold:8},{k:'lx_s06',v:.34,d:.42,hold:11},{k:'lx_back',v:.28,d:1.1,hold:12}]})
+ ]},
  {id:'radar',title:'Radar / lock — choose one',loop:0,notLogic:1,cur:'Synth beeps, not a Logic file.',cands:[C('current','',null),C('d1','Boomer FX 40.caf','snd_d1'),C('d2','Rumble Sub Bass.caf','snd_d2'),C('d3','Rumble Noise FX.caf','snd_d3'),C('d4','Boomer FX 26.caf','snd_d4'),C('d5','Boomer FX 21.caf','snd_d5')]},
  {id:'crash',title:'Crash — choose one',loop:0,notLogic:1,cur:'Impact plus sub, two files at once.',cands:[C('current','',null),C('c1','Boomer FX 20.caf','snd_c1'),C('c2','Boomer FX 46.caf','snd_c2'),C('c3','Boomer FX 13.caf','snd_c3'),C('c4','Boomer FX 19.caf','snd_c4'),C('c5','Boomer FX 43.caf','snd_c5')]},
  {id:'overhead',title:'Overhead pass — choose one',loop:0,notLogic:1,cur:'Whoosh, pass and jet layered together.',cands:[C('current','',null),C('o1','Jet Passing Overhead 01.caf','snd_o1'),C('o2','Jet Passing Overhead 02.caf','snd_o2'),C('o3','Jet Stream Synth.caf','snd_o3'),C('o4','Boomer FX 17.caf','snd_o4'),C('o5','Boomer FX 38.caf','snd_o5')]},
@@ -753,7 +762,7 @@ function sndSec(id){return SND.find(s=>s.id===id)}
 function sndList(s){return [].concat(s.reals||[],s.mixes||[],s.cands||[],s.bounces||[])}
 // Shahbaz's approved s15 ticks. Used when this browser has no saved choice
 // (Home Screen storage is separate from Safari, and a new folder starts empty).
-const SND_DEFAULTS={engine:'t2',aaa:'tv',sam:'s2',pass:'p3'};
+const SND_DEFAULTS={engine:'t2',aaa:'tv',sam:'s2',pass:'p3',bunker:'b1'};
 const FLARE_DEFAULT='thunder';
 function sndChoice(id){const s=sndSec(id); if(!s)return {id:'current'}; let pick=SND_DEFAULTS[id]||'current'; try{const saved=localStorage['ds15_snd_'+id]; if(saved)pick=saved}catch(e){} const found=sndList(s).find(c=>c.id===pick); if(found)return found; if(id==='engine'||id==='aaa'||id==='boom'){try{localStorage.removeItem('ds15_snd_'+id)}catch(e){}} return s.cands[0]}
 let sndBypass=0, sndPrev=[];
@@ -835,6 +844,8 @@ function riser(on){if(!AC)return;const t=AC.currentTime;if(on&&!riserS&&SB.riser
  if(!on&&riserS){riserS.g.gain.cancelScheduledValues(t);riserS.g.gain.setTargetAtTime(0,t,.08);const r=riserS;setTimeout(()=>{try{r.stop()}catch(e){}},800);riserS=null}}
 function play(buf,vol=.5){if(!AC||!buf)return;src(buf,vol,AC.out)}
 function blip(f,d=.08,v=.15,type='sine'){if(!AC)return;sfxLog('blip',{f,d,v});const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=Math.min(f,600);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v*.45,t+.025);g.gain.exponentialRampToValueAtTime(.0005,t+d+.05);o.connect(g).connect(AC.tone);o.start(t);o.stop(t+d+.08)}
+function playBunker(c,P){if(!AC||!c||!c.layers)return; const go=()=>{if(!AC)return; let dest=AC.bigB; if(P){const pn=mkPan(true,320); setP0(pn,P); pn.connect(AC.bigB); dest=pn; setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1); pn._hrtf=0} try{pn.disconnect()}catch(e){}},14000)} const t0=AC.currentTime; for(const layer of c.layers){const buf=SB[layer.k]; if(!buf)continue; const s=src(buf,layer.v,dest,{when:t0+(layer.d||0),pri:1,fadeIn:.004,tag:'bunker:'+layer.k}); if(s&&s.stop){if(layer.hold){try{s.stop(t0+(layer.d||0)+layer.hold)}catch(e){}} sndPrev.push(s)}} sfxLog('bunker',{id:c.id})}; const need=c.layers.filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
+function bunkerBlast(P){const c=sndChoice('bunker'); if(c&&c.layers)playBunker(c,P||BUNK); else boomSfx(true,P||BUNK)}
 function boomSfx(big,P){if(!AC)return;sfxLog('boomSfx',{big:!!big});
   const at=P||null;
   if(big){ if(useSnd('nuke',at||S.pos))return; try{duck(.3,1.8,4)}catch(e){}
@@ -860,7 +871,7 @@ function whoosh(){if(!AC)return;sfxLog('whoosh',{});const t=AC.currentTime,n=AC.
 function passBy(P){if(!AC)return; if(useSnd('pass',P))return; sfxLog('passBy',{});const pn=mkPan(true,80);setP0(pn,P);sweepLR(pn,P,1.3);pn.connect(AC.out);const t=AC.currentTime,n=AC.createBufferSource();n.buffer=noiseBuf(1.5);n.playbackRate.setValueAtTime(.85,t);n.playbackRate.exponentialRampToValueAtTime(.55,t+1.2);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(320,t);f.frequency.exponentialRampToValueAtTime(100,t+1.2);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.7,t+.25);g.gain.exponentialRampToValueAtTime(.001,t+1.5);n.connect(f).connect(g).connect(pn);n.start();n.stop(t+1.6);n.onended=()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}};thud(pn,.55,45,20,1.3);if(SB.subdrop)psrc('subdrop',.3,P,true,{ref:80,rate:.85,pri:1,fadeIn:.2,tag:'subdrop'})}
 // ---------- state ----------
 let S;
-function reset(){const fromDeath=valleyRespawn; valleyRespawn=false; if(S&&S.missile&&AC)mslAudioStop(S.missile);S={phase:'ingress',pos:new THREE.Vector3(vx(300),70,300),yaw:0,pitch:0,roll:0,thr:.7,det:0,detT:0,t:0,ts:1,locked:false,relHold:0,bomb:null,boomT:-1,penT:0,flares:8,missile:null,cine:false,cineA:null,aaaT:0,srchT:0,sites:SITES.map(()=>({st:'off',trk:0,shots:0,dead:0,warned:0,warnT:0})),samShots:0,err:0,dead:null,shake:0,msg:'',msgT:0,flareCD:0,egressLaunch:false,sec:[],hp:2,brk:0,brkCD:0,brkDir:1,ecm:0,ecmCD:0,ecmN:2,defeated:0,flakT:2,aaaS:0,teachT:0,smT:0,gunCD:0,gunSnd:0,iron:2,ironHold:0,ironBomb:null,beamT:0};
+function reset(){releaseControls(); const fromDeath=valleyRespawn; valleyRespawn=false; if(S&&S.missile&&AC)mslAudioStop(S.missile);S={phase:'ingress',pos:new THREE.Vector3(vx(300),70,300),yaw:0,pitch:0,roll:0,thr:.7,det:0,detT:0,t:0,ts:1,locked:false,relHold:0,bomb:null,boomT:-1,penT:0,flares:8,missile:null,cine:false,cineA:null,aaaT:0,srchT:0,sites:SITES.map(()=>({st:'off',trk:0,shots:0,dead:0,warned:0,warnT:0})),samShots:0,err:0,dead:null,shake:0,msg:'',msgT:0,flareCD:0,egressLaunch:false,sec:[],hp:2,brk:0,brkCD:0,brkDir:1,ecm:0,ecmCD:0,ecmN:2,defeated:0,flakT:2,aaaS:0,teachT:0,smT:0,gunCD:0,gunSnd:0,iron:2,ironHold:0,ironBomb:null,beamT:0};
  if(S&&S.missile)mslAudioStop(S.missile);mslG.visible=bomb.visible=msl.visible=ring.visible=dome.visible=bulge.visible=false;debris.forEach(d=>scene.remove(d.m));debris.length=0;parts.forEach(p=>scene.remove(p.m));parts.length=0;bunker.visible=true;$('end').classList.add('hide');
  rounds.forEach(r=>{if(r.m)r.m.visible=false});rounds.length=0;SITE_G.forEach(g=>{if(g)g.visible=true});ironMesh.visible=false;gunDown=false;stopIntroMusic();stopDeckAmbience();
  if(DS_MODE==='game'&&!skipTakeoff&&!fromDeath){S.phase='deck';S.pos.set(CVN.jetX,CVN.jetY,CVN.jetZ);S.yaw=0;S.pitch=0;S.roll=0;S.thr=.18;S.spd=0;S.to={armed:0,shot:0,climb:0,hand:0,pulled:0,settled:0,steam:0,swapped:0,fade:0};setThr(.18);document.body.classList.add('takingoff','to-deck');document.body.classList.remove('to-arm')}
@@ -929,14 +940,15 @@ if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.ta
 function setThr(v){S&&(S.thr=v);$('thrk').style.bottom=(3+v*(130-12))+'px';const kcas=Math.round((85+v*195)*1.94);$('thrl').innerHTML='THROTTLE<br><span style="opacity:.85">'+kcas+' KTS</span>';if(S&&!S._thrHint&&v>.05&&v<.95&&!takingOff()){S._thrHint=1;msg('THROTTLE — SLIDE FOR SPEED')}}
 {const t=$('thr');let id=null;const f=e=>{const r=t.getBoundingClientRect();setThr(clamp(1-(e.clientY-r.top-3)/(r.height-6),0,1))};
  t.addEventListener('pointerdown',e=>{e.stopPropagation();id=e.pointerId;t.setPointerCapture(id);f(e)});t.addEventListener('pointermove',e=>{if(e.pointerId===id)f(e)});t.addEventListener('pointerup',()=>id=null)}
-let relDown=false, gunDown=false;
+let relDown=false, gunDown=false, gunPid=null;
+function releaseControls(){gunDown=false; relDown=false; const g=$('gun'); if(g&&gunPid!=null){try{if(g.hasPointerCapture&&g.hasPointerCapture(gunPid))g.releasePointerCapture(gunPid)}catch(e){}} gunPid=null}
 $('lock').addEventListener('pointerdown',e=>{e.stopPropagation();tryLock()});
 let relTapAt=0;
 function armRelease(e){if(e.cancelable)e.preventDefault(); e.stopPropagation(); try{if(e.pointerId!=null&&e.currentTarget&&e.currentTarget.setPointerCapture)e.currentTarget.setPointerCapture(e.pointerId)}catch(err){} const now=performance.now(); if(now-relTapAt<350)return; relTapAt=now; tryRelease()}
 $('rel').addEventListener('pointerdown',armRelease); $('rel').addEventListener('touchstart',armRelease,{passive:false});
 addEventListener('pointerup',()=>relDown=false);
 $('flr').addEventListener('pointerdown',e=>{e.stopPropagation();fireFlares()});$('brk').addEventListener('pointerdown',e=>{e.stopPropagation();doBreak()});$('ecm').addEventListener('pointerdown',e=>{e.stopPropagation();doECM()});
-if($('gun')){$('gun').addEventListener('pointerdown',e=>{e.stopPropagation();gunDown=true;try{$('gun').setPointerCapture(e.pointerId)}catch(err){}fireCannon()});$('gun').addEventListener('pointerup',()=>{gunDown=false});$('gun').addEventListener('pointercancel',()=>{gunDown=false});$('gun').addEventListener('lostpointercapture',()=>{gunDown=false})}
+if($('gun')){$('gun').addEventListener('pointerdown',e=>{e.stopPropagation();gunDown=true;gunPid=e.pointerId;try{$('gun').setPointerCapture(e.pointerId)}catch(err){}fireCannon()});$('gun').addEventListener('pointerup',()=>{gunDown=false;gunPid=null});$('gun').addEventListener('pointercancel',()=>{gunDown=false;gunPid=null});$('gun').addEventListener('lostpointercapture',()=>{gunDown=false;gunPid=null})}
 addEventListener('keydown',e=>{if(e.key==='l')tryLock();if(e.key==='f')fireFlares();if(e.key==='b')doBreak();if(e.key==='e')doECM();if(e.key===' '){e.preventDefault();armRelease(e)}if(e.key==='g'){gunDown=true;fireCannon()}});addEventListener('keyup',e=>{if(e.key==='g')gunDown=false});
 // ---------- gameplay ----------
 const V=new THREE.Vector3(),fwd=new THREE.Vector3(),tmp=new THREE.Vector3();
@@ -1071,7 +1083,8 @@ function dropIron(i){if(i<0||!S||S.iron<=0||S.ironBomb||S.sites[i].dead)return;S
 function updIron(rdt){const b=S.ironBomb;if(!b)return;b.age=(b.age||0)+rdt;const to=b.aim.clone().sub(b.p),d=to.length()||1;b.v.lerp(to.normalize().multiplyScalar(320),clamp(rdt*4,0,1));b.v.y-=1.5*rdt;b.p.addScaledVector(b.v,rdt);ironMesh.position.copy(b.p);ironMesh.lookAt(b.p.clone().add(b.v));
  if(d<28||b.p.y<H(b.p.x,b.p.z)+3||b.age>12){ironMesh.visible=false;const hit=b.p.distanceTo(SITES[b.i].p);S.ironBomb=null;fire(b.p,.5);boomSfx(false,b.p);if(!S.sites[b.i].dead&&hit<BOMB_R)killSite(b.i);else msg('BOMB MISS')}}
 function lockSite(){let best=-1,t=-1;for(let i=0;i<SITES.length;i++){const s=S.sites[i];if(s.warned&&!s.dead&&s.warnT>=t){t=s.warnT;best=i}}return best}
-function die(why){if(S.dead)return;if(takingOff())return;valleyRespawn=true;S.dead=why;crashSfx();fire(S.pos,.9);jet.visible=false;setTimeout(()=>showEnd(false),1800)}
+let endTimer=0;
+function die(why){if(S.dead)return;if(takingOff())return;valleyRespawn=true;S.dead=why;crashSfx();fire(S.pos,.9);jet.visible=false;releaseControls();clearTimeout(endTimer);endTimer=setTimeout(()=>{if(S&&S.dead)showEnd(false)},1800)}
 function fire(at,sc){for(let i=0;i<14;i++)spr(tmp.copy(at).add(new THREE.Vector3(rnd(20*sc),rnd(10*sc),rnd(20*sc))),0xffb060,40*sc,1+Math.random()*.8,new THREE.Vector3(rnd(30*sc),20*sc+Math.random()*40*sc,rnd(30*sc)),{add:true,grow:60*sc,fog:false,c1:new THREE.Color(0x902800)});
  for(let i=0;i<10;i++)spr(at,0x1e1b19,40*sc,4+Math.random()*3,new THREE.Vector3(rnd(15*sc),15*sc+Math.random()*25*sc,rnd(15*sc)),{grow:40*sc,o:.85,fadeIn:.4})}
 // ---------- nuclear-style mushroom (persistent sprite rig) ----------
@@ -1103,7 +1116,7 @@ function updNuke(dt,rdt){if(!NK)return;NK.t+=dt;NK.r+=rdt;const t=NK.t,B=BUNK;
  grade.u.uS.value=Math.max(0,1-t/16)*sstep(0,.6,t);const sc=tmp.set(B.x,B.y+h*.35,B.z).project(cam);grade.u.uC.value.set(sc.x*.5+.5,sc.y*.5+.5);
  if(fade<=0){NK.all.forEach(x=>scene.remove(x));NK=null;grade.u.uS.value=0}}
 window.__nuke=()=>{S.phase="penetrate";S.penT=1.7;bigBoom()};window.__sam=i=>{S.sites[i].shots=0;S.missile=null;launchSAM(i)};
-function bigBoom(){S.boomT=0;S.shake=.9;bunker.visible=false;bulge.visible=false;boomSfx(true,BUNK);ring.visible=dome.visible=true;ring.position.copy(BUNK).y+=3;dome.position.copy(BUNK);
+function bigBoom(){S.boomT=0;S.shake=.9;bunker.visible=false;bulge.visible=false;bunkerBlast(BUNK);ring.visible=dome.visible=true;ring.position.copy(BUNK).y+=3;dome.position.copy(BUNK);
  $('flash').style.transition='none';$('flash').style.background='#ffffff';$('flash').style.opacity=1;setTimeout(()=>{$('flash').style.transition='opacity 2.6s ease-out';$('flash').style.opacity=0},140);S.cineA=null;nukeStart();
  const K=2.6,o={must:1};
  spr(tmp.copy(BUNK).setY(BUNK.y+40),0xfff2d0,160*K,.8,null,{add:true,tex:glowTex,fog:false,grow:300*K,must:1});
@@ -1176,7 +1189,7 @@ function release(){if(window.__ft)window.__ft.markRel();S.relHold=0;S._relT0=0;S
  const q=inBox();S.err=(1-q)*14+Math.random()*2;const a=Math.random()*6.28;
  S.bomb={p:S.pos.clone().add(new THREE.Vector3(0,-2,0)),v:fwd.clone().multiplyScalar(Math.max(120,S.spd)),s:Math.max(120,S.spd),aim:BUNK.clone().add(new THREE.Vector3(Math.cos(a)*S.err,0,Math.sin(a)*S.err)),tti:99,age:0};bomb.visible=true;jet.visible=true;
  if(!useSnd('bombrelease',S.pos)){riser(true);heavy('sub08',.45,1.15);if(AC&&!heavy('subdrop',.8,1,true))thud(AC.out,.6,60,28,.8);blip(300,.2,.3,'triangle');whoosh()}}
-function showEnd(win){running=false;stopIntroMusic();stopDeckAmbience();stopMood();if(AC){const t=AC.currentTime;riser(false);AC.jet.gain.setTargetAtTime(0,t,.5);AC.amb.gain.setTargetAtTime(0,t,.5);try{stopBed()}catch(e){};eng.g.gain.setTargetAtTime(0,t,.3);warnG.gain.setTargetAtTime(0,t,.05);trkG.gain.setTargetAtTime(0,t,.05);AC.sub.gain.setTargetAtTime(0,t,.3);if(S.missile)mslAudioStop(S.missile);$('vig').style.opacity=0;$('teach').style.display='none';seekG.gain.setTargetAtTime(0,t,.05);
+function showEnd(win){running=false;releaseControls();clearTimeout(endTimer);stopIntroMusic();stopDeckAmbience();stopMood();if(AC){const t=AC.currentTime;riser(false);AC.jet.gain.setTargetAtTime(0,t,.5);AC.amb.gain.setTargetAtTime(0,t,.5);try{stopBed()}catch(e){};eng.g.gain.setTargetAtTime(0,t,.3);warnG.gain.setTargetAtTime(0,t,.05);trkG.gain.setTargetAtTime(0,t,.05);AC.sub.gain.setTargetAtTime(0,t,.3);if(S.missile)mslAudioStop(S.missile);$('vig').style.opacity=0;$('teach').style.display='none';seekG.gain.setTargetAtTime(0,t,.05);
  if(win)setTimeout(()=>{if(!running)playEnding()},900)}const prec=win?Math.round(clamp(100-S.err*5,0,100)):0,st=Math.round(clamp(100-S.detT/Math.max(1,S.t)*100-S.samShots*10,0,100)),tm=S.t;
  const stars=win?1+(prec>=80)+(st>=75&&tm<170):0;$('et').textContent=win?'MISSION COMPLETE // TARGET DESTROYED':'MISSION FAILED // '+S.dead;$('es').textContent='★'.repeat(stars)+'☆'.repeat(3-stars);
  $('etab').innerHTML=`<tr><td>PRECISION</td><td>${prec}%${win?` · CEP ${S.err.toFixed(1)} M`:''}</td></tr><tr><td>STEALTH</td><td>${st}%</td></tr><tr><td>TIME ON MISSION</td><td>${(tm/60|0)}:${String(tm%60|0).padStart(2,'0')}</td></tr><tr><td>SAMS DEFEATED</td><td>${S.defeated}</td></tr>`;
@@ -1339,11 +1352,13 @@ if(DS_MODE==='game'){let tap=null;
  document.addEventListener('pointerdown',e=>{if(!S||S.phase!=='deck'||!S.to||!S.to.armed||steerBlocked(e.target)){tap=null;return}tap={x:e.clientX,y:e.clientY,t:performance.now(),id:e.pointerId}},{capture:true});
  document.addEventListener('pointerup',e=>{if(!tap||tap.id!==e.pointerId)return;const t=tap;tap=null;if(S.phase!=='deck'||!S.to||!S.to.armed)return;if(performance.now()-t.t>380)return;if(Math.hypot(e.clientX-t.x,e.clientY-t.y)>18)return;launchCat()},{capture:true})}
 $('tut').addEventListener('pointerdown',e=>{e.stopPropagation();tutI++;if(tutI>=3){localStorage.ds15_tut=1;$('tut').classList.add('hide');begin()}else showTut()});
-$('retry').addEventListener('pointerdown',e=>{e.stopPropagation();initAudio();stopWin();begin()});if($('retry'))$('retry').addEventListener('click',e=>{e.stopPropagation();initAudio();stopWin();begin()});
+let beginAt=0, beginBusy=null;
+function requestBegin(){const now=performance.now(); if(beginBusy||now-beginAt<900)return beginBusy; beginAt=now; clearTimeout(endTimer); endTimer=0; initAudio(); stopWin(); beginBusy=begin().finally(()=>{beginBusy=null}); return beginBusy}
+$('retry').addEventListener('pointerdown',e=>{e.stopPropagation();requestBegin()});if($('retry'))$('retry').addEventListener('click',e=>{e.stopPropagation();requestBegin()});
 function goFS(){const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(f&&!document.fullscreenElement&&!document.webkitFullscreenElement){try{const p=f.call(d,{navigationUI:'hide'});p&&p.catch&&p.catch(()=>{})}catch(e){}}try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}
 if(DS_MODE==='game')addEventListener('pointerdown',goFS,{once:true});
 if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.target.closest&&e.target.closest('#brief,#tut,#end,#go,#retry,#setp,#pauseOv,#pauseCard,input,select,textarea,a,button.label'))return;e.preventDefault()},{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault())}if(DS_MODE==='game')addEventListener('resize',()=>scrollTo(0,0));
-async function begin(){reset();jet.visible=true;const keep=musicRoll.prev; musicRoll={prev:keep}; const musicId=takingOff()?resolveMusic('intro'):resolveMusic('mood'); const musicKeys=(MUSIC_LAY[musicId]||[]).map(l=>l.k); if(AC){AC.resume(); const deckKeys=['deck_jet','deck_rotor','deck_clank','deck_steam','deck_call']; if(INTRO_TRACK)deckKeys.push(INTRO_TRACK); await Promise.all(['jet8','jet','ambient','aaaw','sub08',...deckKeys,...musicKeys].map(k=>SB.get(k).catch(()=>null))); try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3);}catch(e){} const fk=flareChoice().key; if(fk)SB.get(fk).catch(()=>{}); try{for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)SB.get(c.key).catch(()=>{})}}catch(e){} prewarmAudio(); } prewarmGfx(); if(takingOff()){startDeckAmbience(); startIntroMusic()} else startMood(); running=true;last=performance.now()}
+async function begin(){reset();jet.visible=true;const keep=musicRoll.prev; musicRoll={prev:keep}; const musicId=takingOff()?resolveMusic('intro'):resolveMusic('mood'); const musicKeys=(MUSIC_LAY[musicId]||[]).map(l=>l.k); const bunk=(sndChoice('bunker').layers||[]).map(l=>l.k); if(AC){AC.resume(); const deckKeys=['deck_jet','deck_rotor','deck_clank','deck_steam','deck_call']; if(INTRO_TRACK)deckKeys.push(INTRO_TRACK); await Promise.all(['jet8','jet','ambient','aaaw','sub08',...deckKeys,...musicKeys,...bunk].map(k=>SB.get(k).catch(()=>null))); try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3);}catch(e){} const fk=flareChoice().key; if(fk)SB.get(fk).catch(()=>{}); try{for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)SB.get(c.key).catch(()=>{})}}catch(e){} prewarmAudio(); } prewarmGfx(); if(takingOff()){startDeckAmbience(); startIntroMusic()} else startMood(); running=true;last=performance.now()}
 reset();
 if(DS_MODE==='game'){clock();drawMap();chat();addEventListener('resize',()=>{if(!$('brief').classList.contains('hide'))drawMap()});requestAnimationFrame(step)}
 
@@ -1383,6 +1398,7 @@ function playCurrentSec(sec){sndBypass++; try{
   else if(sec==='boom'){ for(const [k,v,tag] of [['sub08',.55,'boom:sub08'],['hitsub',.7,'heavy:hitsub'],['impact',.7,'heavy:impact']]){ if(!SB[k])continue; const s=src(SB[k],v,AC.bigB,{pri:1,fadeIn:.008,tag}); if(s&&s.stop)sndPrev.push(s); } }
   else if(sec==='bombrelease'||sec==='release'){ riser(true); heavy('sub08',.45,1.15); if(!heavy('subdrop',.8,1,true))thud(AC.out,.6,60,28,.8); blip(300,.2,.3); whoosh(); }
   else if(sec==='nuke') boomSfx(true);
+  else if(sec==='bunker') boomSfx(true, testerPos());
   else if(sec==='radar') rwrLaunch(S.pos.clone(),false);
   else if(sec==='crash') crashSfx();
   else if(sec==='overhead'){ const Q=S.pos.clone().add(new THREE.Vector3(0,80,-20)); whoosh(); passBy(Q); if(SB.jet8)psrc('jet8',.55,Q,true,{ref:200,rate:1,fadeIn:.15,tag:'overhead'}); }
@@ -1406,8 +1422,9 @@ function buildSndSections(){const host=$('sndSecs'); if(!host)return; host.inner
      if(Math.hypot(e.clientX-p.x,e.clientY-p.y)>18)return;
      e.preventDefault(); ensureAudioSync();
      if(btn.dataset.act==='play'){document.querySelectorAll('#sndSecs .frow').forEach(x=>x.classList.remove('playing')); el.classList.add('playing');
-      const run=()=>{ if(c.id==='current') playCurrentSec(sec.id); else playSndBuf(sec.id,c); };
-      if(c.key&&!SB[c.key]) SB.get(c.key).then(b=>{if(b)run()});
+      const run=()=>{ if(sec.id==='bunker'&&c.layers){playBunker(c,testerPos()); return} if(c.id==='current') playCurrentSec(sec.id); else playSndBuf(sec.id,c); };
+      if(c.layers) Promise.all(c.layers.map(l=>SB.get(l.k))).then(run);
+      else if(c.key&&!SB[c.key]) SB.get(c.key).then(b=>{if(b)run()});
       else if(c.id==='current') Promise.all(['jet8','aaaw','sub08','impact','hitsub','subdrop','nuke','ambient','drone','jet'].map(k=>SB.get(k).catch(()=>null))).then(run);
       else run();
      }else if(btn.dataset.act==='stop'){stopSndPrev(); if(sec.id==='engine')stopTesterEngine(); if(sec.id==='bed'||sec.id==='ambience')stopBed(); el.classList.remove('playing')}
