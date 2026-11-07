@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16a'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16b'])[1];
 const PATCH_LABEL='s16 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -370,60 +370,171 @@ import('./vendor/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>new GLTFLoader
 const carrier=new THREE.Group(); scene.add(carrier);
 const deckMat=new THREE.MeshStandardMaterial({color:0x5a636a,roughness:.92,metalness:.04});
 const hullMat=new THREE.MeshStandardMaterial({color:0x2c3338,roughness:.88,metalness:.08});
-const lineMat=new THREE.MeshStandardMaterial({color:0xe4e7ea,roughness:.6,metalness:0});
+const lineMat=new THREE.MeshStandardMaterial({color:0xe4e7ea,roughness:.55,metalness:0});
 const foulMat=new THREE.MeshStandardMaterial({color:0xb8963e,roughness:.7,metalness:0});
 const slotMat=new THREE.MeshStandardMaterial({color:0x1a1e22,roughness:.95,metalness:.1});
 const isleMat=new THREE.MeshStandardMaterial({color:0x3e474e,roughness:.8,metalness:.12});
-{const deckL=CVN.sternZ-CVN.bowZ, deck=new THREE.Mesh(new THREE.BoxGeometry(76,1,deckL),deckMat);
- deck.position.set(0,CVN.deckY,CVN.midZ); carrier.add(deck);
- const hull=new THREE.Mesh(new THREE.BoxGeometry(34,16,deckL-28),hullMat);
- hull.position.set(0,CVN.deckY-8.2,CVN.midZ+6); carrier.add(hull);
- // bow rake
- const bow=new THREE.Mesh(new THREE.BoxGeometry(22,10,26),hullMat); bow.position.set(0,CVN.deckY-10,CVN.bowZ+8); bow.rotation.x=.35; carrier.add(bow);
- // angled-deck overhang, port quarter
- const ang=new THREE.Mesh(new THREE.BoxGeometry(28,1,150),deckMat); ang.position.set(-34,CVN.deckY,CVN.midZ+40); ang.rotation.y=.16; carrier.add(ang);
- // catapult slots — port slot is the one the jet sits on
- for(const x of[CVN.jetX, 12]){const slot=new THREE.Mesh(new THREE.BoxGeometry(1.1,.2,CVN.track+18),slotMat); slot.position.set(x,CVN.top+.02,(CVN.jetZ+CVN.jetZ-CVN.track)/2); carrier.add(slot)}
- const cl=new THREE.Mesh(new THREE.BoxGeometry(.35,.08,220),lineMat); cl.position.set(0,CVN.top+.06,CVN.midZ-20); carrier.add(cl);
- for(const s of[-1,1]){const fl=new THREE.Mesh(new THREE.BoxGeometry(.25,.06,deckL-16),foulMat); fl.position.set(s*36,CVN.top+.05,CVN.midZ); carrier.add(fl)}
- // jet-blast deflector just aft of the shuttle
- const jbd=new THREE.Mesh(new THREE.BoxGeometry(8,2.4,.35),new THREE.MeshStandardMaterial({color:0x6a5430,roughness:.7,metalness:.2}));
- jbd.position.set(CVN.jetX,CVN.top+1.3,CVN.jetZ+12); jbd.rotation.x=-.55; carrier.add(jbd);
- // island, starboard, aft of the jet so the chase camera still sees down the deck
- const isle=new THREE.Group(); isle.position.set(22,CVN.top,CVN.jetZ+6); carrier.add(isle);
- box(18,8,28,isleMat,0,4,0,isle); box(10,16,12,isleMat,-1,14,-2,isle); box(.5,14,.5,hullMat,2,26,2,isle);
- box(7,.4,5,new THREE.MeshStandardMaterial({color:0xc5ccd2,roughness:.4,metalness:.3}),-1,22.2,-2,isle);
- const num=(()=>{const c=document.createElement('canvas');c.width=128;c.height=64;const x=c.getContext('2d');x.fillStyle='#3e474e';x.fillRect(0,0,128,64);x.fillStyle='#d7dde2';x.font='700 40px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('16',64,34);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t})();
- const plate=new THREE.Mesh(new THREE.PlaneGeometry(8,3.2),new THREE.MeshStandardMaterial({map:num,roughness:.7})); plate.position.set(-9.1,7,0); plate.rotation.y=-Math.PI/2; isle.add(plate);
- // deck crew. Shooter stands off the catapult, beside the nose.
- function crew(x,z,jersey,shooter){const g=new THREE.Group(); g.position.set(x,CVN.top,z); carrier.add(g);
-  const cloth=new THREE.MeshStandardMaterial({color:jersey,roughness:.8});
-  const skin=new THREE.MeshStandardMaterial({color:0xc2a48a,roughness:.7});
-  const leg=new THREE.Mesh(new THREE.BoxGeometry(.28,.8,.28),cloth);
-  const l1=leg.clone(); l1.position.set(-.16,.4,0); g.add(l1); const l2=leg.clone(); l2.position.set(.16,.4,0); g.add(l2);
-  const torso=new THREE.Mesh(new THREE.BoxGeometry(.55,.7,.32),cloth); torso.position.y=1.05; g.add(torso);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.18,8,6),skin); head.position.y=1.55; g.add(head);
-  const armG=new THREE.BoxGeometry(.16,.55,.16);
-  const aL=new THREE.Mesh(armG,cloth), aR=new THREE.Mesh(armG,cloth);
-  aL.position.set(-.38,1.15,0); aR.position.set(.38,1.15,0); g.add(aL); g.add(aR);
-  if(shooter){g.userData.arms=[aL,aR]; CVN.shooter=g}
-  return g}
- crew(CVN.jetX+6.2, CVN.jetZ-6, 0xc6a23a, true);
- crew(CVN.jetX+5.2, CVN.jetZ+2, 0x3d6b45); crew(CVN.jetX-5.4, CVN.jetZ+3, 0x3d6b45);
- crew(CVN.jetX+7, CVN.jetZ+8, 0xd5d8dc); crew(CVN.jetX-6, CVN.jetZ+9, 0x8a3a34);
- crew(18, CVN.jetZ+20, 0x2f4f6a); crew(-24, CVN.midZ+10, 0x6a5340);
- const tug=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.3,3.4),new THREE.MeshStandardMaterial({color:0xb8963e,roughness:.6}));
- tug.position.set(16,CVN.top+.7,CVN.jetZ+28); carrier.add(tug);
+const jetMat=new THREE.MeshStandardMaterial({color:0x6a7076,roughness:.72,metalness:.18});
+const jetDark=new THREE.MeshStandardMaterial({color:0x2a3138,roughness:.4,metalness:.35});
+const tugMat=new THREE.MeshStandardMaterial({color:0xc4a24a,roughness:.62,metalness:.08});
+const chainMat=new THREE.MeshStandardMaterial({color:0x1c1e22,roughness:.6,metalness:.4});
+const skinMat=new THREE.MeshStandardMaterial({color:0xc2a48a,roughness:.7});
+const crewMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.8});
+const JERSEY={yellow:0xd6a31a,green:0x2f7a3a,red:0xa33b32,white:0xe6e2d8,purple:0x6e3b78};
+function mergeGeos(geos){let vc=0,ic=0;for(const g of geos){vc+=g.attributes.position.count;ic+=g.index?g.index.count:g.attributes.position.count}
+ const pos=new Float32Array(vc*3),nrm=new Float32Array(vc*3),idx=new Uint16Array(ic);let v=0,ii=0;
+ for(const g of geos){const p=g.attributes.position,nr=g.attributes.normal,id=g.index,base=v;
+  for(let k=0;k<p.count;k++){pos[(v+k)*3]=p.getX(k);pos[(v+k)*3+1]=p.getY(k);pos[(v+k)*3+2]=p.getZ(k);if(nr){nrm[(v+k)*3]=nr.getX(k);nrm[(v+k)*3+1]=nr.getY(k);nrm[(v+k)*3+2]=nr.getZ(k)}}
+  if(id){for(let k=0;k<id.count;k++)idx[ii++]=id.getX(k)+base}else{for(let k=0;k<p.count;k++)idx[ii++]=base+k}
+  v+=p.count}
+ const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.BufferAttribute(nrm,3));geo.setIndex(new THREE.BufferAttribute(idx,1));return geo}
+function bake(group){group.updateMatrixWorld(true);const gs=[];group.traverse(o=>{if(!o.isMesh)return;const c=o.geometry.clone();c.applyMatrix4(o.matrixWorld);gs.push(c)});return mergeGeos(gs)}
+function deckJetParts(folded){const g=new THREE.Group();
+ const fus=new THREE.Mesh(new THREE.BoxGeometry(1.7,1.15,11.2),jetMat);fus.position.y=1.05;g.add(fus);
+ const nose=new THREE.Mesh(new THREE.BoxGeometry(.9,.7,2.1),jetMat);nose.position.set(0,1.15,-6.4);g.add(nose);
+ const can=new THREE.Mesh(new THREE.BoxGeometry(.62,.38,1.5),jetDark);can.position.set(0,1.78,-3.1);g.add(can);
+ function wing(side){const piv=new THREE.Group();piv.position.set(side*.85,1.15,-.3);const w=new THREE.Mesh(new THREE.BoxGeometry(3.6,.1,2.05),jetMat);w.position.x=side*1.8;piv.add(w);if(folded)piv.rotation.z=side*1.2;g.add(piv)}
+ wing(-1);wing(1);
+ const fin=new THREE.BoxGeometry(.1,1.35,1.05);const f1=new THREE.Mesh(fin,jetMat),f2=new THREE.Mesh(fin,jetMat);
+ f1.position.set(-.55,2.15,4.3);f1.rotation.z=.28;f2.position.set(.55,2.15,4.3);f2.rotation.z=-.28;g.add(f1);g.add(f2);
+ const gear=new THREE.Mesh(new THREE.BoxGeometry(.2,.55,.2),chainMat);gear.position.set(0,.28,-5.6);g.add(gear);
+ return g}
+{const deckL=CVN.sternZ-CVN.bowZ;
+ const deck=new THREE.Mesh(new THREE.BoxGeometry(76,1,deckL),deckMat);deck.position.set(0,CVN.deckY,CVN.midZ);carrier.add(deck);
+ const hull=new THREE.Mesh(new THREE.BoxGeometry(36,16,deckL-24),hullMat);hull.position.set(2,CVN.deckY-8.2,CVN.midZ+4);carrier.add(hull);
+ const bow=new THREE.Mesh(new THREE.BoxGeometry(20,9,24),hullMat);bow.position.set(2,CVN.deckY-10,CVN.bowZ+10);bow.rotation.x=.32;carrier.add(bow);
+ const ang=new THREE.Mesh(new THREE.BoxGeometry(26,1,150),deckMat);ang.position.set(-34,CVN.deckY,CVN.midZ+36);ang.rotation.y=.16;carrier.add(ang);
+ // catapult slots, hold-short lines, foul lines, angled-deck landing lines — one merged mesh
+ const marks=[];
+ function addBox(w,h,d,x,y,z,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);marks.push(m)}
+ for(const x of[CVN.jetX,12]){addBox(1.15,.16,CVN.track+24,x,CVN.top+.02,(CVN.jetZ*2-CVN.track)/2,slotMat);for(let i=0;i<7;i++)addBox(.9,.04,1.1,x,CVN.top+.08,CVN.jetZ-8-i*12,lineMat)}
+ for(let i=0;i<14;i++)addBox(.28,.05,3.2,0,CVN.top+.07,CVN.midZ-40-i*8,lineMat);
+ for(const s of[-1,1])addBox(.22,.05,deckL-20,s*36.2,CVN.top+.06,CVN.midZ,foulMat);
+ addBox(.16,.04,120,-22,CVN.top+.07,CVN.midZ+10,lineMat);addBox(.16,.04,120,-46,CVN.top+.07,CVN.midZ+20,lineMat);
+ const markGeo=bake((()=>{const g=new THREE.Group();marks.forEach(m=>g.add(m));return g})());
+ // materials differ, so keep two draws: slots dark, lines light. Rebuild simply as two groups.
+ const slots=new THREE.Group(),lines=new THREE.Group();
+ marks.forEach(m=>{(m.material===slotMat?slots:lines).add(m)});
+ carrier.add(slots);carrier.add(lines);markGeo.dispose();
+ // raised jet-blast deflector just aft of the player's exhaust
+ const jbd=new THREE.Group();jbd.position.set(CVN.jetX,CVN.top,CVN.jetZ+10.5);carrier.add(jbd);
+ const panel=new THREE.Mesh(new THREE.BoxGeometry(7.4,3.6,.18),new THREE.MeshStandardMaterial({color:0x6d5836,roughness:.72,metalness:.22}));
+ panel.position.set(0,1.85,-.35);panel.rotation.x=-.42;jbd.add(panel);
+ for(const s of[-1,1]){const st=new THREE.Mesh(new THREE.BoxGeometry(.14,2.6,.14),hullMat);st.position.set(s*2.7,1.2,.7);st.rotation.x=.7;jbd.add(st)}
+ const lip=new THREE.Mesh(new THREE.BoxGeometry(7.4,.16,.2),foulMat);lip.position.set(0,3.45,-.95);jbd.add(lip);
+ CVN.jbd=jbd;
+ // island: bridge, mast, yardarms, antennas, hull number, window and nav lights
+ const isle=new THREE.Group();isle.position.set(20,CVN.top,CVN.jetZ+4);carrier.add(isle);
+ box(16,7.2,26,isleMat,0,3.6,0,isle);box(9,12,11,isleMat,-.5,12,-1,isle);box(6,3.2,7,isleMat,-.5,18.2,-1,isle);
+ const mast=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,16,6),hullMat);mast.position.set(1.2,22,2);isle.add(mast);
+ for(const [y,w] of[[16,7],[20,5],[24,3.2]]){const yrd=new THREE.Mesh(new THREE.BoxGeometry(w,.08,.08),hullMat);yrd.position.set(1.2,y,2);isle.add(yrd)}
+ for(const [x,z,h] of[[-3,-8,10],[3.2,-5,8],[0,8,7],[-1,3,12]]){const a=new THREE.Mesh(new THREE.CylinderGeometry(.07,.1,h,5),hullMat);a.position.set(x,7+h/2,z);isle.add(a)}
+ const dish=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,.12,8),new THREE.MeshStandardMaterial({color:0xd5dde2,roughness:.45,metalness:.3}));dish.position.set(1.2,26.5,2);dish.rotation.z=.4;isle.add(dish);
+ const num=(()=>{const c=document.createElement('canvas');c.width=128;c.height=64;const x=c.getContext('2d');x.fillStyle='#3e474e';x.fillRect(0,0,128,64);x.fillStyle='#e7edf0';x.font='700 42px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('16',64,34);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t})();
+ const plate=new THREE.Mesh(new THREE.PlaneGeometry(6.4,2.6),new THREE.MeshStandardMaterial({map:num,roughness:.7}));plate.position.set(-8.05,6.2,0);plate.rotation.y=-Math.PI/2;isle.add(plate);
+ const lamp=new THREE.MeshBasicMaterial({color:0xffe2a8});const redL=new THREE.MeshBasicMaterial({color:0xff3a30});const grnL=new THREE.MeshBasicMaterial({color:0x37e06a});
+ for(let i=0;i<5;i++){const w=new THREE.Mesh(new THREE.BoxGeometry(.55,.42,.12),lamp);w.position.set(-8.02,8.4,-6+i*3);isle.add(w)}
+ const nav=new THREE.Mesh(new THREE.SphereGeometry(.18,6,5),redL);nav.position.set(-7,16.2,-10);isle.add(nav);
+ const nav2=new THREE.Mesh(new THREE.SphereGeometry(.18,6,5),grnL);nav2.position.set(6,16.2,8);isle.add(nav2);
+ const beacon=new THREE.Mesh(new THREE.SphereGeometry(.16,6,5),redL);beacon.position.set(1.2,30.2,2);isle.add(beacon);
+ // low-poly parked jets, wings folded, chained. One instanced draw.
+ const foldedGeo=bake(deckJetParts(true));
+ const parks=[{x:28,z:CVN.jetZ+6,yaw:.4},{x:30,z:CVN.jetZ-34,yaw:.08},{x:27,z:CVN.jetZ+30,yaw:-.25},{x:-28,z:CVN.jetZ-16,yaw:.06},{x:-29,z:CVN.jetZ-52,yaw:3.02},{x:16,z:CVN.jetZ-58,yaw:.55}];
+ const parkIM=new THREE.InstancedMesh(foldedGeo,jetMat,parks.length);parkIM.castShadow=false;
+ const chainGeo=new THREE.BoxGeometry(2.4,.07,.07),chainIM=new THREE.InstancedMesh(chainGeo,chainMat,parks.length*2);
+ const M=new THREE.Matrix4(),Q=new THREE.Quaternion(),E=new THREE.Euler(),V=new THREE.Vector3(),Scl=new THREE.Vector3(1,1,1);
+ parks.forEach((p,i)=>{Q.setFromEuler(E.set(0,p.yaw,0));M.compose(V.set(p.x,CVN.top,p.z),Q,Scl);parkIM.setMatrixAt(i,M);
+  const nx=p.x+Math.sin(p.yaw)*-5.8,nz=p.z+Math.cos(p.yaw)*-5.8;
+  for(const s of[-1,1]){Q.setFromEuler(E.set(0,p.yaw+s*.5,0));M.compose(V.set(nx+s*.35,CVN.top+.08,nz+s*.2),Q,Scl);chainIM.setMatrixAt(i*2+(s<0?0:1),M)}});
+ parkIM.instanceMatrix.needsUpdate=chainIM.instanceMatrix.needsUpdate=true;
+ // spread-wing jet waiting on the starboard catapult, and one taxiing up the port side
+ function liveJet(x,z,yaw){const g=deckJetParts(false);g.position.set(x,CVN.top,z);g.rotation.y=yaw;return g}
+ const cat2=liveJet(12,CVN.jetZ-1,0);
+ CVN.taxiBase=CVN.jetZ+26;CVN.taxiT=4;
+ const taxi=liveJet(-22,CVN.taxiBase,.12);
+ // tractors: one towing the taxiing jet, two parked by the island and the folded line
+ const tugGeo=bake((()=>{const g=new THREE.Group();const b=new THREE.Mesh(new THREE.BoxGeometry(1.5,.7,2.5),tugMat);b.position.y=.55;g.add(b);const c=new THREE.Mesh(new THREE.BoxGeometry(1.2,.55,1.1),tugMat);c.position.set(0,1.05,-.3);g.add(c);const wh=new THREE.BoxGeometry(.35,.35,.35);for(const [x,z] of[[-.7,.8],[.7,.8],[-.7,-.8],[.7,-.8]]){const w=new THREE.Mesh(wh,chainMat);w.position.set(x,.2,z);g.add(w)}return g})());
+ const tugs=new THREE.InstancedMesh(tugGeo,tugMat,3);
+ [[-22,CVN.taxiBase-7.2,.12],[24,CVN.jetZ+22,.4],[-26,CVN.jetZ-40,1.2]].forEach((p,i)=>{Q.setFromEuler(E.set(0,p[2],0));M.compose(V.set(p[0],CVN.top,p[1]),Q,Scl);tugs.setMatrixAt(i,M)});
+ tugs.instanceMatrix.needsUpdate=true;CVN.tugs=tugs;
+ // crew — one body mesh and one head mesh, coloured by jersey
+ const bodyGeo=bake((()=>{const g=new THREE.Group(),cloth=new THREE.MeshStandardMaterial({color:0xffffff});
+  const leg=new THREE.BoxGeometry(.16,.78,.16);const l1=new THREE.Mesh(leg,cloth);l1.position.set(-.12,.4,0);const l2=l1.clone();l2.position.x=.12;g.add(l1);g.add(l2);
+  const torso=new THREE.Mesh(new THREE.BoxGeometry(.5,.62,.28),cloth);torso.position.y=1.02;g.add(torso);
+  const a=new THREE.BoxGeometry(.12,.48,.12);const aL=new THREE.Mesh(a,cloth);aL.position.set(-.34,1.05,0);const aR=aL.clone();aR.position.x=.34;g.add(aL);g.add(aR);return g})());
+ const headGeo=new THREE.SphereGeometry(.16,6,5);
+ const crewList=[
+  [CVN.jetX+3.2,CVN.jetZ-16,'green',.2],[CVN.jetX-3.4,CVN.jetZ-8,'green',1],[CVN.jetX+2.4,CVN.jetZ+4,'green',.4],
+  [14.5,CVN.jetZ-8,'green',-.3],[10,CVN.jetZ+3,'green',.6],[13,CVN.jetZ-22,'green',.1],
+  [26,CVN.jetZ+2,'yellow',1.2],[18,CVN.jetZ-46,'yellow',.5],[-24,CVN.taxiBase+2,'yellow',.3],
+  [29,CVN.jetZ-30,'red',.8],[ -27,CVN.jetZ-14,'red',2.4],[17,CVN.jetZ-54,'red',.2],[26,CVN.jetZ+28,'red',1],
+  [CVN.jetX-4,CVN.jetZ+8,'white',.5],[8,CVN.jetZ-30,'white',1.5],[-20,CVN.jetZ-48,'white',.2],
+  [23,CVN.jetZ+12,'purple',2.2],[28,CVN.jetZ-38,'purple',.9],[15,CVN.jetZ+26,'purple',1.1]
+ ];
+ const bodyIM=new THREE.InstancedMesh(bodyGeo,crewMat,crewList.length);
+ const headIM=new THREE.InstancedMesh(headGeo,skinMat,crewList.length);
+ const col=new THREE.Color();
+ crewList.forEach((c,i)=>{Q.setFromEuler(E.set(0,c[3],0));M.compose(V.set(c[0],CVN.top,c[1]),Q,Scl);bodyIM.setMatrixAt(i,M);bodyIM.setColorAt(i,col.setHex(JERSEY[c[2]]));
+  M.compose(V.set(c[0],CVN.top+1.52,c[1]),Q,Scl);headIM.setMatrixAt(i,M)});
+ bodyIM.instanceColor.needsUpdate=bodyIM.instanceMatrix.needsUpdate=headIM.instanceMatrix.needsUpdate=true;
+ // Shooter, the catapult officer. Local -Z points down the deck. Only this one is posed.
+ const sh=new THREE.Group();sh.position.set(CVN.jetX+4.6,CVN.top,CVN.jetZ-4.2);sh.rotation.y=.15;carrier.add(sh);
+ const yel=new THREE.MeshStandardMaterial({color:JERSEY.yellow,roughness:.75});
+ const helm=new THREE.MeshStandardMaterial({color:0xe6c24a,roughness:.55});
+ const hips=new THREE.Group();sh.add(hips);
+ function hang(mat,w,h,d,px,py,pz){const piv=new THREE.Group();piv.position.set(px,py,pz);const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);mesh.position.y=-h/2;piv.add(mesh);return piv}
+ const legL=hang(yel,.16,.42,.16,-.12,.92,0),legR=hang(yel,.16,.42,.16,.12,.92,0);hips.add(legL);hips.add(legR);
+ const shinL=hang(yel,.15,.42,.15,0,-.42,0),shinR=hang(yel,.15,.42,.15,0,-.42,0);legL.add(shinL);legR.add(shinR);
+ const torso=new THREE.Group();torso.position.y=.98;hips.add(torso);
+ const chest=new THREE.Mesh(new THREE.BoxGeometry(.52,.58,.3),yel);chest.position.y=.28;torso.add(chest);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.16,7,6),skinMat);head.position.y=.72;torso.add(head);
+ const hat=new THREE.Mesh(new THREE.SphereGeometry(.18,7,5),helm);hat.scale.y=.7;hat.position.y=.8;torso.add(hat);
+ const armL=hang(yel,.12,.4,.12,-.36,.48,0);torso.add(armL);
+ const armR=new THREE.Group();armR.position.set(.34,.5,0);torso.add(armR);
+ const uArm=new THREE.Mesh(new THREE.BoxGeometry(.13,.36,.13),yel);uArm.position.y=-.18;armR.add(uArm);
+ const foreR=new THREE.Group();foreR.position.y=-.36;armR.add(foreR);
+ const fArm=new THREE.Mesh(new THREE.BoxGeometry(.11,.32,.11),yel);fArm.position.y=-.16;foreR.add(fArm);
+ const hand=new THREE.Group();hand.position.y=-.34;foreR.add(hand);
+ for(const s of[-1,1]){const fng=new THREE.Mesh(new THREE.BoxGeometry(.035,.16,.04),skinMat);fng.position.set(s*.045,-.02,.02);hand.add(fng)}
+ CVN.shooter=sh;CVN.rig={hips,legL,legR,shinL,shinR,torso,armL,armR,foreR,hand};
+ // fuel hose and a couple of chocks, static
+ const hose=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,4.5,5),new THREE.MeshStandardMaterial({color:JERSEY.purple,roughness:.6}));hose.rotation.z=Math.PI/2;hose.position.set(25.5,CVN.top+.15,CVN.jetZ+16);carrier.add(hose);
+ // everything that can vanish once the camera is well clear of the ship
+ const detail=new THREE.Group();detail.add(parkIM,chainIM,cat2,taxi,tugs,bodyIM,headIM);carrier.add(detail);CVN.detail=detail;CVN.taxi=taxi;CVN.nJets=parks.length+2;CVN.nCrew=crewList.length+1;CVN.nTugs=3;
+ // ocean wake: bow wave and a foam streak down the port side. A few quads, no simulation.
+ const foam=new THREE.MeshBasicMaterial({color:0xd5e6ee,transparent:true,opacity:.42,depthWrite:false,side:THREE.DoubleSide});
+ const wake=new THREE.Group();
+ function wakeQuad(w,len,x,z,yaw,op){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,len),foam.clone());m.material.opacity=op;m.rotation.x=-Math.PI/2;m.rotation.z=yaw;m.position.set(x,.15,z);wake.add(m);return m}
+ wakeQuad(7,26, -6, CVN.bowZ+6, .55, .38); wakeQuad(7,26, 10, CVN.bowZ+6, -.55, .38);
+ wakeQuad(5,70, -20, CVN.jetZ+30, .04, .28); wakeQuad(3.2,48, -18, CVN.midZ+20, .02, .22);
+ wakeQuad(8,40, 4, CVN.sternZ-8, 0, .2);
+ carrier.add(wake);CVN.wake=wake;
+ CVN._cam=new THREE.Vector3();CVN._look=new THREE.Vector3();CVN._cam2=new THREE.Vector3();CVN._look2=new THREE.Vector3();
+ CVN._hub=new THREE.Vector3(0,CVN.deckY,CVN.midZ);
 }
 const seaGeo=new THREE.PlaneGeometry(11000,13000,1,1); seaGeo.rotateX(-Math.PI/2);
 const sea=new THREE.Mesh(seaGeo,new THREE.MeshStandardMaterial({color:0x163a48,roughness:.18,metalness:.42,envMapIntensity:1.1}));
 sea.position.set(0,0,8000); scene.add(sea);
+window.__CVN=CVN;
 let skipTakeoff=false;
-function takingOff(){return S&&(S.phase==='deck'||S.phase==='cat'||S.phase==='climb'||S.phase==='hand')}
-function steamAt(x,z,big){spr(new THREE.Vector3(x+(Math.random()-.5)*(big?3:1), CVN.top+.4, z), 0xd5dbe0, big?5.5:2.1, big?1.5:.8, new THREE.Vector3((Math.random()-.5)*3, 2.5+Math.random()*3.5, .6+Math.random()*1.4), {grow:big?7:2.6, o:big?.5:.35, drag:.35})}
+function takingOff(){return S&&(S.phase==='deck'||S.phase==='signal'||S.phase==='cat'||S.phase==='climb'||S.phase==='hand')}
+function steamAt(x,z,big){spr(new THREE.Vector3(x+(Math.random()-.5)*(big?1.4:.8), CVN.top+.35, z), 0xe7eef2, big?4.2:1.8, big?1.4:.9, new THREE.Vector3((Math.random()-.5)*1.1, 1.8+Math.random()*1.8, .25), {grow:big?4:2.2, o:big?.5:.4, drag:.4, must:1})}
+function poseShooter(t){const r=CVN.rig; if(!r)return;
+ r.hips.position.y=0; r.legL.rotation.set(0,0,0); r.legR.rotation.set(0,0,0); r.shinL.rotation.set(0,0,0); r.shinR.rotation.set(0,0,0); r.torso.rotation.set(0,0,0);
+ r.armL.rotation.set(.15,0,.3); r.armR.rotation.set(.15,0,-.25); r.foreR.rotation.set(0,0,0);
+ if(t==null)return;
+ if(t<1.7){r.armR.rotation.set(-1.15,.2,.1); r.foreR.rotation.set(Math.sin(t*8)*.5, t*7.5, 0)}
+ else if(t<2.7){const k=sstep(1.7,2.15,t); r.armR.rotation.set(lerp(-1.15,-2.35,k), lerp(.2,0,k), lerp(.1,-.15,k)); r.foreR.rotation.set(lerp(0,-1.15,k),0,0)}
+ else{const k=sstep(2.7,3.2,t);
+  r.hips.position.y=lerp(0,-.28,k);
+  r.legL.rotation.x=lerp(0,1.2,k); r.shinL.rotation.x=lerp(0,-1.2,k);
+  r.legR.rotation.x=lerp(0,1.05,k); r.shinR.rotation.x=lerp(0,-1.05,k);
+  r.torso.rotation.x=lerp(0,.32,k);
+  r.armR.rotation.set(lerp(-2.35,-1.55,k), 0, 0); r.foreR.rotation.set(lerp(-1.15,-.05,k),0,0)}}
 function launchCat(){if(!S||S.phase!=='deck'||!S.to||!S.to.armed)return;
- S.phase='cat'; S.to.shot=0; S.roll=0; S.pitch=0; S.yaw=0;
- document.body.classList.remove('to-arm');
+ S.phase='signal'; S.to.sig=0; S.roll=0; S.pitch=0; S.yaw=0;
+ document.body.classList.remove('to-arm')}
+function beginShot(){S.phase='cat'; S.to.shot=0; S.roll=0; S.pitch=0; S.yaw=0;
  try{whoosh()}catch(e){}
  if(AC)thud(AC.out,.5,62,34,.55)}
 function flyClimb(rdt){
@@ -462,14 +573,14 @@ function updateTakeoff(rdt){
  document.body.classList.add('takingoff');
  if(window.__tmesh)window.__tmesh.visible=false;
  if(window.__farBits)window.__farBits.forEach(o=>o.visible=false);
- if(S.phase==='deck'){
-  document.body.classList.add('to-deck');
-  const full=S.thr>=.97;
-  S.to.armed=full?1:0;
-  document.body.classList.toggle('to-arm',!!S.to.armed);
+ if(S.phase==='deck'||S.phase==='signal'){
+  document.body.classList.toggle('to-deck',S.phase==='deck');
+  if(S.phase==='deck'){const full=S.thr>=.97; S.to.armed=full?1:0; document.body.classList.toggle('to-arm',!!S.to.armed)}
+  else document.body.classList.remove('to-deck','to-arm');
   S.pos.set(CVN.jetX,CVN.jetY,CVN.jetZ); S.yaw=S.pitch=S.roll=0; S.spd=0;
-  S.to.steam=(S.to.steam||0)-rdt;
-  if(S.to.steam<=0){S.to.steam=.16; steamAt(CVN.jetX, CVN.jetZ-14, 1); steamAt(CVN.jetX+.4, CVN.jetZ-22, 0)}
+  deckBusy(rdt);
+  if(S.phase==='signal'){S.to.sig+=rdt; poseShooter(S.to.sig); if(S.to.sig>=5.35)beginShot()}
+  else{poseShooter(null); if(S.to.armed&&CVN.rig)CVN.rig.armR.rotation.x=-.45}
  }
  else if(S.phase==='cat'){
   document.body.classList.remove('to-deck','to-arm');
@@ -488,10 +599,14 @@ function updateTakeoff(rdt){
   S.to.hand+=rdt; flyClimb(rdt);
   if(!S.to.swapped && S.to.hand>=1.02)enterMission();
  }
- if(CVN.shooter&&CVN.shooter.userData.arms){const out=S.phase==='deck'&&S.to.armed;
-  CVN.shooter.userData.arms.forEach((a,i)=>{a.rotation.z=(out?1.15:.2)*(i?1:-1); a.rotation.x=out?-.15:0})}
+ if(S.phase!=='deck'&&S.phase!=='signal')poseShooter(S.phase==='cat'?4:null);
  updParts(rdt);
 }
+function deckBusy(rdt){S.to.steam=(S.to.steam||0)-rdt;
+ if(S.to.steam<=0){S.to.steam=.18; for(const dz of[ -6,-22,-40,-62 ]){steamAt(CVN.jetX, CVN.jetZ+dz, 0); if((dz&1)===0)steamAt(12, CVN.jetZ+dz, 0)}}
+ if(CVN.taxi){CVN.taxiT=(CVN.taxiT||0)+rdt; const z=CVN.taxiBase-((CVN.taxiT*1.35)%24); CVN.taxi.position.z=z;
+  if(CVN.tugs){const M=CVN._m||(CVN._m=new THREE.Matrix4()),Q=CVN._q||(CVN._q=new THREE.Quaternion()),E=CVN._e||(CVN._e=new THREE.Euler()),V=CVN._v||(CVN._v=new THREE.Vector3());
+   Q.setFromEuler(E.set(0,.12,0)); M.compose(V.set(-22,CVN.top,z-7.2),Q,CVN._sc||(CVN._sc=new THREE.Vector3(1,1,1))); CVN.tugs.setMatrixAt(0,M); CVN.tugs.instanceMatrix.needsUpdate=true}}}
 function takeoffAudio(){if(!AC||!eng)return; const tt=AC.currentTime; startJet();
  if(JET){const pr=JET.plain?1:.72+S.thr*.48; const nodes=JET.a?[JET.a]:(JET.playbackRate?[JET]:[]);
   nodes.forEach(n=>{try{n.playbackRate.setTargetAtTime(pr,tt,.35)}catch(e){}});
@@ -1020,11 +1135,16 @@ function render(){jet.position.copy(S.pos);sun.target.position.copy(S.pos);sun.p
  // Bomb-cam only after a short settle so first-frame compile can't hang on an empty view; jet stays visible in scene
  const useBombCam=S.cine&&S.bomb&&(S.bomb.age||0)>.35;
  if(takingOff()){cam.up.set(0,1,0);
-  if(S.phase==='deck'||S.phase==='cat'){const u=S.phase==='cat'?clamp(S.to.shot/2.15,0,1):0;const back=lerp(70,32,u),up=lerp(28,11,u),side=lerp(-30,-4,u);
-   cam.position.set(S.pos.x+side,S.pos.y+up,S.pos.z+back);cam.lookAt(S.pos.x+6,S.pos.y+.4,S.pos.z-36)}
-  else{const k=clamp((S.to.climb||0)/3.2,0,1);const back=lerp(32,24,k),up=lerp(11,6.5,k);
-   cam.position.set(S.pos.x+Math.sin(S.yaw)*back,S.pos.y+up,S.pos.z+Math.cos(S.yaw)*back);
-   if(k<1)cam.lookAt(S.pos.x,S.pos.y+1.2,S.pos.z-60);else cam.rotation.set(-.07,S.yaw,0)}}
+  const u=S.phase==='cat'?clamp(S.to.shot/2.15,0,1):0; const back=lerp(88,32,u),up=lerp(30,11,u),side=lerp(-12,-4,u);
+  CVN._cam.set(S.pos.x+side,S.pos.y+up,S.pos.z+back); CVN._look.set(S.pos.x+11,S.pos.y+1.2,S.pos.z-32);
+  if(S.phase==='signal'&&CVN.shooter){const k=sstep(4.15,5.35,S.to.sig||0),sh=CVN.shooter.position;
+   CVN._cam2.set(sh.x+5.6,CVN.top+2.3,sh.z+2.4); CVN._look2.set(sh.x,CVN.top+.8,sh.z-.5);
+   cam.position.copy(CVN._cam2).lerp(CVN._cam,k); cam.lookAt(CVN._look2.lerp(CVN._look,k))}
+  else if(S.phase==='deck'||S.phase==='cat'){cam.position.copy(CVN._cam); cam.lookAt(CVN._look)}
+  else{const k=clamp((S.to.climb||0)/3.2,0,1);const b=lerp(36,24,k),h=lerp(12,6.5,k);
+   cam.position.set(S.pos.x+Math.sin(S.yaw)*b,S.pos.y+h,S.pos.z+Math.cos(S.yaw)*b);
+   if(k<1)cam.lookAt(S.pos.x,S.pos.y+1.2,S.pos.z-60);else cam.rotation.set(-.07,S.yaw,0)}
+  if(CVN.detail)CVN.detail.visible=cam.position.distanceTo(CVN._hub)<280}
  else if(useBombCam){const b=S.bomb,dv=tmp.copy(b.v).normalize();if(dv.lengthSq()<.01)dv.set(0,-1,0);cam.position.copy(b.p).addScaledVector(dv,-18).y+=5;cam.lookAt(b.p);S.cineA=null}
  else if(S.cine&&!S.bomb){if(!S.cineA){const dh=new THREE.Vector3(cam.position.x-BUNK.x,0,cam.position.z-BUNK.z);if(dh.lengthSq()<.01)dh.set(0,0,1);dh.normalize();const nk=S.boomT>=0,a=BUNK.clone().addScaledVector(dh,nk?1900:780);a.y=nk?Math.max(BUNK.y+380,H(a.x,a.z)+200):Math.max(BUNK.y+170,H(a.x,a.z)+60);S.cineA=a}cam.position.copy(S.cineA);cam.lookAt(tmp.copy(BUNK).setY(BUNK.y+(S.boomT>=0?(NK?250+Math.min(950,NK.t*160):300):10)))}
  else{cam.position.set(S.pos.x+Math.sin(S.yaw)*24,S.pos.y+6.5,S.pos.z+Math.cos(S.yaw)*24);cam.rotation.set(-.07,S.yaw,0)}
@@ -1035,6 +1155,7 @@ function txt(s,x,y,sz=11,al='center',c=G){hx.font=`600 ${sz}px ui-monospace,"SF 
 function drawTakeoffHUD(){const cx=W/2;hx.shadowColor='rgba(0,0,0,.85)';hx.shadowBlur=2;
  let cue='HOLD THROTTLE FULL';
  if(S.phase==='deck')cue=S.to&&S.to.armed?'TAP TO LAUNCH':'HOLD THROTTLE FULL';
+ else if(S.phase==='signal'){const t=S.to.sig||0; cue=t<1.7?'SHOOTER — RUN UP':t<2.7?'SHOOTER — SALUTE':t<4.15?'SHOOTER — LAUNCH':'CATAPULT'}
  else if(S.phase==='cat')cue='CATAPULT';
  else if(S.phase==='hand')cue='';
  else if(S.to&&!S.to.pulled)cue=S.to.settled?'SETTLE — PULL UP':'PULL UP';
