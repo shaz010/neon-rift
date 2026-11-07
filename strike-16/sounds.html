@@ -23,8 +23,11 @@ html,body{margin:0;min-height:100%;height:auto;background:var(--bg);color:var(--
 #bar a.apply{flex:1 0 100%;min-height:48px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(182,220,174,.75);border-radius:6px;background:rgba(70,110,60,.95);color:#f4ffe8;text-decoration:none;font:700 15px var(--m);letter-spacing:1px;touch-action:manipulation}
 #unlock{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(4,8,6,.92);flex-direction:column;gap:14px;touch-action:manipulation}
 #unlock button{min-height:56px;min-width:70vw;font:700 16px var(--m);letter-spacing:2px;border:1px solid var(--g);background:rgba(40,60,40,.7);color:#e8ffe0;border-radius:8px}
-#vols{display:flex;flex-wrap:wrap;gap:10px 16px;padding:10px 14px;border-bottom:1px solid rgba(182,220,174,.25);touch-action:pan-y}
-#vols label{display:flex;flex-direction:column;gap:6px;min-width:150px;flex:1}
+#vols{display:flex;flex-wrap:wrap;gap:10px 16px;padding:10px 14px;border-bottom:1px solid rgba(182,220,174,.25);touch-action:manipulation}
+#vols label{display:flex;flex-direction:column;gap:6px;min-width:150px;flex:1;touch-action:none}
+#musicBox{padding:4px 14px 12px;border-bottom:1px solid rgba(182,220,174,.28)}
+#musicBox h2{margin:14px 0 6px;font:700 16px var(--m);letter-spacing:.6px;color:#e8ffe0}
+#musicBox input[type=range]{width:100%;height:48px;touch-action:none;accent-color:#b6dcae}
 #vols input[type=range],#thrbox input[type=range]{width:100%;height:48px;margin:0;accent-color:#b6dcae;touch-action:none;-webkit-appearance:none;appearance:none;background:transparent}
 #vols input[type=range]::-webkit-slider-runnable-track,#thrbox input[type=range]::-webkit-slider-runnable-track{height:12px;background:rgba(182,220,174,.28);border-radius:6px}
 #vols input[type=range]::-webkit-slider-thumb,#thrbox input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;height:32px;border-radius:50%;background:#b6dcae;margin-top:-10px;border:2px solid #0c100e}
@@ -71,8 +74,8 @@ canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:
 </style>
 </head>
 <body>
-<div id="unlock"><div style="letter-spacing:3px;font-weight:700">DEEP STRIKE · s16</div><div class="patch" data-patch>s16 · 16i</div><div style="opacity:.75">SOUND TESTER</div><button type="button" id="unlockBtn">TAP TO UNLOCK AUDIO</button></div>
-<div id="bar"><div class="patch" data-patch>s16 · 16i</div><h1>DEEP STRIKE · s16 — SOUND TESTER</h1><a class="back" href="./index.html">← Back to game</a><a class="apply" id="applyGame" href="./index.html">APPLY TO GAME</a></div>
+<div id="unlock"><div style="letter-spacing:3px;font-weight:700">DEEP STRIKE · s16</div><div class="patch" data-patch>s16 · 16j</div><div style="opacity:.75">SOUND TESTER</div><button type="button" id="unlockBtn">TAP TO UNLOCK AUDIO</button></div>
+<div id="bar"><div class="patch" data-patch>s16 · 16j</div><h1>DEEP STRIKE · s16 — SOUND TESTER</h1><a class="back" href="./index.html">← Back to game</a><a class="apply" id="applyGame" href="./index.html">APPLY TO GAME</a></div>
 <div id="vols">
 <label>MASTER <input type="range" id="t_master" min="0" max="100" value="80"/></label>
 <label>MUSIC / BED <input type="range" id="t_mus" min="0" max="100" value="85"/></label>
@@ -86,7 +89,12 @@ canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:
 <button type="button" data-pan="B">BEHIND</button>
 </div>
 <div id="thrbox"><label>ENGINE THROTTLE <span id="t_thrv">70%</span></label><input type="range" id="t_thr" min="0" max="100" value="70"/></div>
-<div id="note">Every row has ▶ PLAY and ■ STOP. A/B: <b>In game</b> = through the game audio chain; <b>Logic original</b> = raw Logic source file, dry.</div>
+<div id="surrBox" style="padding:10px 14px;border-bottom:1px solid rgba(182,220,174,.28)">
+<label style="display:flex;align-items:center;gap:10px;min-height:44px">SURROUND <select id="t_surr"><option value="1">On</option><option value="0">Off</option></select></label>
+<label style="display:block;margin-top:8px">WIDTH <span id="v_t_width"></span><input type="range" id="t_width" min="0" max="200" value="135"/></label>
+</div>
+<div id="musicBox"></div>
+<div id="note">Every row has ▶ PLAY and ■ STOP. Pan places the next sound left, centre, right or behind. A/B: <b>In game</b> = through the game audio chain; <b>Logic original</b> = raw Logic source file, dry.</div>
 <section id="flareSec">
   <h2>FLARE — choose one</h2>
   <p>Softer single shots. ✓ Choose saves on this phone and the game uses it. Until you choose, the game keeps Current.</p>
@@ -105,6 +113,6 @@ canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:
 <select id="s_bed" class="hide"></select><span id="v_eng"></span><span id="v_mus"></span><span id="v_bed"></span><span id="v_fx"></span><button id="setx" type="button"></button><div id="resume"></div>
 <div id="tt"></div><div id="tp"></div><div id="tn"></div><div id="mapc"></div>
 <script>window.__DS_MODE='sounds';</script>
-<script type="module" src="./main.mjs?v=16i"></script>
+<script type="module" src="./main.mjs?v=16j"></script>
 </body>
 </html>
