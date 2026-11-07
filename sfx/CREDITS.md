@@ -1,3 +1,9 @@
+# Logic music (s16 · 16j)
+
+Shahbaz's own Logic bounces, converted from the DS-sfx folder to FLAC and then to AAC 256 kb/s and Opus 192 kb/s. No filtering and no time-stretch. Subsonic Boom FX 06 is 1.5 dB quieter so the AAC encode stays under full scale. Files live in `sfx/lx/`.
+
+Kick Riser, Synth Riser, Layers Under, Jet Arrival, Dub Lift, Low Landing, Sun Down, Pound Close, Back at It, Dream Layers, Dub Bed, Drift, Rotation.
+
 # Player gun (s16 · 16g)
 
 Each file is a real CC0 gun recording with the sharp attack rolled off and a low thump underneath. The game keeps its current cannon until one of these is ticked.

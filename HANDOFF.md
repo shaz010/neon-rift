@@ -5,6 +5,10 @@ Branch: `strike-16`. Pages folder: `/strike-16/` only.
 
 Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
 
+## s16 · 16j — Logic presets and surround
+
+Intro, ending, and mood presets are built from Shahbaz's Logic files. Random picks a different one each sortie. Surround uses positioned Web Audio with HRTF when it is on, plus a width control. The sound tester pan buttons and sliders follow the finger. Stamp `s16 · 16j`.
+
 ## s16 · 16i — saved sounds, instant release, marked target
 
 Empty storage now starts with the approved s15 ticks: flare Clean Thunder, engine Jet Take off 2, cannon Thunder VideoStar, SAM Boomer FX 45, missile pass Boomer FX 28. A saved tick still wins. Bomb release and the other sections had no recorded final tick, so they stay Current.
