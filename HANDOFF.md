@@ -5,6 +5,14 @@ Branch: `strike-16`. Pages folder: `/strike-16/` only.
 
 Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
 
+## s16 · 16f — deck sound, and the deck in frame
+
+Take-off plays no music. `INTRO_TRACK` is still the slot for Shahbaz's kick-off track, and it defaults to none. In that space the deck plays real recordings through `mixFlightAudio`: jets idling nearby, a soft helicopter rotor, a steam chuff while they hold, and a metal clank plus one more chuff when the shuttle fires. Tapping LAUNCH plays a person on the radio saying the aircraft is cleared. Credits are in `sfx/CREDITS.md`. Nothing here is a noise generator.
+
+The opening camera sits off the port side so the yellow tractor, the crew, and the parked jets are in the shot, with a warm fill on them. The helicopter hovers just off that edge, and its rotor is a real spinning disc because the model had none. The shooter close-up, the steady camera, and the SAM defence are unchanged.
+
+Stamp `s16 · 16f`.
+
 ## s16 · 16e — take-off pad, and SAMs you can kill
 
 Take-off keeps the 16d flight mix and adds the s15 Propulsion Layers pad (`mus_layers`, the synth layer from the sound tester) under it. No whoosh and no new noise. Shahbaz's own intro replaces that pad by setting `INTRO_TRACK` in `main.mjs` to an `sfx/` key and adding the file. `startIntroMusic()` is the only function that starts it, and it stops when the valley begins.
