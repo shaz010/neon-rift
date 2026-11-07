@@ -1,3 +1,16 @@
+# Player gun (s16 · 16g)
+
+Each file is a real CC0 gun recording with the sharp attack rolled off and a low thump underneath. The game keeps its current cannon until one of these is ticked.
+
+| Choice | File | Source | Licence |
+|---|---|---|---|
+| Deep cannon | sfx/snd_gun1.wav | [Cannon boom](https://freesound.org/people/Quassorr/sounds/758072/) by Quassorr | CC0 |
+| Naval gun | sfx/snd_gun2.wav | [MK 45 Gun Fired](https://freesound.org/people/qubodup/sounds/184728/) by qubodup, from a US government video | CC0 |
+| Howitzer | sfx/snd_gun3.wav | [Excalibur Howitzer Shot](https://freesound.org/people/qubodup/sounds/175430/) by qubodup, from a US government video | CC0 |
+| Mortar | sfx/snd_gun4.wav | [Mortar Shots](https://freesound.org/people/qubodup/sounds/184382/) by qubodup, from a US government video | CC0 |
+| Tank gun | sfx/snd_gun5.wav | [Tank Shots](https://freesound.org/people/qubodup/sounds/239135/) by qubodup, from a US Army video | CC0 |
+| Field cannon | sfx/snd_gun6.wav | [Cannon Shot](https://freesound.org/people/qubodup/sounds/187767/) by qubodup, from a US government video | CC0 |
+
 # Deck ambience (s16 · 16f)
 
 Real recordings, played as they are. No noise generator was added. The take-off plays no music unless `INTRO_TRACK` in `main.mjs` is set to a file.
