@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16c'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16d'])[1];
 const PATCH_LABEL='s16 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -423,7 +423,8 @@ function loadDeck(){if(CVN._loading||CVN._ready)return; CVN._loading=1;
     const spots=[[296,-4,0],[286,-6,1],[270,6,1],[248,-14,1],[220,22,2],[186,26,3],[150,-22,4],[210,-28,0]];
     spots.forEach((s,i)=>{const g=cloneSkin(crewM.scene); g.position.set(s[0],CVN.deckY,s[1]); g.rotation.y=face+(i%2?.2:-.15); tintCrew(g,colors[s[2]]);
       const pack=armBones(g); armsDown(pack); g.frustumCulled=false; g.traverse(o=>{if(o.isMesh){o.frustumCulled=false; o.castShadow=false}}); deckDetail.add(g);
-      if(i===0){CVN.shooter=g; CVN.crewPack=pack; CVN.rig=pack.rig; CVN.rest=pack.rest}});
+      if(i===0){CVN.shooter=g; CVN.crewPack=pack; CVN.rig=pack.rig; CVN.rest=pack.rest}
+      else g.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton){o.skeleton.update(); o.skeleton.update=function(){}}});});
     const heli=heliM.scene; heli.position.set(210,52,-62); heli.scale.setScalar(1); deckDetail.add(heli); CVN.heli=heli;
     CVN.rotor=heli.getObjectByName('Continuous main mast')||null;
     CVN.nJets=8; CVN.nCrew=spots.length; CVN.nTugs=2; CVN._ready=1; CVN.wake={children:[1,2,3,4,5]};
@@ -455,9 +456,7 @@ function poseShooter(t){const pack=CVN.crewPack; if(!pack)return;
 function launchCat(){if(!S||S.phase!=='deck'||!S.to||!S.to.armed)return;
  S.phase='signal'; S.to.sig=0; S.roll=0; S.pitch=0; S.yaw=0;
  document.body.classList.remove('to-arm')}
-function beginShot(){S.phase='cat'; S.to.shot=0; S.roll=0; S.pitch=0; S.yaw=0;
- try{whoosh()}catch(e){}
- if(AC)thud(AC.out,.5,62,34,.55)}
+function beginShot(){S.phase='cat'; S.to.shot=0; S.roll=0; S.pitch=0; S.yaw=0}
 function flyClimb(rdt){
  let tP=-inp.y*30*D2R;
  // Below a safe height the nose will not stay down. A few degrees of climb,
@@ -493,8 +492,9 @@ function enterMission(){
 let seaLit=false;
 function seaLight(on){
  if(on&&!seaLit){seaLit=1; CVN._lit={scen:{...SCEN}, sun:sun.color.getHex(), hemi:hemiL.color.getHex(), ground:hemiL.groundColor.getHex(), bloom:bloom.strength, thr:bloom.threshold, sh:sun.castShadow};
-  Object.assign(SCEN,{turbidity:8,rayleigh:2.1,mie:.012,mieG:.86,sunEl:3.4,sunAz:1.35,sunInt:2.8,hemi:.72,exposure:1.08,env:.95,warmth:.85,fogDen:0,clouds:0});
-  sun.color.set(0xffb15e); hemiL.color.set(0xffd0a0); hemiL.groundColor.set(0x3e3830); bloom.strength=.42; bloom.threshold=.8; sun.castShadow=!MOB; applyScen()}
+  const go=()=>{if(!seaLit)return; Object.assign(SCEN,{turbidity:8,rayleigh:2.1,mie:.012,mieG:.86,sunEl:3.4,sunAz:1.35,sunInt:2.8,hemi:.72,exposure:1.08,env:.95,warmth:.85,fogDen:0,clouds:0});
+   sun.color.set(0xffb15e); hemiL.color.set(0xffd0a0); hemiL.groundColor.set(0x3e3830); bloom.strength=.42; bloom.threshold=.8; sun.castShadow=!MOB; applyScen()};
+  requestAnimationFrame(()=>requestAnimationFrame(go))}
  else if(!on&&seaLit){seaLit=0; const L=CVN._lit; Object.assign(SCEN,L.scen); sun.color.setHex(L.sun); hemiL.color.setHex(L.hemi); hemiL.groundColor.setHex(L.ground); bloom.strength=L.bloom; bloom.threshold=L.thr; sun.castShadow=L.sh; applyScen()}
 }
 function updateTakeoff(rdt){
@@ -536,15 +536,15 @@ function deckBusy(rdt){S.to.steam=(S.to.steam||0)-rdt;
  if(S.to.steam<=0){S.to.steam=.14; for(const dz of[-6,-20,-38,-60])steamAt(CVN.jetX,CVN.jetZ+dz,dz>-16?1:0); steamAt(4,CVN.jetZ-16,0)}
  if(CVN.taxi){CVN.taxiT=(CVN.taxiT||0)+rdt; const x=CVN.taxiBase+((CVN.taxiT*1.8)%40); CVN.taxi.position.x=x; if(CVN.tug)CVN.tug.position.x=x+12}
  if(CVN.heli){CVN.heli.position.y=51+Math.sin((S.t||0)*.7)*.8; if(CVN.rotor)CVN.rotor.rotation.y+=rdt*16}}
-function takeoffAudio(){if(!AC||!eng)return; const tt=AC.currentTime; startJet();
- if(JET){const pr=JET.plain?1:.72+S.thr*.48; const nodes=JET.a?[JET.a]:(JET.playbackRate?[JET]:[]);
-  nodes.forEach(n=>{try{n.playbackRate.setTargetAtTime(pr,tt,.35)}catch(e){}});
-  const g=.1+S.thr*(S.phase==='cat'?.4:.3);
-  if(JET.plain&&JET.g)JET.g.gain.setTargetAtTime(g,tt,.25); else AC.jet.gain.setTargetAtTime(g,tt,.25);
-  if(!JET.plain&&AC.jlp)AC.jlp.frequency.setTargetAtTime(1800+S.thr*4200,tt,.35)}
- AC.sub.gain.setTargetAtTime(JET&&JET.plain?0:.04+S.thr*.1,tt,.35);
- if(AC.wind)AC.wind.g.gain.setTargetAtTime(.008+S.thr*.012+(S.phase==='cat'?.02:0),tt,.4);
- updListener()}
+// Same mix the valley sortie uses. Take-off does not add a noise layer.
+function mixFlightAudio(rdt){if(!AC||!eng)return; const tt=AC.currentTime;
+ startJet();flyCD=Math.max(0,flyCD-rdt);const warnA=S.missile&&!S.missile.decoy&&!S.missile.lost;
+ if(JET){const pr=JET.plain?1:.72+S.thr*.48;const nodes=JET.a?[JET.a]:(JET.playbackRate?[JET]:[]);nodes.forEach((n)=>{try{n.playbackRate.setTargetAtTime(pr,tt,.35)}catch(e){}}); if(JET.plain&&JET.g)JET.g.gain.setTargetAtTime((S.cine?.08:.1+S.thr*.32)*(warnA?.6:1),tt,.35); else AC.jet.gain.setTargetAtTime((S.cine?.08:.1+S.thr*.32)*(warnA?.6:1),tt,.35); if(!JET.plain)AC.jlp.frequency.setTargetAtTime(S.cine?800:1800+S.thr*4200,tt,.35)}AC.sub.gain.setTargetAtTime(JET&&JET.plain?0:(S.cine?.03:.05+S.thr*.12),tt,.35);AC.subO&&AC.subO.forEach((o,k)=>o.frequency.setTargetAtTime((36+S.thr*14)*(k+1),tt,.4));updListener();
+ AC.wind.g.gain.setTargetAtTime(S.cine?.004:.014+S.thr*.008+Math.min(1,Math.abs(S.roll))*.008,tt,.6);AC.wind.bp.frequency.setTargetAtTime(380+S.thr*420,tt,.6);
+ const tense=S.th&&(S.th.anyTrk||S.th.anySrch);AC.mus.gain.setTargetAtTime(warnA?.45:1,tt,.15);AC.amb.gain.setTargetAtTime(BED==='off'?0:(S.cine?.1:(warnA?.22:tense?.48:.4)),tt,1.2);
+ const warn=S.missile&&!S.missile.decoy&&!S.missile.lost;trkG.gain.setTargetAtTime(!warn&&S.th&&S.th.anyTrk?.022:0,tt,.03);S.srchT-=rdt;if(S.th&&S.th.anySrch&&!S.th.anyTrk&&S.srchT<=0){S.srchT=1.3;blip(380,.09,.03,'sine')}
+ {const md=warn?S.missile.p.distanceTo(S.pos):9e3,rate=warn?4+18*clamp(1-md/6000,0,1):8;S.wph=(S.wph||0)+rdt*rate;warnG.gain.setTargetAtTime(warn?((S.wph|0)%2?1:0):0,tt,.008);tone.frequency.setTargetAtTime(warn?((S.wph|0)%2?620:760+180*clamp(1-md/4000,0,1)):760,tt,.01)}
+ const seek=S.phase==='ingress'&&bDist()<4500&&inBox()>0;seekG.gain.setTargetAtTime(seek?((S.t*5|0)%2?.022:0):S.phase==='release'?.016:0,tt,.015);seekG.o.frequency.setTargetAtTime(S.phase==='release'?700:520,tt,.02)}
 // ---------- particles ----------
 const parts=[],_pool=[];
 function _mkSpr(add,tex){const m=new THREE.Sprite(new THREE.SpriteMaterial({map:tex||smokeTex,color:0xffffff,transparent:true,depthWrite:false,blending:add?THREE.AdditiveBlending:THREE.NormalBlending,fog:true,rotation:0}));m.visible=false;scene.add(m);return m}
@@ -995,7 +995,7 @@ function step(now){try{const _n=performance.now(); if(window.__ftLast){const _dt
  render(dt)}
 function update(rdt){
  if(S.to&&S.to.fade>0){S.to.fade-=rdt;if(S.to.fade<=0){S.to.fade=0;const f=$('tofade');if(f)f.classList.remove('on')}}
- if(takingOff()){updateTakeoff(rdt);takeoffAudio();return}
+ if(takingOff()){updateTakeoff(rdt);mixFlightAudio(rdt);return}
  let target=1;if(S.phase==='bombfall')target=.45;if(S.bomb&&S.bomb.tti<1.8)target=.25;if(S.phase==='penetrate')target=.5;if(S.boomT>=0&&S.boomT<1.5)target=.5;if(S.teachT>0)target=.55;
  S.cine=S.phase==='bombfall'||S.phase==='penetrate'||(S.boomT>=0&&S.boomT<8);S.ts=lerp(S.ts,target,clamp(rdt*6,0,1));const dt=rdt*S.ts;S.t+=rdt;
  const tR=S.cine?0:S.brk>0?-S.brkDir*78*D2R:-inp.x*45*D2R,tP=S.cine?0:-inp.y*30*D2R;
@@ -1038,15 +1038,7 @@ function update(rdt){
  updParts(dt);S.flareCD=Math.max(0,S.flareCD-rdt);if(S.msgT>0)S.msgT-=rdt;S.shake=Math.max(0,S.shake-rdt);radDish.rotation.y+=dt*.8;
  if(S.phase==='egress'&&S.boomT>2&&S.pos.distanceTo(EXIT)<700){S.phase='done';showEnd(true)}
  if(S.pos.z<EXZ-900&&S.phase!=='egress'&&S.phase!=='done')die('LEFT THE AO');
- if(AC&&eng){const tt=AC.currentTime;
-  startJet();flyCD=Math.max(0,flyCD-rdt);const warnA=S.missile&&!S.missile.decoy&&!S.missile.lost;
-  if(JET){const pr=JET.plain?1:.72+S.thr*.48;const nodes=JET.a?[JET.a]:(JET.playbackRate?[JET]:[]);nodes.forEach((n,i)=>{try{n.playbackRate.setTargetAtTime(pr,tt,.35)}catch(e){}}); if(JET.plain&&JET.g)JET.g.gain.setTargetAtTime((S.cine?.08:.1+S.thr*.32)*(warnA?.6:1),tt,.35); else AC.jet.gain.setTargetAtTime((S.cine?.08:.1+S.thr*.32)*(warnA?.6:1),tt,.35); if(!JET.plain)AC.jlp.frequency.setTargetAtTime(S.cine?800:1800+S.thr*4200,tt,.35)}AC.sub.gain.setTargetAtTime(JET&&JET.plain?0:(S.cine?.03:.05+S.thr*.12),tt,.35);AC.subO&&AC.subO.forEach((o,k)=>o.frequency.setTargetAtTime((36+S.thr*14)*(k+1),tt,.4));updListener();
-  AC.wind.g.gain.setTargetAtTime(S.cine?.004:.014+S.thr*.008+Math.min(1,Math.abs(S.roll))*.008,tt,.6);AC.wind.bp.frequency.setTargetAtTime(380+S.thr*420,tt,.6);
-  const tense=S.th&&(S.th.anyTrk||S.th.anySrch);AC.mus.gain.setTargetAtTime(warnA?.45:1,tt,.15);AC.amb.gain.setTargetAtTime(BED==='off'?0:(S.cine?.1:(warnA?.22:tense?.48:.4)),tt,1.2);
-
-  const warn=S.missile&&!S.missile.decoy&&!S.missile.lost;trkG.gain.setTargetAtTime(!warn&&S.th&&S.th.anyTrk?.022:0,tt,.03);S.srchT-=rdt;if(S.th&&S.th.anySrch&&!S.th.anyTrk&&S.srchT<=0){S.srchT=1.3;blip(380,.09,.03,'sine')}
-  {const md=warn?S.missile.p.distanceTo(S.pos):9e3,rate=warn?4+18*clamp(1-md/6000,0,1):8;S.wph=(S.wph||0)+rdt*rate;warnG.gain.setTargetAtTime(warn?((S.wph|0)%2?1:0):0,tt,.008);tone.frequency.setTargetAtTime(warn?((S.wph|0)%2?620:760+180*clamp(1-md/4000,0,1)):760,tt,.01)}
-  const seek=S.phase==='ingress'&&bDist()<4500&&inBox()>0;seekG.gain.setTargetAtTime(seek?((S.t*5|0)%2?.022:0):S.phase==='release'?.016:0,tt,.015);seekG.o.frequency.setTargetAtTime(S.phase==='release'?700:520,tt,.02)}}
+ mixFlightAudio(rdt)}
 function release(){if(window.__ft)window.__ft.markRel();S.relHold=0;S._relT0=0;S.locked=false;S.phase='bombfall';
  const q=inBox();S.err=(1-q)*14+Math.random()*2;const a=Math.random()*6.28;
  S.bomb={p:S.pos.clone().add(new THREE.Vector3(0,-2,0)),v:fwd.clone().multiplyScalar(Math.max(120,S.spd)),s:Math.max(120,S.spd),aim:BUNK.clone().add(new THREE.Vector3(Math.cos(a)*S.err,0,Math.sin(a)*S.err)),tti:99,age:0};bomb.visible=true;jet.visible=true;

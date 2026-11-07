@@ -5,6 +5,10 @@ Branch: `strike-16`. Pages folder: `/strike-16/` only.
 
 Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
 
+## s16 · 16d — sound put back to s15
+
+The catapult no longer plays a noise whoosh. Take-off uses the same flight mix as the valley sortie (`mixFlightAudio`), which is the s15 graph: master gain 0.8 into the gentle compressor. The golden-hour environment rebuild is deferred so it does not stall the audio thread on the first frame. Standing crew skeletons are frozen after their pose. Stamp `s16 · 16d`.
+
 ## s16 · 16c — real deck models and golden hour
 
 The block deck is replaced by CC0 glTF models (see `MODELS-CREDITS.md`): a Nimitz-scale carrier, F-15-style fighters, a rigged crew tinted to jersey colours, yellow tractors, and a helicopter off the port side. Geometry is meshopt-compressed. Dressing hides once the camera leaves the ship.
