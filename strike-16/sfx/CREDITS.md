@@ -1,3 +1,15 @@
+# Deck ambience (s16 · 16f)
+
+Real recordings, played as they are. No noise generator was added. The take-off plays no music unless `INTRO_TRACK` in `main.mjs` is set to a file.
+
+| Role | File | Source | Licence |
+|---|---|---|---|
+| Nearby jets idling | sfx/deck_jet.m4a | [Idle F-22 Jet Plane](https://freesound.org/people/qubodup/sounds/187734/) by qubodup. An excerpt of a US government video. | CC0 |
+| Helicopter rotor | sfx/deck_rotor.m4a | [Helicopter Rotor Loop](https://freesound.org/people/qubodup/sounds/187681/) by qubodup. An excerpt of a US government video. | CC0 |
+| Catapult shuttle | sfx/deck_clank.m4a | [R16-31-Metal Clank and Ring](https://freesound.org/people/craigsmith/sounds/486284/) by craigsmith. A USC Cinema transfer of an optical effect. | CC0 |
+| Steam hold-back | sfx/deck_steam.m4a | [single steam train chuff](https://freesound.org/people/birdOfTheNorth/sounds/623817/) by birdOfTheNorth. One chuff, hiss already removed, from Keith Peter's field recording [125211](https://freesound.org/people/keithpeter/sounds/125211/). | CC0 |
+| Deck call | sfx/deck_call.m4a | [cleared_for_takeoff.wav](https://freesound.org/people/tim.kahn/sounds/95662/) by tim.kahn. A person speaking through a walkie-talkie. | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+
 # Explosion field recordings
 
 These four files are the real recordings used in the "Real explosions" group. Each was released by the recordist under the Wikimedia Commons `PD-self` dedication, which places the recording in the public domain. They are field recordings of gunpowder explosions at the Tōshō-gū Spring Festival, Nikkō, Japan, on 18 May 2009. Original format is 44.1 kHz stereo Ogg Vorbis. The game mixes are 48 kHz 24-bit WAV built from these files plus the owner's Logic bounces.

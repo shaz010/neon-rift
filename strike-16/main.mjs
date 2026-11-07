@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16e'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16f'])[1];
 const PATCH_LABEL='s16 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -377,6 +377,7 @@ carrier.rotation.y=Math.PI/2; carrier.position.set(0,0,9200); carrier.visible=fa
 const deckDetail=new THREE.Group(); carrier.add(deckDetail); CVN.detail=deckDetail;
 CVN._cam=new THREE.Vector3(); CVN._look=new THREE.Vector3(); CVN._cam2=new THREE.Vector3(); CVN._look2=new THREE.Vector3();
 CVN._hub=new THREE.Vector3(8,CVN.deckY,9020); CVN._shW=new THREE.Vector3();
+const deckFill=new THREE.PointLight(0xffe0b8,0,80,2); deckFill.position.set(-40,52,8986); scene.add(deckFill); CVN.fill=deckFill;
 CVN.nJets=0; CVN.nCrew=0; CVN.nTugs=0; CVN.wake={children:[]};
 const seaGeo=new THREE.PlaneGeometry(10000,15000,24,32); seaGeo.rotateX(-Math.PI/2);
 const seaMat=new THREE.ShaderMaterial({
@@ -417,18 +418,25 @@ function loadDeck(){if(CVN._loading||CVN._ready)return; CVN._loading=1;
     function parkJet(x,z,yaw){const g=jetM.scene.clone(true); g.position.set(x,CVN.deckY,z); g.rotation.y=yaw==null?face:yaw; g.traverse(o=>{if(!o.isMesh)return; o.castShadow=false; o.receiveShadow=true;
       const n=(o.name||''); if(/Canopy/i.test(n)){const m=o.material.clone(); m.roughness=.05; m.metalness=.92; m.envMapIntensity=2.2; o.material=m}});
       deckDetail.add(g); return g}
-    [[150,26],[178,28],[206,24],[142,-27],[188,-28],[248,14]].forEach((p,i)=>parkJet(p[0],p[1], face+(i%3?0:.08)));
-    CVN.taxiBase=110; CVN.taxi=parkJet(110,-18,face); CVN.cat2=parkJet(308,12,face);
-    const tug=tugM.scene.clone(true); tug.position.set(122,CVN.deckY,-18); tug.rotation.y=face; tug.traverse(o=>{if(o.isMesh&&o.material){const n=(o.material.name||'').toLowerCase(); if(n.includes('leaf')||n.includes('gold')){o.material=o.material.clone(); o.material.color.setHex(0xd6a31a)}}}); deckDetail.add(tug); CVN.tug=tug;
-    const tug2=tug.clone(true); tug2.position.set(168,CVN.deckY,22); deckDetail.add(tug2);
+    [[244,8],[250,-12],[248,14],[178,28],[150,26],[142,-27]].forEach((p,i)=>parkJet(p[0],p[1], face+(i%3?0:.08)));
+    CVN.taxiBase=238; CVN.taxi=parkJet(238,-16,face); CVN.cat2=parkJet(308,12,face);
+    const tug=tugM.scene.clone(true); tug.position.set(250,CVN.deckY,18); tug.rotation.y=face; tug.scale.setScalar(1.7); tug.traverse(o=>{if(o.isMesh&&o.material){const n=(o.material.name||'').toLowerCase(); if(n.includes('leaf')||n.includes('gold')){o.material=o.material.clone(); o.material.color.setHex(0xd6a31a)}}}); deckDetail.add(tug); CVN.tug=tug;
+    const tug2=tug.clone(true); tug2.position.set(168,CVN.deckY,22); tug2.scale.setScalar(1.15); deckDetail.add(tug2);
     const colors=[0xd6a31a,0x2f7a3a,0xa33b32,0xe6e2d8,0x6e3b78];
-    const spots=[[296,-4,0],[286,-6,1],[270,6,1],[248,-14,1],[220,22,2],[186,26,3],[150,-22,4],[210,-28,0]];
+    const spots=[[296,-4,0],[254,22,1],[248,14,2],[242,8,0],[236,-8,3],[186,26,3],[150,-22,4],[220,22,4]];
     spots.forEach((s,i)=>{const g=cloneSkin(crewM.scene); g.position.set(s[0],CVN.deckY,s[1]); g.rotation.y=face+(i%2?.2:-.15); tintCrew(g,colors[s[2]]);
       const pack=armBones(g); armsDown(pack); g.frustumCulled=false; g.traverse(o=>{if(o.isMesh){o.frustumCulled=false; o.castShadow=false}}); deckDetail.add(g);
+      if(i===1)g.scale.setScalar(2.3); else if(i>1&&i<5)g.scale.setScalar(1.8);
       if(i===0){CVN.shooter=g; CVN.crewPack=pack; CVN.rig=pack.rig; CVN.rest=pack.rest}
       else g.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton){o.skeleton.update(); o.skeleton.update=function(){}}});});
-    const heli=heliM.scene; heli.position.set(210,52,-62); heli.scale.setScalar(1); deckDetail.add(heli); CVN.heli=heli;
-    CVN.rotor=heli.getObjectByName('Continuous main mast')||null;
+    const heli=heliM.scene; heli.position.set(236,CVN.deckY+10,-33); heli.scale.setScalar(0.7); deckDetail.add(heli); CVN.heli=heli;
+    const mast=heli.getObjectByName('Continuous main mast');
+    const rotor=new THREE.Group(); rotor.position.copy(mast?mast.position:new THREE.Vector3(-2.4,3.7,0));
+    const blade=new THREE.MeshStandardMaterial({color:0x2c2e32,roughness:.45,metalness:.55});
+    for(let i=0;i<2;i++){const b=new THREE.Mesh(new THREE.BoxGeometry(12,.07,.42),blade); b.rotation.y=i*Math.PI/2; b.castShadow=false; rotor.add(b)}
+    const hub=new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,.2,8),blade); rotor.add(hub); heli.add(rotor);
+    const tail=new THREE.Mesh(new THREE.BoxGeometry(.08,1.6,.16),blade); tail.position.set(-6.1,2.5,0); heli.add(tail); CVN.tailRotor=tail;
+    CVN.rotor=rotor; CVN.heliY=CVN.deckY+10;
     CVN.nJets=8; CVN.nCrew=spots.length; CVN.nTugs=2; CVN._ready=1; CVN.wake={children:[1,2,3,4,5]};
     // raised blast deflector just aft of the player's exhaust
     const jbd=new THREE.Group(); jbd.position.set(224,CVN.deckY,-10); carrier.add(jbd);
@@ -457,8 +465,8 @@ function poseShooter(t){const pack=CVN.crewPack; if(!pack)return;
   setBone(pack,'upper_armR',0,-1.25,lerp(-1.35,-.15,k)); setBone(pack,'forearmR',0,lerp(-1.25,-.1,k),0)}}
 function launchCat(){if(!S||S.phase!=='deck'||!S.to||!S.to.armed)return;
  S.phase='signal'; S.to.sig=0; S.roll=0; S.pitch=0; S.yaw=0;
- document.body.classList.remove('to-arm')}
-function beginShot(){S.phase='cat'; S.to.shot=0; S.roll=0; S.pitch=0; S.yaw=0}
+ document.body.classList.remove('to-arm'); deckOne('deck_call',.5)}
+function beginShot(){S.phase='cat'; S.to.shot=0; S.roll=0; S.pitch=0; S.yaw=0; deckOne('deck_clank',.62); deckOne('deck_steam',.38)}
 function flyClimb(rdt){
  let tP=-inp.y*30*D2R;
  // Below a safe height the nose will not stay down. A few degrees of climb,
@@ -484,7 +492,7 @@ function enterMission(){
  S.pos.set(vx(300),70,300); S.yaw=0; S.pitch=0; S.roll=0;
  S.spd=85+S.thr*195; S.cine=false; S.shake=0; S.msg=''; S.msgT=0;
  document.body.classList.remove('takingoff','to-deck','to-arm');
- seaLight(false); carrier.visible=false; if(CVN.sea)CVN.sea.visible=false; stopIntroMusic();
+ seaLight(false); carrier.visible=false; if(CVN.sea)CVN.sea.visible=false; stopIntroMusic(); stopDeckAmbience(); if(JET){startBed(); ambS=bedS} if(CVN.fill)CVN.fill.intensity=0;
  if(window.__tmesh)window.__tmesh.visible=true;
  if(window.__farBits)window.__farBits.forEach(o=>o.visible=true);
  scene.fog=SCEN.fogDen>0.00001?scene.fog:null;
@@ -503,6 +511,7 @@ function updateTakeoff(rdt){
  S.t+=rdt; if(S.msgT>0)S.msgT-=rdt;
  document.body.classList.add('takingoff');
  seaLight(true); carrier.visible=true; if(CVN.sea)CVN.sea.visible=true;
+ if(CVN.fill)CVN.fill.intensity=(S.phase==='deck'||S.phase==='signal'||S.phase==='cat')?22:0;
  if(window.__tmesh)window.__tmesh.visible=false;
  if(window.__farBits)window.__farBits.forEach(o=>o.visible=false);
  if(S.phase==='deck'||S.phase==='signal'){
@@ -536,14 +545,18 @@ function updateTakeoff(rdt){
 }
 function deckBusy(rdt){S.to.steam=(S.to.steam||0)-rdt;
  if(S.to.steam<=0){S.to.steam=.14; for(const dz of[-6,-20,-38,-60])steamAt(CVN.jetX,CVN.jetZ+dz,dz>-16?1:0); steamAt(4,CVN.jetZ-16,0)}
- if(CVN.taxi){CVN.taxiT=(CVN.taxiT||0)+rdt; const x=CVN.taxiBase+((CVN.taxiT*1.8)%40); CVN.taxi.position.x=x; if(CVN.tug)CVN.tug.position.x=x+12}
- if(CVN.heli){CVN.heli.position.y=51+Math.sin((S.t||0)*.7)*.8; if(CVN.rotor)CVN.rotor.rotation.y+=rdt*16}}
+ if(S.phase==='deck'){S.to.chuff=(S.to.chuff||1.4)-rdt; if(S.to.chuff<=0){S.to.chuff=2.6; deckOne('deck_steam',.28)}}
+ if(CVN.taxi){CVN.taxiT=(CVN.taxiT||0)+rdt; CVN.taxi.position.x=CVN.taxiBase+((CVN.taxiT*1.4)%12)}
+ if(CVN.tug)CVN.tug.position.x=250+Math.sin((S.t||0)*.5)*1.5
+ if(CVN.heli){CVN.heli.position.y=(CVN.heliY||CVN.deckY+7)+Math.sin((S.t||0)*.8)*.55; if(CVN.rotor)CVN.rotor.rotation.y+=rdt*22; if(CVN.tailRotor)CVN.tailRotor.rotation.x+=rdt*36}}
 // Same mix the valley sortie uses. Take-off does not add a noise layer.
 function mixFlightAudio(rdt){if(!AC||!eng)return; const tt=AC.currentTime;
  startJet();flyCD=Math.max(0,flyCD-rdt);const warnA=S.missile&&!S.missile.decoy&&!S.missile.lost;
  if(JET){const pr=JET.plain?1:.72+S.thr*.48;const nodes=JET.a?[JET.a]:(JET.playbackRate?[JET]:[]);nodes.forEach((n)=>{try{n.playbackRate.setTargetAtTime(pr,tt,.35)}catch(e){}}); if(JET.plain&&JET.g)JET.g.gain.setTargetAtTime((S.cine?.08:.1+S.thr*.32)*(warnA?.6:1),tt,.35); else AC.jet.gain.setTargetAtTime((S.cine?.08:.1+S.thr*.32)*(warnA?.6:1),tt,.35); if(!JET.plain)AC.jlp.frequency.setTargetAtTime(S.cine?800:1800+S.thr*4200,tt,.35)}AC.sub.gain.setTargetAtTime(JET&&JET.plain?0:(S.cine?.03:.05+S.thr*.12),tt,.35);AC.subO&&AC.subO.forEach((o,k)=>o.frequency.setTargetAtTime((36+S.thr*14)*(k+1),tt,.4));updListener();
  AC.wind.g.gain.setTargetAtTime(S.cine?.004:.014+S.thr*.008+Math.min(1,Math.abs(S.roll))*.008,tt,.6);AC.wind.bp.frequency.setTargetAtTime(380+S.thr*420,tt,.6);
- const tense=S.th&&(S.th.anyTrk||S.th.anySrch);AC.mus.gain.setTargetAtTime(warnA?.45:1,tt,.15);AC.amb.gain.setTargetAtTime(BED==='off'?0:(S.cine?.1:(warnA?.22:tense?.48:.4)),tt,1.2);
+ const tense=S.th&&(S.th.anyTrk||S.th.anySrch);AC.mus.gain.setTargetAtTime(warnA?.45:1,tt,.15);
+ const bedOn=!takingOff()&&BED!=='off';AC.amb.gain.setTargetAtTime(bedOn?(S.cine?.1:(warnA?.22:tense?.48:.4)):0,tt,takingOff()?.3:1.2);
+ if(AC.deckJetG){const hold=takingOff()&&(S.phase==='deck'||S.phase==='signal'||S.phase==='cat'); const fade=takingOff()&&!hold; AC.deckJetG.gain.setTargetAtTime(hold?.1:fade?.03:0,tt,.35); AC.deckRotorG.gain.setTargetAtTime(hold?.15:fade?.04:0,tt,.35)}
  const warn=S.missile&&!S.missile.decoy&&!S.missile.lost;trkG.gain.setTargetAtTime(!warn&&S.th&&S.th.anyTrk?.022:0,tt,.03);S.srchT-=rdt;if(S.th&&S.th.anySrch&&!S.th.anyTrk&&S.srchT<=0){S.srchT=1.3;blip(380,.09,.03,'sine')}
  {const md=warn?S.missile.p.distanceTo(S.pos):9e3,rate=warn?4+18*clamp(1-md/6000,0,1):8;S.wph=(S.wph||0)+rdt*rate;warnG.gain.setTargetAtTime(warn?((S.wph|0)%2?1:0):0,tt,.008);tone.frequency.setTargetAtTime(warn?((S.wph|0)%2?620:760+180*clamp(1-md/4000,0,1)):760,tt,.01)}
  const seek=S.phase==='ingress'&&bDist()<4500&&inBox()>0;seekG.gain.setTargetAtTime(seek?((S.t*5|0)%2?.022:0):S.phase==='release'?.016:0,tt,.015);seekG.o.frequency.setTargetAtTime(S.phase==='release'?700:520,tt,.02)}
@@ -612,6 +625,8 @@ function initAudio(){if(AC){AC.resume();return}const ACC=window.AudioContext||wi
   const nb=mkSeamless(noiseBuf(2),.5);const n=AC.createBufferSource();n.buffer=nb;n.loop=true;n.playbackRate.value=.97;const nf=AC.createBiquadFilter();nf.type='lowpass';nf.frequency.value=90;const ng=AC.createGain();ng.gain.value=1.4;n.connect(nf).connect(ng).connect(AC.sub);n.start(0,Math.random()*4)}
  AC.dk=AC.createGain();AC.dk.connect(out);AC.mus=AC.createGain();AC.mus.gain.value=1;AC.mus.connect(AC.musB).connect(AC.dk);AC.amb=AC.createGain();AC.amb.gain.value=0;AC.amb.connect(AC.bedB);
  AC.introG=AC.createGain();AC.introG.gain.value=1;AC.introG.connect(AC.mus);
+ AC.deckJetG=AC.createGain();AC.deckJetG.gain.value=0;AC.deckJetG.connect(AC.mus);
+ AC.deckRotorG=AC.createGain();AC.deckRotorG.gain.value=0;AC.deckRotorG.connect(AC.mus);
  // ambience sub drone
  {const nb=mkSeamless(noiseBuf(2),.5);const n=AC.createBufferSource();n.buffer=nb;n.loop=true;n.playbackRate.value=.48;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=70;const g=AC.createGain();g.gain.value=.75;const o=AC.createOscillator();o.frequency.value=46;const og=AC.createGain();og.gain.value=.05;o.connect(og).connect(AC.amb);o.start();n.connect(f).connect(g).connect(AC.amb);n.start(0,Math.random()*5)}
 
@@ -625,10 +640,9 @@ function initAudio(){if(AC){AC.resume();return}const ACC=window.AudioContext||wi
 }
 // Briefing music: swap this ONE reference to change the entry track (sfx/<name>.mp3 + optional .ogg)
 const BRIEF_TRACK='brief';
-// Take-off intro slot. Shahbaz drops his kick-off file in by setting this to an sfx key
-// (sfx/<key>.m4a). null plays the s15 synth pad instead. startIntroMusic() is the only starter.
+// Take-off intro slot. Null plays nothing. Set this to an sfx key (sfx/<key>.m4a)
+// when Shahbaz's kick-off track is ready. startIntroMusic() is the only starter.
 const INTRO_TRACK=null;
-const TAKEOFF_PAD='mus_layers';
 const ASSET_V='15';
 const SB={b:{},load(){for(const k of[BRIEF_TRACK,'nuke','sub01','sub08','jet','ambient','riser','jet8','drone','flak','flak2','impact','mlaunch','mmotor','sweep','subdrop','aaaw','msub','hitsub','mus_depth','mus_dream','mus_layers','mus_waves','flare_thump','flare_hiss'])this.get(k)},
  get(k){if(this.b[k])return this.b[k];const tryf=ext=>fetch('sfx/'+k+'.'+ext+'?v='+ASSET_V).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(a=>new Promise((res,rej)=>AC.decodeAudioData(a.slice(0),res,rej)));
@@ -756,27 +770,33 @@ function startBed(){if(!AC)return;stopBed();
 function setBed(id){if(!BED_OPTS.includes(id))return;BED=id;localStorage.ds15_bed=id;const sel=$('s_bed');if(sel)sel.value=id;if(JET||ambS)startBed()}
 let introS=null, introTok=0;
 function startIntroMusic(){
- if(!AC||introS||!takingOff())return;
- const token=++introTok;
- const key=INTRO_TRACK||TAKEOFF_PAD;
+ if(!AC||introS||!takingOff()||!INTRO_TRACK)return;
+ const token=++introTok; const key=INTRO_TRACK;
  const arm=buf=>{
   if(token!==introTok||!buf||introS||!takingOff()||!AC.introG)return;
-  introS=plainLoop(buf,.18,AC.introG,{tag:INTRO_TRACK?'intro':'takeoff-pad'});
+  introS=plainLoop(buf,.18,AC.introG,{tag:'intro'});
   if(introS&&introS.g){const t=AC.currentTime;introS.g.gain.cancelScheduledValues(t);introS.g.gain.setValueAtTime(0,t);introS.g.gain.linearRampToValueAtTime(.18,t+1.6)}
  };
  if(SB[key])arm(SB[key]); else SB.get(key).then(arm);
 }
 function stopIntroMusic(){introTok++; if(!introS)return; try{introS.stop()}catch(e){} introS=null}
+let deckJet=null, deckRotor=null;
+function deckOne(key,vol){if(!AC||!SB[key])return; src(SB[key],vol,AC.mus,{pri:1,fadeIn:.012,tag:'deck:'+key})}
+function startDeckAmbience(){if(!AC||!takingOff())return;
+ if(!deckJet&&SB.deck_jet)deckJet=plainLoop(SB.deck_jet,1,AC.deckJetG,{tag:'deck:jet'});
+ if(!deckRotor&&SB.deck_rotor)deckRotor=plainLoop(SB.deck_rotor,1,AC.deckRotorG,{tag:'deck:rotor'})}
+function stopDeckAmbience(){if(deckJet){try{deckJet.stop()}catch(e){} deckJet=null} if(deckRotor){try{deckRotor.stop()}catch(e){} deckRotor=null}
+ if(AC&&AC.deckJetG){const t=AC.currentTime; AC.deckJetG.gain.setTargetAtTime(0,t,.15); AC.deckRotorG.gain.setTargetAtTime(0,t,.15)}}
 function startJet(){
  const engC=sndChoice('engine');
  if(engC.id!=='current'){
   if(!SB[engC.key]){SB.get(engC.key); return}
-  if(!JET){JET=plainLoop(SB[engC.key],.22,AC.engB,{sec:'engine',id:engC.id}); startBed(); ambS=bedS}
+  if(!JET){JET=plainLoop(SB[engC.key],.22,AC.engB,{sec:'engine',id:engC.id}); if(!takingOff()){startBed(); ambS=bedS}}
   return}
  if(JET||!(SB.jet8||SB.jet))return;
  if(SB.jet8){JET=startSmoothLoop(SB.jet8,1.15,AC.jet,{tag:'jet',xf:.4,detune:1.0025,fadeIn:.9})}
  else{JET=startSmoothLoop(SB.jet,1,AC.jet,{tag:'jet',xf:.4,detune:1.002,fadeIn:.9})}
- startBed();ambS=bedS}
+ if(!takingOff()){startBed();ambS=bedS}}
 function briefMusic(){if(!AC)return;const go=()=>{if(!$('brief')||$('brief').classList.contains('hide'))return;if(SB.ambient&&!briefSrc){briefSrc=src(mkSeamless(SB.ambient,.45),0,AC.mus,{loop:true,off:Math.random()*2,tag:'brief'});briefSrc.g.gain.cancelScheduledValues(AC.currentTime);briefSrc.g.gain.setValueAtTime(0,AC.currentTime);briefSrc.g.gain.linearRampToValueAtTime(.16,AC.currentTime+2)}};
  if(briefT)return;briefT=1;SB.get('ambient').then(()=>go())}
 let winSrc=null;function stopBrief(){briefT=1;if(briefSrc){const b=briefSrc;b.g.gain.setTargetAtTime(0,AC.currentTime,.4);setTimeout(()=>{try{b.stop()}catch(e){}},2500);briefSrc=null}stopWin()}
@@ -810,7 +830,7 @@ function passBy(P){if(!AC)return; if(useSnd('pass',P))return; sfxLog('passBy',{}
 let S;
 function reset(){if(S&&S.missile&&AC)mslAudioStop(S.missile);S={phase:'ingress',pos:new THREE.Vector3(vx(300),70,300),yaw:0,pitch:0,roll:0,thr:.7,det:0,detT:0,t:0,ts:1,locked:false,relHold:0,bomb:null,boomT:-1,penT:0,flares:8,missile:null,cine:false,cineA:null,aaaT:0,srchT:0,sites:SITES.map(()=>({st:'off',trk:0,shots:0,dead:0,warned:0,warnT:0})),samShots:0,err:0,dead:null,shake:0,msg:'',msgT:0,flareCD:0,egressLaunch:false,sec:[],hp:2,brk:0,brkCD:0,brkDir:1,ecm:0,ecmCD:0,ecmN:2,defeated:0,flakT:2,aaaS:0,teachT:0,smT:0,gunCD:0,gunSnd:0,iron:2,ironHold:0,ironBomb:null,beamT:0};
  if(S&&S.missile)mslAudioStop(S.missile);mslG.visible=bomb.visible=msl.visible=ring.visible=dome.visible=bulge.visible=false;debris.forEach(d=>scene.remove(d.m));debris.length=0;parts.forEach(p=>scene.remove(p.m));parts.length=0;bunker.visible=true;$('end').classList.add('hide');
- rounds.forEach(r=>{if(r.m)r.m.visible=false});rounds.length=0;SITE_G.forEach(g=>{if(g)g.visible=true});ironMesh.visible=false;gunDown=false;stopIntroMusic();
+ rounds.forEach(r=>{if(r.m)r.m.visible=false});rounds.length=0;SITE_G.forEach(g=>{if(g)g.visible=true});ironMesh.visible=false;gunDown=false;stopIntroMusic();stopDeckAmbience();
  if(DS_MODE==='game'&&!skipTakeoff){S.phase='deck';S.pos.set(CVN.jetX,CVN.jetY,CVN.jetZ);S.yaw=0;S.pitch=0;S.roll=0;S.thr=.18;S.spd=0;S.to={armed:0,shot:0,climb:0,hand:0,pulled:0,settled:0,steam:0,swapped:0,fade:0};setThr(.18);document.body.classList.add('takingoff','to-deck');document.body.classList.remove('to-arm')}
  else{S.to=null;setThr(.7);document.body.classList.remove('takingoff','to-deck','to-arm')}
  const fade=$('tofade'); if(fade)fade.classList.remove('on')}
@@ -1105,7 +1125,7 @@ function release(){if(window.__ft)window.__ft.markRel();S.relHold=0;S._relT0=0;S
  const q=inBox();S.err=(1-q)*14+Math.random()*2;const a=Math.random()*6.28;
  S.bomb={p:S.pos.clone().add(new THREE.Vector3(0,-2,0)),v:fwd.clone().multiplyScalar(Math.max(120,S.spd)),s:Math.max(120,S.spd),aim:BUNK.clone().add(new THREE.Vector3(Math.cos(a)*S.err,0,Math.sin(a)*S.err)),tti:99,age:0};bomb.visible=true;jet.visible=true;
  if(!useSnd('bombrelease',S.pos)){riser(true);heavy('sub08',.45,1.15);if(AC&&!heavy('subdrop',.8,1,true))thud(AC.out,.6,60,28,.8);blip(300,.2,.3,'triangle');whoosh()}}
-function showEnd(win){running=false;stopIntroMusic();if(AC){const t=AC.currentTime;riser(false);AC.jet.gain.setTargetAtTime(0,t,.5);AC.amb.gain.setTargetAtTime(0,t,.5);try{stopBed()}catch(e){};eng.g.gain.setTargetAtTime(0,t,.3);warnG.gain.setTargetAtTime(0,t,.05);trkG.gain.setTargetAtTime(0,t,.05);AC.sub.gain.setTargetAtTime(0,t,.3);if(S.missile)mslAudioStop(S.missile);$('vig').style.opacity=0;$('teach').style.display='none';seekG.gain.setTargetAtTime(0,t,.05);
+function showEnd(win){running=false;stopIntroMusic();stopDeckAmbience();if(AC){const t=AC.currentTime;riser(false);AC.jet.gain.setTargetAtTime(0,t,.5);AC.amb.gain.setTargetAtTime(0,t,.5);try{stopBed()}catch(e){};eng.g.gain.setTargetAtTime(0,t,.3);warnG.gain.setTargetAtTime(0,t,.05);trkG.gain.setTargetAtTime(0,t,.05);AC.sub.gain.setTargetAtTime(0,t,.3);if(S.missile)mslAudioStop(S.missile);$('vig').style.opacity=0;$('teach').style.display='none';seekG.gain.setTargetAtTime(0,t,.05);
  if(win)setTimeout(()=>SB.get(BRIEF_TRACK).then(b=>{if(!b||running)return;stopWin();winSrc=src(b,0,AC.musB,{loop:true});winSrc.g.gain.cancelScheduledValues(AC.currentTime);winSrc.g.gain.setValueAtTime(0,AC.currentTime);winSrc.g.gain.linearRampToValueAtTime(.5,AC.currentTime+1.5)}),900)}const prec=win?Math.round(clamp(100-S.err*5,0,100)):0,st=Math.round(clamp(100-S.detT/Math.max(1,S.t)*100-S.samShots*10,0,100)),tm=S.t;
  const stars=win?1+(prec>=80)+(st>=75&&tm<170):0;$('et').textContent=win?'MISSION COMPLETE // TARGET DESTROYED':'MISSION FAILED // '+S.dead;$('es').textContent='★'.repeat(stars)+'☆'.repeat(3-stars);
  $('etab').innerHTML=`<tr><td>PRECISION</td><td>${prec}%${win?` · CEP ${S.err.toFixed(1)} M`:''}</td></tr><tr><td>STEALTH</td><td>${st}%</td></tr><tr><td>TIME ON MISSION</td><td>${(tm/60|0)}:${String(tm%60|0).padStart(2,'0')}</td></tr><tr><td>SAMS DEFEATED</td><td>${S.defeated}</td></tr>`;
@@ -1119,8 +1139,9 @@ function render(){jet.position.copy(S.pos);sun.target.position.copy(S.pos);sun.p
  // Bomb-cam only after a short settle so first-frame compile can't hang on an empty view; jet stays visible in scene
  const useBombCam=S.cine&&S.bomb&&(S.bomb.age||0)>.35;
  if(takingOff()){cam.up.set(0,1,0);
-  const u=S.phase==='cat'?clamp(S.to.shot/2.15,0,1):0; const back=lerp(88,32,u),up=lerp(30,11,u),side=lerp(-12,-4,u);
-  CVN._cam.set(S.pos.x+side,S.pos.y+up,S.pos.z+back); CVN._look.set(S.pos.x+11,S.pos.y+1.2,S.pos.z-32);
+  const u=S.phase==='cat'?clamp(S.to.shot/2.15,0,1):0;
+  CVN._cam.set(lerp(S.pos.x-28,S.pos.x-6,u), lerp(S.pos.y+20,S.pos.y+9,u), lerp(S.pos.z+16,S.pos.z+30,u));
+  CVN._look.set(lerp(S.pos.x-10,S.pos.x+2,u), lerp(S.pos.y+1.4,S.pos.y+1.2,u), lerp(S.pos.z-12,S.pos.z-24,u));
   if(S.phase==='signal'&&CVN.shooter){const k=sstep(4.15,5.35,S.to.sig||0); CVN.shooter.getWorldPosition(CVN._shW); const sh=CVN._shW;
    CVN._cam2.set(sh.x+5.2,sh.y+1.7,sh.z+2.2); CVN._look2.set(sh.x,sh.y+.85,sh.z-.4);
    cam.position.copy(CVN._cam2).lerp(CVN._cam,k); cam.lookAt(CVN._look2.lerp(CVN._look,k))}
@@ -1259,7 +1280,7 @@ $('retry').addEventListener('pointerdown',e=>{e.stopPropagation();initAudio();st
 function goFS(){const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(f&&!document.fullscreenElement&&!document.webkitFullscreenElement){try{const p=f.call(d,{navigationUI:'hide'});p&&p.catch&&p.catch(()=>{})}catch(e){}}try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}
 if(DS_MODE==='game')addEventListener('pointerdown',goFS,{once:true});
 if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.target.closest&&e.target.closest('#brief,#tut,#end,#go,#retry,#setp,#pauseOv,#pauseCard,input,select,textarea,a,button.label'))return;e.preventDefault()},{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault())}if(DS_MODE==='game')addEventListener('resize',()=>scrollTo(0,0));
-async function begin(){reset();jet.visible=true;if(AC){AC.resume(); const padKey=INTRO_TRACK||TAKEOFF_PAD; await Promise.all(['jet8','jet','ambient','aaaw','sub08',padKey].map(k=>SB.get(k).catch(()=>null))); try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3);}catch(e){} const fk=flareChoice().key; if(fk)SB.get(fk).catch(()=>{}); try{for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)SB.get(c.key).catch(()=>{})}}catch(e){} prewarmAudio(); } prewarmGfx(); if(!skipTakeoff)startIntroMusic(); running=true;last=performance.now()}
+async function begin(){reset();jet.visible=true;if(AC){AC.resume(); const deckKeys=['deck_jet','deck_rotor','deck_clank','deck_steam','deck_call']; if(INTRO_TRACK)deckKeys.push(INTRO_TRACK); await Promise.all(['jet8','jet','ambient','aaaw','sub08',...deckKeys].map(k=>SB.get(k).catch(()=>null))); try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3);}catch(e){} const fk=flareChoice().key; if(fk)SB.get(fk).catch(()=>{}); try{for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)SB.get(c.key).catch(()=>{})}}catch(e){} prewarmAudio(); } prewarmGfx(); if(!skipTakeoff){startDeckAmbience(); startIntroMusic()} running=true;last=performance.now()}
 reset();
 if(DS_MODE==='game'){clock();drawMap();chat();addEventListener('resize',()=>{if(!$('brief').classList.contains('hide'))drawMap()});requestAnimationFrame(step)}
 
