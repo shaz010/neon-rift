@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','15n'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','15o'])[1];
 const PATCH_LABEL='s15 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -603,43 +603,61 @@ function reset(){if(S&&S.missile&&AC)mslAudioStop(S.missile);S={phase:'ingress',
  if(S&&S.missile)mslAudioStop(S.missile);mslG.visible=bomb.visible=msl.visible=ring.visible=dome.visible=bulge.visible=false;debris.forEach(d=>scene.remove(d.m));debris.length=0;parts.forEach(p=>scene.remove(p.m));parts.length=0;bunker.visible=true;$('end').classList.add('hide');setThr(.7)}
 // ---------- input ----------
 let steer=null;const inp={x:0,y:0};
-// Steering listens on the document, not only #gl. The HUD canvas sits on top of
-// the WebGL canvas; on iPhone that top canvas can take the touch even when it
-// is marked pointer-events:none, so a drag never reached #gl.
+// One steering pointer, captured on the game canvas. The HUD canvas sits above
+// #gl and on iPhone can take the finger, so the listeners are on the document.
+// A missed pointerup used to leave inp stuck; every end path zeroes it.
 const steerBlock='#brief,#tut,#end,#thr,#setb,#pauseb,#setp,#setx,#pauseOv,#pauseCard,.btn,a,button,input,select,textarea,label';
 function steerBlocked(t){return !!(t&&t.closest&&t.closest(steerBlock))}
 function steerTo(x,y){const r=Math.max(48,Math.min(innerWidth,innerHeight)*.22);inp.x=clamp((x-steer.x)/r,-1,1);inp.y=clamp((y-steer.y)/r,-1,1)}
+function releaseSteer(){
+  if(steer){try{steer.el&&steer.el.releasePointerCapture&&steer.el.releasePointerCapture(steer.pointerId)}catch(e){}}
+  steer=null; inp.x=0; inp.y=0;
+}
 if(DS_MODE==='game'){
-  const hud=$('hud'); if(hud)hud.style.setProperty('pointer-events','none','important');
-  let sawPointer=false;
+  const hud=$('hud');
+  if(hud){hud.style.setProperty('pointer-events','none','important'); hud.style.touchAction='none'}
+  gl.style.touchAction='none';
+  let recentTouch=null, arming=false;
   document.addEventListener('pointerdown',e=>{
-    sawPointer=true;
-    if(steer||e.button>0||steerBlocked(e.target))return;
-    steer={id:e.pointerId,x:e.clientX,y:e.clientY};
-    try{e.target.setPointerCapture&&e.target.setPointerCapture(e.pointerId)}catch(x){}
+    if(e.button>0||steerBlocked(e.target))return;
+    if(steer&&e.pointerId===steer.pointerId)return;
+    if(steer){try{steer.el&&steer.el.releasePointerCapture(steer.pointerId)}catch(err){}}
+    let touchId=e.pointerId;
+    if(recentTouch&&performance.now()-recentTouch.t<80&&Math.hypot(recentTouch.x-e.clientX,recentTouch.y-e.clientY)<48)touchId=recentTouch.id;
+    arming=true;
+    try{gl.setPointerCapture(e.pointerId); steer={pointerId:e.pointerId,touchId,x:e.clientX,y:e.clientY,el:gl}}
+    catch(err){steer={pointerId:e.pointerId,touchId,x:e.clientX,y:e.clientY,el:null}}
+    arming=false;
   },{capture:true});
   document.addEventListener('pointermove',e=>{
-    if(!steer||steer.touch||e.pointerId!==steer.id)return;
+    if(!steer||e.pointerId!==steer.pointerId)return;
     if(e.cancelable)e.preventDefault();
     steerTo(e.clientX,e.clientY);
   },{capture:true,passive:false});
-  const endSteer=e=>{if(steer&&e.pointerId===steer.id){try{e.target.releasePointerCapture&&e.target.releasePointerCapture(e.pointerId)}catch(x){}steer=null;inp.x=inp.y=0}};
-  document.addEventListener('pointerup',endSteer,{capture:true});
-  document.addEventListener('pointercancel',endSteer,{capture:true});
-  // Touch fallback only if this browser never delivers pointer events.
+  const endPointer=e=>{if(!arming&&steer&&e.pointerId===steer.pointerId)releaseSteer()};
+  document.addEventListener('pointerup',endPointer,{capture:true});
+  document.addEventListener('pointercancel',endPointer,{capture:true});
+  document.addEventListener('lostpointercapture',endPointer,{capture:true});
+  // Remember the touch id so touchend still centres the stick if Safari drops pointerup.
+  // The throttle finger is a different id and does not clear the stick.
   document.addEventListener('touchstart',e=>{
-    if(sawPointer||steer||e.touches.length!==1||steerBlocked(e.target))return;
-    const t=e.touches[0]; steer={id:'t'+t.identifier,x:t.clientX,y:t.clientY,touch:1};
+    for(const t of e.changedTouches){
+      if(steerBlocked(e.target))continue;
+      recentTouch={id:t.identifier,x:t.clientX,y:t.clientY,t:performance.now()};
+      if(steer&&Math.hypot(t.clientX-steer.x,t.clientY-steer.y)<48)steer.touchId=t.identifier;
+    }
   },{capture:true,passive:true});
-  document.addEventListener('touchmove',e=>{
-    if(!steer||!steer.touch)return;
-    const t=[...e.touches].find(t=>'t'+t.identifier===steer.id); if(!t)return;
-    if(e.cancelable)e.preventDefault();
-    steerTo(t.clientX,t.clientY);
-  },{capture:true,passive:false});
-  const endTouch=e=>{if(!steer||!steer.touch)return; const t=[...e.changedTouches].find(t=>'t'+t.identifier===steer.id); if(!t)return; steer=null; inp.x=inp.y=0};
+  const endTouch=e=>{
+    if(!steer)return;
+    let gone=e.touches.length===0;
+    for(const t of e.changedTouches){ if(t.identifier===steer.touchId||t.identifier===steer.pointerId)gone=true }
+    if(gone)releaseSteer();
+  };
   document.addEventListener('touchend',endTouch,{capture:true});
   document.addEventListener('touchcancel',endTouch,{capture:true});
+  window.addEventListener('blur',releaseSteer);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseSteer()});
+  window.addEventListener('pagehide',releaseSteer);
 }
 if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.target.closest&&e.target.closest('#brief,#tut,#end,#go,#retry,#setp,#pauseOv,#pauseCard,input,select,textarea,a,button.label'))return;e.preventDefault()},{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault())}
 function setThr(v){S&&(S.thr=v);$('thrk').style.bottom=(3+v*(130-12))+'px';const kcas=Math.round((85+v*195)*1.94);$('thrl').innerHTML='THROTTLE<br><span style="opacity:.85">'+kcas+' KTS</span>';if(S&&!S._thrHint&&v>.05&&v<.95){S._thrHint=1;msg('THROTTLE — SLIDE FOR SPEED')}}
@@ -791,7 +809,10 @@ function step(now){try{const _n=performance.now(); if(window.__ftLast){const _dt
 function update(rdt){
  let target=1;if(S.phase==='bombfall')target=.45;if(S.bomb&&S.bomb.tti<1.8)target=.25;if(S.phase==='penetrate')target=.5;if(S.boomT>=0&&S.boomT<1.5)target=.5;if(S.teachT>0)target=.55;
  S.cine=S.phase==='bombfall'||S.phase==='penetrate'||(S.boomT>=0&&S.boomT<8);S.ts=lerp(S.ts,target,clamp(rdt*6,0,1));const dt=rdt*S.ts;S.t+=rdt;
- const tR=S.cine?0:S.brk>0?-S.brkDir*78*D2R:-inp.x*45*D2R,tP=S.cine?0:-inp.y*30*D2R;S.roll+=(tR-S.roll)*clamp(rdt*8.5,0,1);S.pitch+=(tP-S.pitch)*clamp(rdt*7.5,0,1);S.yaw+=S.roll*.75*dt;
+ const tR=S.cine?0:S.brk>0?-S.brkDir*78*D2R:-inp.x*45*D2R,tP=S.cine?0:-inp.y*30*D2R;
+ const released=!steer&&!(S.brk>0)&&!S.cine;
+ const rk=released?50:8.5, pk=released?50:7.5;
+ S.roll+=(tR-S.roll)*clamp(rdt*rk,0,1);S.pitch+=(tP-S.pitch)*clamp(rdt*pk,0,1);S.yaw+=S.roll*.75*dt;
  const spd=85+S.thr*195;fwd.set(-Math.sin(S.yaw)*Math.cos(S.pitch),Math.sin(S.pitch),-Math.cos(S.yaw)*Math.cos(S.pitch));S.pos.addScaledVector(fwd,spd*dt);S.pos.y=Math.min(S.pos.y,2500);
  if(S.cine)S.pos.y=Math.max(S.pos.y,H(S.pos.x,S.pos.z)+60);const agl=S.pos.y-H(S.pos.x,S.pos.z);S.agl=agl;S.spd=spd;if(agl<2)return die('TERRAIN IMPACT');
  if(S.cine){}else if(agl>150){S.det=Math.min(100,S.det+(20+(agl-150)*.08)*dt);S.detT+=dt}else S.det=Math.max(0,S.det-12*dt);
