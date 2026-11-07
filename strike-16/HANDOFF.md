@@ -5,6 +5,12 @@ Branch: `strike-16`. Pages folder: `/strike-16/` only.
 
 Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
 
+## s16 · 16i — saved sounds, instant release, marked target
+
+Empty storage now starts with the approved s15 ticks: flare Clean Thunder, engine Jet Take off 2, cannon Thunder VideoStar, SAM Boomer FX 45, missile pass Boomer FX 28. A saved tick still wins. Bomb release and the other sections had no recorded final tick, so they stay Current.
+
+RELEASE drops the bomb on the first touch when the target is in the window. The bunker carries a diamond, a range, a soft beacon, and an edge arrow when it is off the screen. Stamp `s16 · 16i`.
+
 ## s16 · 16h — valley respawn after a loss
 
 The carrier take-off plays only when a sortie starts from the opening screen. After a crash or a shoot-down, RETRY puts the jet back in the valley on the run-in, wings level, about 80 m above the ground, short of the first SAM. The camera is the usual steady chase. Stamp `s16 · 16h`.
