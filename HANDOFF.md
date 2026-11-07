@@ -5,6 +5,12 @@ Branch: `strike-16`. Pages folder: `/strike-16/` only.
 
 Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
 
+## s16 · 16g — buttons, the jammer label, and a gun picker
+
+The GUN button sits on the right, above LOCK, clear of FLARE, BREAK and the jammer. The label that read `ECM ×2` is the radar jammer, and it showed how many uses were left. It now reads `JAMS 2`.
+
+The sound tester has a Gun section. Current is still the cannon already in the game. Six low gun hits are optional. Stamp `s16 · 16g`.
+
 ## s16 · 16f — deck sound, and the deck in frame
 
 Take-off plays no music. `INTRO_TRACK` is still the slot for Shahbaz's kick-off track, and it defaults to none. In that space the deck plays real recordings through `mixFlightAudio`: jets idling nearby, a soft helicopter rotor, a steam chuff while they hold, and a metal clank plus one more chuff when the shuttle fires. Tapping LAUNCH plays a person on the radio saying the aircraft is cleared. Credits are in `sfx/CREDITS.md`. Nothing here is a noise generator.

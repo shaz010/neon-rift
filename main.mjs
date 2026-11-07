@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16f'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16g'])[1];
 const PATCH_LABEL='s16 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -725,6 +725,7 @@ function prewarmGfx(){if(window.__pwG)return;window.__pwG=1;
 }
 const C=(id,name,key,desc)=>({id,name,key,desc});
 const SND=[
+ {id:'gun',title:'Gun — choose one',loop:0,notLogic:1,cur:'The cannon the jet fires now.',cands:[C('current','',null),C('g1','Deep cannon','snd_gun1','Cannon boom, almost all low body.'),C('g2','Naval gun','snd_gun2','Ship gun under a round sub thump.'),C('g3','Howitzer','snd_gun3','Short howitzer thump, highs rolled off.'),C('g4','Mortar','snd_gun4','Mortar body. The lowest of the set.'),C('g5','Tank gun','snd_gun5','Tank shot with the crack taken out.'),C('g6','Field cannon','snd_gun6','Field cannon, bass first.')]},
  {id:'engine',title:'Engine — choose one',loop:1,notLogic:1,cur:'Jet loop plus a synth sub layer.',cands:[C('current','',null),C('t1','Jet Take off 1 (roar)','snd_t1'),C('t2','Jet Take off 2 (roar)','snd_t2'),C('t3','Jet Take Off 3 (roar)','snd_t3'),C('t1h','Jet Take off 1 (hold)','snd_t1h'),C('js','Jet Stream Synth (cycle)','snd_js'),C('jp','Jet Propulsion Synth Layers (steady)','snd_jp')]},
  {id:'aaa',title:'Cannon / AAA — choose one',loop:0,notLogic:0,cur:'Thunder cannon sample, as the game plays it now.',cands:[C('current','',null),C('tv','Thunder_VideoStar (hit)','snd_tv'),C('ds1','Deep Space Boomer 01 (hit)','snd_ds1'),C('ds2','Deep Space Boomer 02 (hit)','snd_ds2'),C('ths','Thunder (strike)','snd_ths'),C('thu','Thunder (single)','snd_thu'),C('thl','Thunder (late hit)','snd_thl')]},
  {id:'sam',title:'SAM launch — choose one',loop:0,notLogic:1,cur:'Layered launch roar, not one Logic file.',cands:[C('current','',null),C('s1','Boomer FX 15.caf','snd_s1'),C('s2','Boomer FX 45.caf','snd_s2'),C('s3','Boomer FX 02.caf','snd_s3'),C('s4','Asteroid Dust Impact.caf','snd_s4'),C('s5','Boomer FX 16.caf','snd_s5')]},
@@ -744,9 +745,9 @@ function sndChoice(id){const s=sndSec(id); if(!s)return {id:'current'}; let pick
 let sndBypass=0, sndPrev=[];
 function stopSndPrev(){const a=sndPrev; sndPrev=[]; for(const s of a){try{s&&s.stop&&s.stop()}catch(e){}}}
 function plainLoop(buf,vol,dest,meta){if(!AC||!buf)return null; const s=AC.createBufferSource(); s.buffer=buf; s.loop=true; s.playbackRate.value=1; const g=AC.createGain(); g.gain.value=0; g.gain.setTargetAtTime(vol,AC.currentTime,.05); s.connect(g).connect(dest); s.start(); sfxLog('sndPlay',Object.assign({rate:1,vol,mode:'plain'},meta||{})); return {a:s,g,plain:1,stop(t){try{g.gain.setTargetAtTime(0,AC.currentTime,.08); s.stop((t||AC.currentTime)+.2)}catch(e){}}}}
-let aaaShots=[], boomShots=[];
-function useSnd(sec,P){if(sndBypass)return false; const c=sndChoice(sec); if(!c||c.id==='current')return false; if(!SB[c.key]){SB.get(c.key); return false} const buf=SB[c.key]; const fade=sec==='aaa'?0.005:0.008; const bag=sec==='aaa'?aaaShots:sec==='boom'?boomShots:null; if(bag){while(bag.length>=2){const old=bag.shift(); try{old&&old.stop&&old.stop(0); sfxLog(sec+'Cap',{stopped:1})}catch(e){}}} let node; if(P){const pn=mkPan(true,140); setP0(pn,P); pn.connect(AC.out); node=src(buf,.5,pn,{pri:1,rate:1,fadeIn:fade,tag:'snd:'+sec+':'+c.id}); const hold=((buf.duration)||3)*1000+500; setTimeout(()=>{try{pn.disconnect()}catch(e){} if(bag){const i=bag.indexOf(node); if(i>=0)bag.splice(i,1)}},hold)} else node=src(buf,.5,AC.out,{pri:1,rate:1,fadeIn:fade,tag:'snd:'+sec+':'+c.id}); if(bag&&node&&node.stop){bag.push(node); const prev=node.onended; node.onended=()=>{if(typeof prev==='function')prev(); const i=bag.indexOf(node); if(i>=0)bag.splice(i,1)}} sfxLog('sndPlay',{sec,id:c.id,rate:1,file:c.name}); return !!node}
-function playSndBuf(sec,c){if(!AC||!c||!c.key||!SB[c.key])return false; stopSndPrev(); const s=sndSec(sec); if(s&&s.loop){const h=plainLoop(SB[c.key],.45,AC.out,{sec,id:c.id,file:c.name}); if(h)sndPrev.push(h)} else {const n=src(SB[c.key],.5,AC.out,{pri:1,rate:1,fadeIn:.008,tag:'snd:'+sec+':'+c.id}); if(n&&n.stop)sndPrev.push(n); sfxLog('sndPlay',{sec,id:c.id,rate:1,file:c.name})} return true}
+let aaaShots=[], boomShots=[], gunShots=[];
+function useSnd(sec,P){if(sndBypass)return false; const c=sndChoice(sec); if(!c||c.id==='current')return false; if(!SB[c.key]){SB.get(c.key); return false} const buf=SB[c.key]; const fade=sec==='gun'?0.012:sec==='aaa'?0.005:0.008; const vol=sec==='gun'?0.9:0.5; const bag=sec==='gun'?gunShots:sec==='aaa'?aaaShots:sec==='boom'?boomShots:null; if(bag){while(bag.length>=2){const old=bag.shift(); try{old&&old.stop&&old.stop(0); sfxLog(sec+'Cap',{stopped:1})}catch(e){}}} let node; if(P){const pn=mkPan(true,140); setP0(pn,P); pn.connect(AC.out); node=src(buf,vol,pn,{pri:1,rate:1,fadeIn:fade,tag:'snd:'+sec+':'+c.id}); const hold=((buf.duration)||3)*1000+500; setTimeout(()=>{try{pn.disconnect()}catch(e){} if(bag){const i=bag.indexOf(node); if(i>=0)bag.splice(i,1)}},hold)} else node=src(buf,vol,AC.out,{pri:1,rate:1,fadeIn:fade,tag:'snd:'+sec+':'+c.id}); if(bag&&node&&node.stop){bag.push(node); const prev=node.onended; node.onended=()=>{if(typeof prev==='function')prev(); const i=bag.indexOf(node); if(i>=0)bag.splice(i,1)}} sfxLog('sndPlay',{sec,id:c.id,rate:1,file:c.name}); return !!node}
+function playSndBuf(sec,c){if(!AC||!c||!c.key||!SB[c.key])return false; stopSndPrev(); const s=sndSec(sec); if(s&&s.loop){const h=plainLoop(SB[c.key],.45,AC.out,{sec,id:c.id,file:c.name}); if(h)sndPrev.push(h)} else {const n=src(SB[c.key],sec==='gun'?0.9:.5,AC.out,{pri:1,rate:1,fadeIn:sec==='gun'?0.012:.008,tag:'snd:'+sec+':'+c.id}); if(n&&n.stop)sndPrev.push(n); sfxLog('sndPlay',{sec,id:c.id,rate:1,file:c.name})} return true}
 function stopBed(){if(bedS){try{bedS.stop()}catch(e){}bedS=null}if(droneS){try{droneS.stop()}catch(e){}droneS=null}}
 function startBed(){if(!AC)return;stopBed();
  const bedC=sndChoice('bed'), ambC=sndChoice('ambience');
@@ -942,7 +943,7 @@ function applySndFromUrl(){
   }
   try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}
 }
-const SND_SHORT={engine:'Engine',aaa:'Cannon',sam:'SAM',pass:'Pass',boom:'Explosion',bombrelease:'Release',nuke:'Nuke',radar:'Radar',crash:'Crash',overhead:'Overhead',ambience:'Ambience',bed:'Bed'};
+const SND_SHORT={gun:'Gun',engine:'Engine',aaa:'Cannon',sam:'SAM',pass:'Pass',boom:'Explosion',bombrelease:'Release',nuke:'Nuke',radar:'Radar',crash:'Crash',overhead:'Overhead',ambience:'Ambience',bed:'Bed'};
 function sndSummary(){
   const bits=[];
   const fl=flareChoice(); if(fl.id!=='current')bits.push('Flare '+(fl.name||fl.id));
@@ -998,7 +999,7 @@ function updSites(dt){let anyTrk=false,anySrch=false;if(S.cine||S.phase==='done'
 const GUN_RANGE=2600, MSL_HIT=36, SITE_HIT=50, BOMB_R=78;
 function nose(){fwd.set(-Math.sin(S.yaw)*Math.cos(S.pitch),Math.sin(S.pitch),-Math.cos(S.yaw)*Math.cos(S.pitch));return fwd}
 function segNear(ax,ay,az,bx,by,bz,px,py,pz){const abx=bx-ax,aby=by-ay,abz=bz-az,apx=px-ax,apy=py-ay,apz=pz-az,L=abx*abx+aby*aby+abz*abz||1e-6;let t=(apx*abx+apy*aby+apz*abz)/L;if(t<0)t=0;else if(t>1)t=1;return Math.hypot(apx-abx*t,apy-aby*t,apz-abz*t)}
-function gunSnd(){if(!AC||S.gunSnd>0)return;S.gunSnd=.28;if(useSnd('aaa',S.pos))return;if(SB.aaaw)src(SB.aaaw,.32,AC.out,{pri:1,fadeIn:.005,tag:'gun'});else thud(AC.out,.22,46,24,.18)}
+function gunSnd(){if(!AC||S.gunSnd>0)return;S.gunSnd=.28;if(useSnd('gun',S.pos))return;if(useSnd('aaa',S.pos))return;if(SB.aaaw)src(SB.aaaw,.32,AC.out,{pri:1,fadeIn:.005,tag:'gun'});else thud(AC.out,.22,46,24,.18)}
 function fireCannon(){if(!S||S.dead||S.cine||takingOff()||S.phase==='done'||S.phase==='bombfall'||S.phase==='penetrate'||S.gunCD>0)return;S.gunCD=.11;nose();
  const p=S.pos.clone().addScaledVector(fwd,14),v=fwd.clone().multiplyScalar(1800);let m=tracers.find(t=>!t.visible)||tracers[0];m.visible=true;m.position.copy(p);
  rounds.push({p,v,life:GUN_RANGE/1800,m,px:p.x,py:p.y,pz:p.z});if(rounds.length>14){const old=rounds.shift();if(old.m&&old.m!==m)old.m.visible=false}gunSnd()}
@@ -1231,7 +1232,7 @@ function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!r
  // red vignette pulse, faster as missile closes
  const vg=$('vig');if(act){S.vph=(S.vph||0)+(1/60)*(1.5+10*clamp(1-md/5000,0,1));vg.style.opacity=(.25+.55*clamp(1-md/5000,0,1))*(.5+.5*Math.sin(S.vph*6.283))}else vg.style.opacity=S.dmgT>0?S.dmgT/3*.6:S.hp<2?.12:0;
  if(act){txt((md/1000).toFixed(1)+' KM',cx,cy-Hh*.2+22,16,'center','rgba(255,120,100,1)');const ttg=md/Math.max(50,M.v.length());txt('TTI '+ttg.toFixed(1)+' S',cx,cy-Hh*.2+38,11,'center','rgba(255,150,130,.95)')}
- const fw=flrWin(),bw=S.samShots<=1?1500:1100;$('flr').classList.toggle('hot',act&&md<fw);$('brk').classList.toggle('hot',act&&md<bw&&md>220&&S.brkCD<=0);$('brk').classList.toggle('off',S.brkCD>0);$('ecm').classList.toggle('off',S.ecmCD>0||S.ecmN<=0);$('ecm').textContent=S.ecm>0?'JAM '+S.ecm.toFixed(0):S.ecmCD>0?'ECM '+S.ecmCD.toFixed(0):'ECM ×'+S.ecmN;
+ const fw=flrWin(),bw=S.samShots<=1?1500:1100;$('flr').classList.toggle('hot',act&&md<fw);$('brk').classList.toggle('hot',act&&md<bw&&md>220&&S.brkCD<=0);$('brk').classList.toggle('off',S.brkCD>0);$('ecm').classList.toggle('off',S.ecmCD>0||S.ecmN<=0);$('ecm').textContent=S.ecm>0?('JAMMING '+S.ecm.toFixed(0)):S.ecmCD>0?('WAIT '+S.ecmCD.toFixed(0)):('JAMS '+S.ecmN);
  const te=$('teach');if(S.teachT>0){te.style.display='block';te.innerHTML='MISSILE INBOUND — DEFEND!<br>Hold GUN and put the pipper on it · FLARE under '+(fw/1000).toFixed(1)+' KM · BREAK under '+(bw/1000).toFixed(1)+' KM · ECM while far'}else te.style.display='none';
  // RWR scope (top-right)
  const rr=Math.min(46,Hh*.12),rx=W-rr-18,ry=Hh*.14+rr*.4+12;hx.fillStyle='rgba(0,10,4,.45)';hx.beginPath();hx.arc(rx,ry,rr,0,7);hx.fill();hx.strokeStyle='rgba(182,220,174,.6)';hx.beginPath();hx.arc(rx,ry,rr,0,7);hx.stroke();hx.beginPath();hx.arc(rx,ry,rr*.5,0,7);hx.stroke();line(rx,ry-rr,rx,ry-rr+5);line(rx,ry+rr,rx,ry+rr-5);line(rx-rr,ry,rx-rr+5,ry);line(rx+rr,ry,rx+rr-5,ry);txt('RWR',rx,ry+rr+11,9,'center',G);hx.fillStyle=G;hx.fillRect(rx-1.5,ry-1.5,3,3);
@@ -1313,6 +1314,7 @@ function buildFlarePicker(){const host=$('flareList'); if(!host)return; host.inn
 function paintSnd(sec){const id=sndChoice(sec.id).id; document.querySelectorAll('#sndSecs details[data-sec="'+sec.id+'"] .frow').forEach(el=>{const on=el.dataset.id===id; el.classList.toggle('chosen',on); const b=el.querySelector('.choose'); if(b)b.textContent=on?'✓ Chosen':'✓ Choose'})}
 function playCurrentSec(sec){sndBypass++; try{
   if(sec==='engine') startTesterEngine();
+  else if(sec==='gun'){ if(SB.aaaw){ const s=src(SB.aaaw,.32,AC.out,{pri:1,fadeIn:.005,tag:'gun'}); if(s&&s.stop)sndPrev.push(s);} else thud(AC.out,.22,46,24,.18); }
   else if(sec==='aaa') aaaBurst(S.pos.clone());
   else if(sec==='sam') samRoar(500);
   else if(sec==='pass'){ whoosh(); passBy(S.pos.clone()); }
@@ -1325,7 +1327,7 @@ function playCurrentSec(sec){sndBypass++; try{
   else if(sec==='ambience'||sec==='bed') startBed();
 }finally{ sndBypass--; }}
 function buildSndSections(){const host=$('sndSecs'); if(!host)return; host.innerHTML='';
- for(const sec of SND){const det=document.createElement('details'); det.className='sndSec'; det.dataset.sec=sec.id;
+ for(const sec of SND){const det=document.createElement('details'); det.className='sndSec'; det.dataset.sec=sec.id; if(sec.id==='gun')det.open=true;
   const body=document.createElement('div'); body.className='body';
   const sum=document.createElement('summary'); sum.textContent=sec.title; det.appendChild(sum); det.appendChild(body);
   const groups=[]; if(sec.reals) groups.push({label:'Real explosions',list:sec.reals}); if(sec.mixes) groups.push({label:'Combined (nuclear)',list:sec.mixes}); groups.push({label:'',list:sec.cands}); if(sec.bounces) groups.push({label:'Your Logic bounces',list:sec.bounces});
