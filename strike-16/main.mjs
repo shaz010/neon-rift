@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16b'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16c'])[1];
 const PATCH_LABEL='s16 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -12,6 +12,8 @@ import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js';
 import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js';
+import {MeshoptDecoder} from './vendor/jsm/libs/meshopt_decoder.module.js';
+import {clone as cloneSkin} from './vendor/jsm/utils/SkeletonUtils.js';
 const $=id=>document.getElementById(id);
 // Orientation hint only. Rotation lock on iOS never fires orientationchange and
 // never updates the angle, so a full-screen gate stays up and swallows taps.
@@ -156,9 +158,10 @@ const RADP=new THREE.Vector3(vx(-5200)-700,0,-5200); RADP.y=H(RADP.x,RADP.z);
 const EXZ=-15200, EXIT=new THREE.Vector3(vx(EXZ),0,EXZ); EXIT.y=H(EXIT.x,EXIT.z)+80;
 // Carrier sits well south of the valley mouth so the launch is open water.
 // Nose points -Z, the same heading the valley transit uses.
-const CVN={deckY:20, jetX:-10, jetZ:8860, track:94};
-CVN.top=CVN.deckY+.5; CVN.jetY=CVN.top+1.75;
-CVN.bowZ=CVN.jetZ-CVN.track-6; CVN.sternZ=CVN.bowZ+332; CVN.midZ=(CVN.bowZ+CVN.sternZ)/2;
+// Real carrier model: bow is +X, deck at y=30.8, starboard island at +Z.
+// The group is yawed so that bow points down the valley (-Z).
+const CVN={deckY:30.8, jetX:-10, jetZ:8968, track:94};
+CVN.top=CVN.deckY; CVN.jetY=CVN.deckY+1.75; CVN.bowZ=8874; CVN.midZ=9050;
 // ---------- renderer ----------
 const gl=$('gl'), R=new THREE.WebGLRenderer({canvas:gl,antialias:true,powerPreference:'high-performance'});
 let PR=Math.min(devicePixelRatio,MOB?1.25:1.75); R.setPixelRatio(PR);
@@ -366,171 +369,89 @@ import('./vendor/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>new GLTFLoader
  for(const c of jet.children)if(c.isGroup)c.visible=false;
  jet.userData.core.visible=false;jet.add(wrap);window.__glb='ok';
 },undefined,e=>{window.__glb='fail';console.warn('glb',e)})).catch(e=>{window.__glb='fail'});
-// ---------- carrier + sea (take-off only; the valley mission is unchanged) ----------
-const carrier=new THREE.Group(); scene.add(carrier);
-const deckMat=new THREE.MeshStandardMaterial({color:0x5a636a,roughness:.92,metalness:.04});
-const hullMat=new THREE.MeshStandardMaterial({color:0x2c3338,roughness:.88,metalness:.08});
-const lineMat=new THREE.MeshStandardMaterial({color:0xe4e7ea,roughness:.55,metalness:0});
-const foulMat=new THREE.MeshStandardMaterial({color:0xb8963e,roughness:.7,metalness:0});
-const slotMat=new THREE.MeshStandardMaterial({color:0x1a1e22,roughness:.95,metalness:.1});
-const isleMat=new THREE.MeshStandardMaterial({color:0x3e474e,roughness:.8,metalness:.12});
-const jetMat=new THREE.MeshStandardMaterial({color:0x6a7076,roughness:.72,metalness:.18});
-const jetDark=new THREE.MeshStandardMaterial({color:0x2a3138,roughness:.4,metalness:.35});
-const tugMat=new THREE.MeshStandardMaterial({color:0xc4a24a,roughness:.62,metalness:.08});
-const chainMat=new THREE.MeshStandardMaterial({color:0x1c1e22,roughness:.6,metalness:.4});
-const skinMat=new THREE.MeshStandardMaterial({color:0xc2a48a,roughness:.7});
-const crewMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.8});
-const JERSEY={yellow:0xd6a31a,green:0x2f7a3a,red:0xa33b32,white:0xe6e2d8,purple:0x6e3b78};
-function mergeGeos(geos){let vc=0,ic=0;for(const g of geos){vc+=g.attributes.position.count;ic+=g.index?g.index.count:g.attributes.position.count}
- const pos=new Float32Array(vc*3),nrm=new Float32Array(vc*3),idx=new Uint16Array(ic);let v=0,ii=0;
- for(const g of geos){const p=g.attributes.position,nr=g.attributes.normal,id=g.index,base=v;
-  for(let k=0;k<p.count;k++){pos[(v+k)*3]=p.getX(k);pos[(v+k)*3+1]=p.getY(k);pos[(v+k)*3+2]=p.getZ(k);if(nr){nrm[(v+k)*3]=nr.getX(k);nrm[(v+k)*3+1]=nr.getY(k);nrm[(v+k)*3+2]=nr.getZ(k)}}
-  if(id){for(let k=0;k<id.count;k++)idx[ii++]=id.getX(k)+base}else{for(let k=0;k<p.count;k++)idx[ii++]=base+k}
-  v+=p.count}
- const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.BufferAttribute(nrm,3));geo.setIndex(new THREE.BufferAttribute(idx,1));return geo}
-function bake(group){group.updateMatrixWorld(true);const gs=[];group.traverse(o=>{if(!o.isMesh)return;const c=o.geometry.clone();c.applyMatrix4(o.matrixWorld);gs.push(c)});return mergeGeos(gs)}
-function deckJetParts(folded){const g=new THREE.Group();
- const fus=new THREE.Mesh(new THREE.BoxGeometry(1.7,1.15,11.2),jetMat);fus.position.y=1.05;g.add(fus);
- const nose=new THREE.Mesh(new THREE.BoxGeometry(.9,.7,2.1),jetMat);nose.position.set(0,1.15,-6.4);g.add(nose);
- const can=new THREE.Mesh(new THREE.BoxGeometry(.62,.38,1.5),jetDark);can.position.set(0,1.78,-3.1);g.add(can);
- function wing(side){const piv=new THREE.Group();piv.position.set(side*.85,1.15,-.3);const w=new THREE.Mesh(new THREE.BoxGeometry(3.6,.1,2.05),jetMat);w.position.x=side*1.8;piv.add(w);if(folded)piv.rotation.z=side*1.2;g.add(piv)}
- wing(-1);wing(1);
- const fin=new THREE.BoxGeometry(.1,1.35,1.05);const f1=new THREE.Mesh(fin,jetMat),f2=new THREE.Mesh(fin,jetMat);
- f1.position.set(-.55,2.15,4.3);f1.rotation.z=.28;f2.position.set(.55,2.15,4.3);f2.rotation.z=-.28;g.add(f1);g.add(f2);
- const gear=new THREE.Mesh(new THREE.BoxGeometry(.2,.55,.2),chainMat);gear.position.set(0,.28,-5.6);g.add(gear);
- return g}
-{const deckL=CVN.sternZ-CVN.bowZ;
- const deck=new THREE.Mesh(new THREE.BoxGeometry(76,1,deckL),deckMat);deck.position.set(0,CVN.deckY,CVN.midZ);carrier.add(deck);
- const hull=new THREE.Mesh(new THREE.BoxGeometry(36,16,deckL-24),hullMat);hull.position.set(2,CVN.deckY-8.2,CVN.midZ+4);carrier.add(hull);
- const bow=new THREE.Mesh(new THREE.BoxGeometry(20,9,24),hullMat);bow.position.set(2,CVN.deckY-10,CVN.bowZ+10);bow.rotation.x=.32;carrier.add(bow);
- const ang=new THREE.Mesh(new THREE.BoxGeometry(26,1,150),deckMat);ang.position.set(-34,CVN.deckY,CVN.midZ+36);ang.rotation.y=.16;carrier.add(ang);
- // catapult slots, hold-short lines, foul lines, angled-deck landing lines — one merged mesh
- const marks=[];
- function addBox(w,h,d,x,y,z,mat){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);marks.push(m)}
- for(const x of[CVN.jetX,12]){addBox(1.15,.16,CVN.track+24,x,CVN.top+.02,(CVN.jetZ*2-CVN.track)/2,slotMat);for(let i=0;i<7;i++)addBox(.9,.04,1.1,x,CVN.top+.08,CVN.jetZ-8-i*12,lineMat)}
- for(let i=0;i<14;i++)addBox(.28,.05,3.2,0,CVN.top+.07,CVN.midZ-40-i*8,lineMat);
- for(const s of[-1,1])addBox(.22,.05,deckL-20,s*36.2,CVN.top+.06,CVN.midZ,foulMat);
- addBox(.16,.04,120,-22,CVN.top+.07,CVN.midZ+10,lineMat);addBox(.16,.04,120,-46,CVN.top+.07,CVN.midZ+20,lineMat);
- const markGeo=bake((()=>{const g=new THREE.Group();marks.forEach(m=>g.add(m));return g})());
- // materials differ, so keep two draws: slots dark, lines light. Rebuild simply as two groups.
- const slots=new THREE.Group(),lines=new THREE.Group();
- marks.forEach(m=>{(m.material===slotMat?slots:lines).add(m)});
- carrier.add(slots);carrier.add(lines);markGeo.dispose();
- // raised jet-blast deflector just aft of the player's exhaust
- const jbd=new THREE.Group();jbd.position.set(CVN.jetX,CVN.top,CVN.jetZ+10.5);carrier.add(jbd);
- const panel=new THREE.Mesh(new THREE.BoxGeometry(7.4,3.6,.18),new THREE.MeshStandardMaterial({color:0x6d5836,roughness:.72,metalness:.22}));
- panel.position.set(0,1.85,-.35);panel.rotation.x=-.42;jbd.add(panel);
- for(const s of[-1,1]){const st=new THREE.Mesh(new THREE.BoxGeometry(.14,2.6,.14),hullMat);st.position.set(s*2.7,1.2,.7);st.rotation.x=.7;jbd.add(st)}
- const lip=new THREE.Mesh(new THREE.BoxGeometry(7.4,.16,.2),foulMat);lip.position.set(0,3.45,-.95);jbd.add(lip);
- CVN.jbd=jbd;
- // island: bridge, mast, yardarms, antennas, hull number, window and nav lights
- const isle=new THREE.Group();isle.position.set(20,CVN.top,CVN.jetZ+4);carrier.add(isle);
- box(16,7.2,26,isleMat,0,3.6,0,isle);box(9,12,11,isleMat,-.5,12,-1,isle);box(6,3.2,7,isleMat,-.5,18.2,-1,isle);
- const mast=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,16,6),hullMat);mast.position.set(1.2,22,2);isle.add(mast);
- for(const [y,w] of[[16,7],[20,5],[24,3.2]]){const yrd=new THREE.Mesh(new THREE.BoxGeometry(w,.08,.08),hullMat);yrd.position.set(1.2,y,2);isle.add(yrd)}
- for(const [x,z,h] of[[-3,-8,10],[3.2,-5,8],[0,8,7],[-1,3,12]]){const a=new THREE.Mesh(new THREE.CylinderGeometry(.07,.1,h,5),hullMat);a.position.set(x,7+h/2,z);isle.add(a)}
- const dish=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,.12,8),new THREE.MeshStandardMaterial({color:0xd5dde2,roughness:.45,metalness:.3}));dish.position.set(1.2,26.5,2);dish.rotation.z=.4;isle.add(dish);
- const num=(()=>{const c=document.createElement('canvas');c.width=128;c.height=64;const x=c.getContext('2d');x.fillStyle='#3e474e';x.fillRect(0,0,128,64);x.fillStyle='#e7edf0';x.font='700 42px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('16',64,34);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t})();
- const plate=new THREE.Mesh(new THREE.PlaneGeometry(6.4,2.6),new THREE.MeshStandardMaterial({map:num,roughness:.7}));plate.position.set(-8.05,6.2,0);plate.rotation.y=-Math.PI/2;isle.add(plate);
- const lamp=new THREE.MeshBasicMaterial({color:0xffe2a8});const redL=new THREE.MeshBasicMaterial({color:0xff3a30});const grnL=new THREE.MeshBasicMaterial({color:0x37e06a});
- for(let i=0;i<5;i++){const w=new THREE.Mesh(new THREE.BoxGeometry(.55,.42,.12),lamp);w.position.set(-8.02,8.4,-6+i*3);isle.add(w)}
- const nav=new THREE.Mesh(new THREE.SphereGeometry(.18,6,5),redL);nav.position.set(-7,16.2,-10);isle.add(nav);
- const nav2=new THREE.Mesh(new THREE.SphereGeometry(.18,6,5),grnL);nav2.position.set(6,16.2,8);isle.add(nav2);
- const beacon=new THREE.Mesh(new THREE.SphereGeometry(.16,6,5),redL);beacon.position.set(1.2,30.2,2);isle.add(beacon);
- // low-poly parked jets, wings folded, chained. One instanced draw.
- const foldedGeo=bake(deckJetParts(true));
- const parks=[{x:28,z:CVN.jetZ+6,yaw:.4},{x:30,z:CVN.jetZ-34,yaw:.08},{x:27,z:CVN.jetZ+30,yaw:-.25},{x:-28,z:CVN.jetZ-16,yaw:.06},{x:-29,z:CVN.jetZ-52,yaw:3.02},{x:16,z:CVN.jetZ-58,yaw:.55}];
- const parkIM=new THREE.InstancedMesh(foldedGeo,jetMat,parks.length);parkIM.castShadow=false;
- const chainGeo=new THREE.BoxGeometry(2.4,.07,.07),chainIM=new THREE.InstancedMesh(chainGeo,chainMat,parks.length*2);
- const M=new THREE.Matrix4(),Q=new THREE.Quaternion(),E=new THREE.Euler(),V=new THREE.Vector3(),Scl=new THREE.Vector3(1,1,1);
- parks.forEach((p,i)=>{Q.setFromEuler(E.set(0,p.yaw,0));M.compose(V.set(p.x,CVN.top,p.z),Q,Scl);parkIM.setMatrixAt(i,M);
-  const nx=p.x+Math.sin(p.yaw)*-5.8,nz=p.z+Math.cos(p.yaw)*-5.8;
-  for(const s of[-1,1]){Q.setFromEuler(E.set(0,p.yaw+s*.5,0));M.compose(V.set(nx+s*.35,CVN.top+.08,nz+s*.2),Q,Scl);chainIM.setMatrixAt(i*2+(s<0?0:1),M)}});
- parkIM.instanceMatrix.needsUpdate=chainIM.instanceMatrix.needsUpdate=true;
- // spread-wing jet waiting on the starboard catapult, and one taxiing up the port side
- function liveJet(x,z,yaw){const g=deckJetParts(false);g.position.set(x,CVN.top,z);g.rotation.y=yaw;return g}
- const cat2=liveJet(12,CVN.jetZ-1,0);
- CVN.taxiBase=CVN.jetZ+26;CVN.taxiT=4;
- const taxi=liveJet(-22,CVN.taxiBase,.12);
- // tractors: one towing the taxiing jet, two parked by the island and the folded line
- const tugGeo=bake((()=>{const g=new THREE.Group();const b=new THREE.Mesh(new THREE.BoxGeometry(1.5,.7,2.5),tugMat);b.position.y=.55;g.add(b);const c=new THREE.Mesh(new THREE.BoxGeometry(1.2,.55,1.1),tugMat);c.position.set(0,1.05,-.3);g.add(c);const wh=new THREE.BoxGeometry(.35,.35,.35);for(const [x,z] of[[-.7,.8],[.7,.8],[-.7,-.8],[.7,-.8]]){const w=new THREE.Mesh(wh,chainMat);w.position.set(x,.2,z);g.add(w)}return g})());
- const tugs=new THREE.InstancedMesh(tugGeo,tugMat,3);
- [[-22,CVN.taxiBase-7.2,.12],[24,CVN.jetZ+22,.4],[-26,CVN.jetZ-40,1.2]].forEach((p,i)=>{Q.setFromEuler(E.set(0,p[2],0));M.compose(V.set(p[0],CVN.top,p[1]),Q,Scl);tugs.setMatrixAt(i,M)});
- tugs.instanceMatrix.needsUpdate=true;CVN.tugs=tugs;
- // crew — one body mesh and one head mesh, coloured by jersey
- const bodyGeo=bake((()=>{const g=new THREE.Group(),cloth=new THREE.MeshStandardMaterial({color:0xffffff});
-  const leg=new THREE.BoxGeometry(.16,.78,.16);const l1=new THREE.Mesh(leg,cloth);l1.position.set(-.12,.4,0);const l2=l1.clone();l2.position.x=.12;g.add(l1);g.add(l2);
-  const torso=new THREE.Mesh(new THREE.BoxGeometry(.5,.62,.28),cloth);torso.position.y=1.02;g.add(torso);
-  const a=new THREE.BoxGeometry(.12,.48,.12);const aL=new THREE.Mesh(a,cloth);aL.position.set(-.34,1.05,0);const aR=aL.clone();aR.position.x=.34;g.add(aL);g.add(aR);return g})());
- const headGeo=new THREE.SphereGeometry(.16,6,5);
- const crewList=[
-  [CVN.jetX+3.2,CVN.jetZ-16,'green',.2],[CVN.jetX-3.4,CVN.jetZ-8,'green',1],[CVN.jetX+2.4,CVN.jetZ+4,'green',.4],
-  [14.5,CVN.jetZ-8,'green',-.3],[10,CVN.jetZ+3,'green',.6],[13,CVN.jetZ-22,'green',.1],
-  [26,CVN.jetZ+2,'yellow',1.2],[18,CVN.jetZ-46,'yellow',.5],[-24,CVN.taxiBase+2,'yellow',.3],
-  [29,CVN.jetZ-30,'red',.8],[ -27,CVN.jetZ-14,'red',2.4],[17,CVN.jetZ-54,'red',.2],[26,CVN.jetZ+28,'red',1],
-  [CVN.jetX-4,CVN.jetZ+8,'white',.5],[8,CVN.jetZ-30,'white',1.5],[-20,CVN.jetZ-48,'white',.2],
-  [23,CVN.jetZ+12,'purple',2.2],[28,CVN.jetZ-38,'purple',.9],[15,CVN.jetZ+26,'purple',1.1]
- ];
- const bodyIM=new THREE.InstancedMesh(bodyGeo,crewMat,crewList.length);
- const headIM=new THREE.InstancedMesh(headGeo,skinMat,crewList.length);
- const col=new THREE.Color();
- crewList.forEach((c,i)=>{Q.setFromEuler(E.set(0,c[3],0));M.compose(V.set(c[0],CVN.top,c[1]),Q,Scl);bodyIM.setMatrixAt(i,M);bodyIM.setColorAt(i,col.setHex(JERSEY[c[2]]));
-  M.compose(V.set(c[0],CVN.top+1.52,c[1]),Q,Scl);headIM.setMatrixAt(i,M)});
- bodyIM.instanceColor.needsUpdate=bodyIM.instanceMatrix.needsUpdate=headIM.instanceMatrix.needsUpdate=true;
- // Shooter, the catapult officer. Local -Z points down the deck. Only this one is posed.
- const sh=new THREE.Group();sh.position.set(CVN.jetX+4.6,CVN.top,CVN.jetZ-4.2);sh.rotation.y=.15;carrier.add(sh);
- const yel=new THREE.MeshStandardMaterial({color:JERSEY.yellow,roughness:.75});
- const helm=new THREE.MeshStandardMaterial({color:0xe6c24a,roughness:.55});
- const hips=new THREE.Group();sh.add(hips);
- function hang(mat,w,h,d,px,py,pz){const piv=new THREE.Group();piv.position.set(px,py,pz);const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);mesh.position.y=-h/2;piv.add(mesh);return piv}
- const legL=hang(yel,.16,.42,.16,-.12,.92,0),legR=hang(yel,.16,.42,.16,.12,.92,0);hips.add(legL);hips.add(legR);
- const shinL=hang(yel,.15,.42,.15,0,-.42,0),shinR=hang(yel,.15,.42,.15,0,-.42,0);legL.add(shinL);legR.add(shinR);
- const torso=new THREE.Group();torso.position.y=.98;hips.add(torso);
- const chest=new THREE.Mesh(new THREE.BoxGeometry(.52,.58,.3),yel);chest.position.y=.28;torso.add(chest);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.16,7,6),skinMat);head.position.y=.72;torso.add(head);
- const hat=new THREE.Mesh(new THREE.SphereGeometry(.18,7,5),helm);hat.scale.y=.7;hat.position.y=.8;torso.add(hat);
- const armL=hang(yel,.12,.4,.12,-.36,.48,0);torso.add(armL);
- const armR=new THREE.Group();armR.position.set(.34,.5,0);torso.add(armR);
- const uArm=new THREE.Mesh(new THREE.BoxGeometry(.13,.36,.13),yel);uArm.position.y=-.18;armR.add(uArm);
- const foreR=new THREE.Group();foreR.position.y=-.36;armR.add(foreR);
- const fArm=new THREE.Mesh(new THREE.BoxGeometry(.11,.32,.11),yel);fArm.position.y=-.16;foreR.add(fArm);
- const hand=new THREE.Group();hand.position.y=-.34;foreR.add(hand);
- for(const s of[-1,1]){const fng=new THREE.Mesh(new THREE.BoxGeometry(.035,.16,.04),skinMat);fng.position.set(s*.045,-.02,.02);hand.add(fng)}
- CVN.shooter=sh;CVN.rig={hips,legL,legR,shinL,shinR,torso,armL,armR,foreR,hand};
- // fuel hose and a couple of chocks, static
- const hose=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,4.5,5),new THREE.MeshStandardMaterial({color:JERSEY.purple,roughness:.6}));hose.rotation.z=Math.PI/2;hose.position.set(25.5,CVN.top+.15,CVN.jetZ+16);carrier.add(hose);
- // everything that can vanish once the camera is well clear of the ship
- const detail=new THREE.Group();detail.add(parkIM,chainIM,cat2,taxi,tugs,bodyIM,headIM);carrier.add(detail);CVN.detail=detail;CVN.taxi=taxi;CVN.nJets=parks.length+2;CVN.nCrew=crewList.length+1;CVN.nTugs=3;
- // ocean wake: bow wave and a foam streak down the port side. A few quads, no simulation.
- const foam=new THREE.MeshBasicMaterial({color:0xd5e6ee,transparent:true,opacity:.42,depthWrite:false,side:THREE.DoubleSide});
- const wake=new THREE.Group();
- function wakeQuad(w,len,x,z,yaw,op){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,len),foam.clone());m.material.opacity=op;m.rotation.x=-Math.PI/2;m.rotation.z=yaw;m.position.set(x,.15,z);wake.add(m);return m}
- wakeQuad(7,26, -6, CVN.bowZ+6, .55, .38); wakeQuad(7,26, 10, CVN.bowZ+6, -.55, .38);
- wakeQuad(5,70, -20, CVN.jetZ+30, .04, .28); wakeQuad(3.2,48, -18, CVN.midZ+20, .02, .22);
- wakeQuad(8,40, 4, CVN.sternZ-8, 0, .2);
- carrier.add(wake);CVN.wake=wake;
- CVN._cam=new THREE.Vector3();CVN._look=new THREE.Vector3();CVN._cam2=new THREE.Vector3();CVN._look2=new THREE.Vector3();
- CVN._hub=new THREE.Vector3(0,CVN.deckY,CVN.midZ);
+// ---------- carrier, real models, golden-hour sea ----------
+const carrier=new THREE.Group();
+carrier.rotation.y=Math.PI/2; carrier.position.set(0,0,9200); carrier.visible=false; scene.add(carrier);
+const deckDetail=new THREE.Group(); carrier.add(deckDetail); CVN.detail=deckDetail;
+CVN._cam=new THREE.Vector3(); CVN._look=new THREE.Vector3(); CVN._cam2=new THREE.Vector3(); CVN._look2=new THREE.Vector3();
+CVN._hub=new THREE.Vector3(8,CVN.deckY,9020); CVN._shW=new THREE.Vector3();
+CVN.nJets=0; CVN.nCrew=0; CVN.nTugs=0; CVN.wake={children:[]};
+const seaGeo=new THREE.PlaneGeometry(10000,15000,24,32); seaGeo.rotateX(-Math.PI/2);
+const seaMat=new THREE.ShaderMaterial({
+  uniforms:{uTime:{value:0},uSun:{value:new THREE.Vector3(.45,.22,-.35)}},
+  vertexShader:`uniform float uTime; varying vec3 vW; varying vec3 vN;
+    void main(){vec3 p=position;
+      float wx=p.x*0.018+uTime*0.65, wz=p.z*0.015-uTime*0.42;
+      p.y+=sin(wx)*0.42+sin(wz)*0.32;
+      vN=normalize(vec3(-cos(wx)*0.018*0.42,1.0,-cos(wz)*0.015*0.32));
+      vec4 w=modelMatrix*vec4(p,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w;}`,
+  fragmentShader:`uniform vec3 uSun; varying vec3 vW; varying vec3 vN;
+    void main(){vec3 n=normalize(vN); vec3 v=normalize(cameraPosition-vW); vec3 s=normalize(uSun);
+      float fres=pow(1.0-max(dot(n,v),0.0),3.2);
+      float spec=pow(max(dot(reflect(-s,n),v),0.0),90.0);
+      vec3 deep=vec3(0.03,0.07,0.12); vec3 body=vec3(0.07,0.18,0.24); vec3 gold=vec3(1.0,0.68,0.38);
+      vec3 col=mix(deep,body,0.35+fres*0.55); col+=gold*(spec*0.9+fres*0.16);
+      gl_FragColor=vec4(col,1.0);}`
+});
+const sea=new THREE.Mesh(seaGeo,seaMat); sea.position.set(0,0,7800); sea.visible=false; sea.frustumCulled=false; scene.add(sea); CVN.sea=sea;
+function prepMat(root,fn){root.traverse(o=>{if(!o.isMesh)return; const list=[].concat(o.material); list.forEach(m=>{if(m)fn(m,o)}); o.castShadow=true; o.receiveShadow=true;})}
+function tintCrew(root,hex){root.traverse(o=>{if(!o.isMesh||!o.material)return;
+  const list=[].concat(o.material).map(m=>{const n=(m.name||'').toLowerCase(); if(n.includes('skin')||n.includes('hair'))return m;
+    const c=m.clone(); c.map=null; c.normalMap=null; c.color.setHex(hex); c.roughness=.62; c.metalness=.02; return c});
+  o.material=Array.isArray(o.material)?list:list[0]; o.castShadow=true; o.frustumCulled=false;})}
+function armBones(root){const names=['upper_armL','forearmL','handL','upper_armR','forearmR','handR','thighL','shinL','footL','thighR','shinR','footR','spine','pelvis'];
+  const rig={},rest={}; names.forEach(n=>{const b=root.getObjectByName(n); if(!b)return; rest[n]=b.rotation.clone(); rig[n]=b}); return {rig,rest}}
+function setBone(pack,n,dx,dy,dz){const b=pack.rig[n],r=pack.rest[n]; if(!b||!r)return; b.rotation.set(r.x+dx,r.y+dy,r.z+dz)}
+function armsDown(pack){setBone(pack,'upper_armL',0,0,1.35); setBone(pack,'upper_armR',0,0,-1.35); setBone(pack,'forearmL',0,0,.25); setBone(pack,'forearmR',0,0,-.25)}
+function loadDeck(){if(CVN._loading||CVN._ready)return; CVN._loading=1;
+ import('./vendor/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>{
+  const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+  const get=url=>new Promise((res,rej)=>loader.load(url,res,undefined,rej));
+  Promise.all(['carrier','f15','crew','tractor','heli'].map(k=>get('models/deck/'+k+'.glb'))).then(([ship,jetM,crewM,tugM,heliM])=>{
+    const shipRoot=ship.scene; carrier.add(shipRoot);
+    prepMat(shipRoot,m=>{if(m.envMapIntensity!=null)m.envMapIntensity=1.15; if(m.metalness!=null&&m.metalness>.2)m.envMapIntensity=1.4});
+    shipRoot.traverse(o=>{if(o.isMesh){o.castShadow=/Hull|Island|Flight|Gallery|mast/i.test((o.parent&&o.parent.name)||o.name||''); o.receiveShadow=true}});
+    const face=Math.PI/2;
+    function parkJet(x,z,yaw){const g=jetM.scene.clone(true); g.position.set(x,CVN.deckY,z); g.rotation.y=yaw==null?face:yaw; g.traverse(o=>{if(!o.isMesh)return; o.castShadow=false; o.receiveShadow=true;
+      const n=(o.name||''); if(/Canopy/i.test(n)){const m=o.material.clone(); m.roughness=.05; m.metalness=.92; m.envMapIntensity=2.2; o.material=m}});
+      deckDetail.add(g); return g}
+    [[150,26],[178,28],[206,24],[142,-27],[188,-28],[248,14]].forEach((p,i)=>parkJet(p[0],p[1], face+(i%3?0:.08)));
+    CVN.taxiBase=110; CVN.taxi=parkJet(110,-18,face); CVN.cat2=parkJet(308,12,face);
+    const tug=tugM.scene.clone(true); tug.position.set(122,CVN.deckY,-18); tug.rotation.y=face; tug.traverse(o=>{if(o.isMesh&&o.material){const n=(o.material.name||'').toLowerCase(); if(n.includes('leaf')||n.includes('gold')){o.material=o.material.clone(); o.material.color.setHex(0xd6a31a)}}}); deckDetail.add(tug); CVN.tug=tug;
+    const tug2=tug.clone(true); tug2.position.set(168,CVN.deckY,22); deckDetail.add(tug2);
+    const colors=[0xd6a31a,0x2f7a3a,0xa33b32,0xe6e2d8,0x6e3b78];
+    const spots=[[296,-4,0],[286,-6,1],[270,6,1],[248,-14,1],[220,22,2],[186,26,3],[150,-22,4],[210,-28,0]];
+    spots.forEach((s,i)=>{const g=cloneSkin(crewM.scene); g.position.set(s[0],CVN.deckY,s[1]); g.rotation.y=face+(i%2?.2:-.15); tintCrew(g,colors[s[2]]);
+      const pack=armBones(g); armsDown(pack); g.frustumCulled=false; g.traverse(o=>{if(o.isMesh){o.frustumCulled=false; o.castShadow=false}}); deckDetail.add(g);
+      if(i===0){CVN.shooter=g; CVN.crewPack=pack; CVN.rig=pack.rig; CVN.rest=pack.rest}});
+    const heli=heliM.scene; heli.position.set(210,52,-62); heli.scale.setScalar(1); deckDetail.add(heli); CVN.heli=heli;
+    CVN.rotor=heli.getObjectByName('Continuous main mast')||null;
+    CVN.nJets=8; CVN.nCrew=spots.length; CVN.nTugs=2; CVN._ready=1; CVN.wake={children:[1,2,3,4,5]};
+    // raised blast deflector just aft of the player's exhaust
+    const jbd=new THREE.Group(); jbd.position.set(224,CVN.deckY,-10); carrier.add(jbd);
+    const panel=new THREE.Mesh(new THREE.BoxGeometry(8,3.4,.16),new THREE.MeshStandardMaterial({color:0x8a7048,roughness:.45,metalness:.55}));
+    panel.position.set(0,1.8,.2); panel.rotation.z=-.35; jbd.add(panel);
+    CVN.jbd=jbd;
+  }).catch(e=>{console.warn('deck models',e); CVN._loading=0});
+ }).catch(e=>{console.warn('deck loader',e); CVN._loading=0});
 }
-const seaGeo=new THREE.PlaneGeometry(11000,13000,1,1); seaGeo.rotateX(-Math.PI/2);
-const sea=new THREE.Mesh(seaGeo,new THREE.MeshStandardMaterial({color:0x163a48,roughness:.18,metalness:.42,envMapIntensity:1.1}));
-sea.position.set(0,0,8000); scene.add(sea);
+loadDeck();
 window.__CVN=CVN;
 let skipTakeoff=false;
 function takingOff(){return S&&(S.phase==='deck'||S.phase==='signal'||S.phase==='cat'||S.phase==='climb'||S.phase==='hand')}
-function steamAt(x,z,big){spr(new THREE.Vector3(x+(Math.random()-.5)*(big?1.4:.8), CVN.top+.35, z), 0xe7eef2, big?4.2:1.8, big?1.4:.9, new THREE.Vector3((Math.random()-.5)*1.1, 1.8+Math.random()*1.8, .25), {grow:big?4:2.2, o:big?.5:.4, drag:.4, must:1})}
-function poseShooter(t){const r=CVN.rig; if(!r)return;
- r.hips.position.y=0; r.legL.rotation.set(0,0,0); r.legR.rotation.set(0,0,0); r.shinL.rotation.set(0,0,0); r.shinR.rotation.set(0,0,0); r.torso.rotation.set(0,0,0);
- r.armL.rotation.set(.15,0,.3); r.armR.rotation.set(.15,0,-.25); r.foreR.rotation.set(0,0,0);
+function steamAt(x,z,big){spr(new THREE.Vector3(x+(Math.random()-.5)*.8, CVN.top+.4, z), 0xf7f4ef, big?2.8:1.5, big?1.3:.9, new THREE.Vector3((Math.random()-.5)*.8, 1.6+Math.random()*1.8, .25), {add:true, tex:glowTex, grow:big?3.2:1.8, o:.32, drag:.2, must:1})}
+function poseShooter(t){const pack=CVN.crewPack; if(!pack)return;
+ for(const n in pack.rest){const b=pack.rig[n]; if(b)b.rotation.copy(pack.rest[n])}
+ if(pack.rig.pelvis&&pack._py!=null)pack.rig.pelvis.position.y=pack._py;
+ armsDown(pack);
  if(t==null)return;
- if(t<1.7){r.armR.rotation.set(-1.15,.2,.1); r.foreR.rotation.set(Math.sin(t*8)*.5, t*7.5, 0)}
- else if(t<2.7){const k=sstep(1.7,2.15,t); r.armR.rotation.set(lerp(-1.15,-2.35,k), lerp(.2,0,k), lerp(.1,-.15,k)); r.foreR.rotation.set(lerp(0,-1.15,k),0,0)}
- else{const k=sstep(2.7,3.2,t);
-  r.hips.position.y=lerp(0,-.28,k);
-  r.legL.rotation.x=lerp(0,1.2,k); r.shinL.rotation.x=lerp(0,-1.2,k);
-  r.legR.rotation.x=lerp(0,1.05,k); r.shinR.rotation.x=lerp(0,-1.05,k);
-  r.torso.rotation.x=lerp(0,.32,k);
-  r.armR.rotation.set(lerp(-2.35,-1.55,k), 0, 0); r.foreR.rotation.set(lerp(-1.15,-.05,k),0,0)}}
+ if(t<1.7){setBone(pack,'upper_armR',-1.15,.15,-1.35); setBone(pack,'forearmR',Math.sin(t*8)*.45,t*7,-.1); setBone(pack,'handR',0,t*9,0)}
+ else if(t<2.7){const k=sstep(1.7,2.15,t); setBone(pack,'upper_armR',lerp(-1.15,-2.3,k),0,lerp(-1.35,-.35,k)); setBone(pack,'forearmR',lerp(0,-1.25,k),0,0)}
+ else{const k=sstep(2.7,3.2,t); const pel=pack.rig.pelvis; if(pel){if(pack._py==null)pack._py=pel.position.y; pel.position.y=pack._py+lerp(0,-.28,k)}
+  setBone(pack,'thighL',lerp(0,1.15,k),0,0); setBone(pack,'shinL',lerp(0,-1.15,k),0,0);
+  setBone(pack,'thighR',lerp(0,1.05,k),0,0); setBone(pack,'shinR',lerp(0,-1.05,k),0,0);
+  setBone(pack,'spine',lerp(0,.4,k),0,0);
+  setBone(pack,'upper_armR',0,-1.25,lerp(-1.35,-.15,k)); setBone(pack,'forearmR',0,lerp(-1.25,-.1,k),0)}}
 function launchCat(){if(!S||S.phase!=='deck'||!S.to||!S.to.armed)return;
  S.phase='signal'; S.to.sig=0; S.roll=0; S.pitch=0; S.yaw=0;
  document.body.classList.remove('to-arm')}
@@ -541,7 +462,8 @@ function flyClimb(rdt){
  let tP=-inp.y*30*D2R;
  // Below a safe height the nose will not stay down. A few degrees of climb,
  // using the same return rate as the stick, so a missed pull-up settles instead of hitting the sea.
- if(S.pos.y<36 && tP<0.08){tP=0.08; if((S.to.climb||0)>0.8){S.to.settled=1; S.msg='SETTLE — PULL UP'; S.msgT=Math.max(S.msgT,.5)}}
+ const overDeck=S.pos.z>CVN.bowZ+10; const floor=overDeck?CVN.deckY+2:14;
+ if(!overDeck && S.pos.y<floor+22 && tP<0.08){tP=0.1; if((S.to.climb||0)>0.8){S.to.settled=1; S.msg='SETTLE — PULL UP'; S.msgT=Math.max(S.msgT,.5)}}
  const pk=(!steer)?50:7.5;
  S.pitch+=(tP-S.pitch)*clamp(rdt*pk,0,1);
  S.roll=0; S.yaw=0;
@@ -552,7 +474,6 @@ function flyClimb(rdt){
  S.pos.y=Math.min(S.pos.y,900);
  // Soft settle: the first take-off cannot hit the water. If they never pull up,
  // the nose eases into a shallow climb and the warning stays until they do.
- const floor=12;
  if(S.pos.y<floor){S.pos.y=floor; S.pitch=Math.max(S.pitch,.08)}
  if(S.pos.z<3600){const g=H(S.pos.x,S.pos.z)+45; if(S.pos.y<g){S.pos.y=g; if(S.pitch<.08)S.pitch=.08}}
  if(inp.y<-0.22)S.to.pulled=1;
@@ -562,15 +483,24 @@ function enterMission(){
  S.pos.set(vx(300),70,300); S.yaw=0; S.pitch=0; S.roll=0;
  S.spd=85+S.thr*195; S.cine=false; S.shake=0; S.msg=''; S.msgT=0;
  document.body.classList.remove('takingoff','to-deck','to-arm');
+ seaLight(false); carrier.visible=false; if(CVN.sea)CVN.sea.visible=false;
  if(window.__tmesh)window.__tmesh.visible=true;
  if(window.__farBits)window.__farBits.forEach(o=>o.visible=true);
  scene.fog=SCEN.fogDen>0.00001?scene.fog:null;
  const f=$('tofade'); if(f)f.classList.add('on');
  S.to.fade=1.05;
 }
+let seaLit=false;
+function seaLight(on){
+ if(on&&!seaLit){seaLit=1; CVN._lit={scen:{...SCEN}, sun:sun.color.getHex(), hemi:hemiL.color.getHex(), ground:hemiL.groundColor.getHex(), bloom:bloom.strength, thr:bloom.threshold, sh:sun.castShadow};
+  Object.assign(SCEN,{turbidity:8,rayleigh:2.1,mie:.012,mieG:.86,sunEl:3.4,sunAz:1.35,sunInt:2.8,hemi:.72,exposure:1.08,env:.95,warmth:.85,fogDen:0,clouds:0});
+  sun.color.set(0xffb15e); hemiL.color.set(0xffd0a0); hemiL.groundColor.set(0x3e3830); bloom.strength=.42; bloom.threshold=.8; sun.castShadow=!MOB; applyScen()}
+ else if(!on&&seaLit){seaLit=0; const L=CVN._lit; Object.assign(SCEN,L.scen); sun.color.setHex(L.sun); hemiL.color.setHex(L.hemi); hemiL.groundColor.setHex(L.ground); bloom.strength=L.bloom; bloom.threshold=L.thr; sun.castShadow=L.sh; applyScen()}
+}
 function updateTakeoff(rdt){
  S.t+=rdt; if(S.msgT>0)S.msgT-=rdt;
  document.body.classList.add('takingoff');
+ seaLight(true); carrier.visible=true; if(CVN.sea)CVN.sea.visible=true;
  if(window.__tmesh)window.__tmesh.visible=false;
  if(window.__farBits)window.__farBits.forEach(o=>o.visible=false);
  if(S.phase==='deck'||S.phase==='signal'){
@@ -580,7 +510,7 @@ function updateTakeoff(rdt){
   S.pos.set(CVN.jetX,CVN.jetY,CVN.jetZ); S.yaw=S.pitch=S.roll=0; S.spd=0;
   deckBusy(rdt);
   if(S.phase==='signal'){S.to.sig+=rdt; poseShooter(S.to.sig); if(S.to.sig>=5.35)beginShot()}
-  else{poseShooter(null); if(S.to.armed&&CVN.rig)CVN.rig.armR.rotation.x=-.45}
+  else poseShooter(null);
  }
  else if(S.phase==='cat'){
   document.body.classList.remove('to-deck','to-arm');
@@ -603,10 +533,9 @@ function updateTakeoff(rdt){
  updParts(rdt);
 }
 function deckBusy(rdt){S.to.steam=(S.to.steam||0)-rdt;
- if(S.to.steam<=0){S.to.steam=.18; for(const dz of[ -6,-22,-40,-62 ]){steamAt(CVN.jetX, CVN.jetZ+dz, 0); if((dz&1)===0)steamAt(12, CVN.jetZ+dz, 0)}}
- if(CVN.taxi){CVN.taxiT=(CVN.taxiT||0)+rdt; const z=CVN.taxiBase-((CVN.taxiT*1.35)%24); CVN.taxi.position.z=z;
-  if(CVN.tugs){const M=CVN._m||(CVN._m=new THREE.Matrix4()),Q=CVN._q||(CVN._q=new THREE.Quaternion()),E=CVN._e||(CVN._e=new THREE.Euler()),V=CVN._v||(CVN._v=new THREE.Vector3());
-   Q.setFromEuler(E.set(0,.12,0)); M.compose(V.set(-22,CVN.top,z-7.2),Q,CVN._sc||(CVN._sc=new THREE.Vector3(1,1,1))); CVN.tugs.setMatrixAt(0,M); CVN.tugs.instanceMatrix.needsUpdate=true}}}
+ if(S.to.steam<=0){S.to.steam=.14; for(const dz of[-6,-20,-38,-60])steamAt(CVN.jetX,CVN.jetZ+dz,dz>-16?1:0); steamAt(4,CVN.jetZ-16,0)}
+ if(CVN.taxi){CVN.taxiT=(CVN.taxiT||0)+rdt; const x=CVN.taxiBase+((CVN.taxiT*1.8)%40); CVN.taxi.position.x=x; if(CVN.tug)CVN.tug.position.x=x+12}
+ if(CVN.heli){CVN.heli.position.y=51+Math.sin((S.t||0)*.7)*.8; if(CVN.rotor)CVN.rotor.rotation.y+=rdt*16}}
 function takeoffAudio(){if(!AC||!eng)return; const tt=AC.currentTime; startJet();
  if(JET){const pr=JET.plain?1:.72+S.thr*.48; const nodes=JET.a?[JET.a]:(JET.playbackRate?[JET]:[]);
   nodes.forEach(n=>{try{n.playbackRate.setTargetAtTime(pr,tt,.35)}catch(e){}});
@@ -1131,20 +1060,22 @@ function showEnd(win){running=false;if(AC){const t=AC.currentTime;riser(false);A
 const hud=$('hud'),hx=hud.getContext('2d');let W=0,Hh=0,dpr=1;
 function resize(){W=innerWidth;Hh=innerHeight;dpr=Math.min(devicePixelRatio,2);R.setSize(W,Hh,false);composer.setPixelRatio(PR);composer.setSize(W,Hh);bloom.resolution.set(W/(MOB?4:2),Hh/(MOB?4:2));hud.width=W*dpr;hud.height=Hh*dpr;cam.aspect=W/Hh;cam.updateProjectionMatrix()}
 addEventListener('resize',resize);resize();
-function render(){jet.position.copy(S.pos);sun.target.position.copy(S.pos);sun.position.copy(S.pos).addScaledVector(SUN,900);jet.rotation.set(S.pitch,S.yaw,S.roll);const tt=performance.now()/1000;jet.userData.core.material.color.setRGB(.12+S.thr*.25,.05+S.thr*.06,.02);jet.userData.sh.material.uniforms.t.value=tt;jet.userData.sh.material.uniforms.a.value=.4+S.thr;
+function render(){jet.position.copy(S.pos);sun.target.position.copy(S.pos);sun.position.copy(S.pos).addScaledVector(SUN,900);jet.rotation.set(S.pitch,S.yaw,S.roll);const tt=performance.now()/1000;jet.userData.core.material.color.setRGB(.12+S.thr*.25,.05+S.thr*.06,.02);jet.userData.sh.material.uniforms.t.value=tt;jet.userData.sh.material.uniforms.a.value=takingOff()?Math.min(1,.25+S.thr*1.1):.4+S.thr;
+ if(CVN.sea&&CVN.sea.visible){CVN.sea.material.uniforms.uTime.value=tt; CVN.sea.material.uniforms.uSun.value.copy(SUN)}
  // Bomb-cam only after a short settle so first-frame compile can't hang on an empty view; jet stays visible in scene
  const useBombCam=S.cine&&S.bomb&&(S.bomb.age||0)>.35;
  if(takingOff()){cam.up.set(0,1,0);
   const u=S.phase==='cat'?clamp(S.to.shot/2.15,0,1):0; const back=lerp(88,32,u),up=lerp(30,11,u),side=lerp(-12,-4,u);
   CVN._cam.set(S.pos.x+side,S.pos.y+up,S.pos.z+back); CVN._look.set(S.pos.x+11,S.pos.y+1.2,S.pos.z-32);
-  if(S.phase==='signal'&&CVN.shooter){const k=sstep(4.15,5.35,S.to.sig||0),sh=CVN.shooter.position;
-   CVN._cam2.set(sh.x+5.6,CVN.top+2.3,sh.z+2.4); CVN._look2.set(sh.x,CVN.top+.8,sh.z-.5);
+  if(S.phase==='signal'&&CVN.shooter){const k=sstep(4.15,5.35,S.to.sig||0); CVN.shooter.getWorldPosition(CVN._shW); const sh=CVN._shW;
+   CVN._cam2.set(sh.x+5.2,sh.y+1.7,sh.z+2.2); CVN._look2.set(sh.x,sh.y+.85,sh.z-.4);
    cam.position.copy(CVN._cam2).lerp(CVN._cam,k); cam.lookAt(CVN._look2.lerp(CVN._look,k))}
   else if(S.phase==='deck'||S.phase==='cat'){cam.position.copy(CVN._cam); cam.lookAt(CVN._look)}
   else{const k=clamp((S.to.climb||0)/3.2,0,1);const b=lerp(36,24,k),h=lerp(12,6.5,k);
    cam.position.set(S.pos.x+Math.sin(S.yaw)*b,S.pos.y+h,S.pos.z+Math.cos(S.yaw)*b);
    if(k<1)cam.lookAt(S.pos.x,S.pos.y+1.2,S.pos.z-60);else cam.rotation.set(-.07,S.yaw,0)}
-  if(CVN.detail)CVN.detail.visible=cam.position.distanceTo(CVN._hub)<280}
+  if(CVN.detail)CVN.detail.visible=(S.phase==='deck'||S.phase==='signal'||S.phase==='cat')&&cam.position.distanceTo(CVN._hub)<360;
+  if((S.phase==='climb'||S.phase==='hand')&&(S.to.climb||0)>1.2)carrier.visible=false}
  else if(useBombCam){const b=S.bomb,dv=tmp.copy(b.v).normalize();if(dv.lengthSq()<.01)dv.set(0,-1,0);cam.position.copy(b.p).addScaledVector(dv,-18).y+=5;cam.lookAt(b.p);S.cineA=null}
  else if(S.cine&&!S.bomb){if(!S.cineA){const dh=new THREE.Vector3(cam.position.x-BUNK.x,0,cam.position.z-BUNK.z);if(dh.lengthSq()<.01)dh.set(0,0,1);dh.normalize();const nk=S.boomT>=0,a=BUNK.clone().addScaledVector(dh,nk?1900:780);a.y=nk?Math.max(BUNK.y+380,H(a.x,a.z)+200):Math.max(BUNK.y+170,H(a.x,a.z)+60);S.cineA=a}cam.position.copy(S.cineA);cam.lookAt(tmp.copy(BUNK).setY(BUNK.y+(S.boomT>=0?(NK?250+Math.min(950,NK.t*160):300):10)))}
  else{cam.position.set(S.pos.x+Math.sin(S.yaw)*24,S.pos.y+6.5,S.pos.z+Math.cos(S.yaw)*24);cam.rotation.set(-.07,S.yaw,0)}

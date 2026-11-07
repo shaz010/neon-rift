@@ -5,6 +5,14 @@ Branch: `strike-16`. Pages folder: `/strike-16/` only.
 
 Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
 
+## s16 · 16c — real deck models and golden hour
+
+The block deck is replaced by CC0 glTF models (see `MODELS-CREDITS.md`): a Nimitz-scale carrier, F-15-style fighters, a rigged crew tinted to jersey colours, yellow tractors, and a helicopter off the port side. Geometry is meshopt-compressed. Dressing hides once the camera leaves the ship.
+
+Take-off light is a low warm sun, ACES, a little more bloom, soft shadows, and a specular ocean. The valley mission restores the previous light when the fade completes. The Shooter sequence, throttle, LAUNCH, skip, and both orientations are unchanged.
+
+Stamp is `s16 · 16c` (`main.mjs?v=16c`).
+
 ## s16 · 16b — busy deck and the Shooter
 
 Same take-off as 16a. The deck now has folded, chained jets along the edges and by the island, a jet on the other catapult, a jet taxiing with a tow tractor, and more tractors. Crew jerseys are yellow (directors), green (catapult), red (ordnance), white (safety) and purple (fuel). The blast deflector behind the player is raised. Steam wisps run along both catapult tracks. The island has antennas and lights. A wake sits on the water.
