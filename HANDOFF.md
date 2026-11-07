@@ -5,6 +5,10 @@ Branch: `strike-16`. Pages folder: `/strike-16/` only.
 
 Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
 
+## s16 · 16k — gun stays, bunker blast
+
+Retry was starting the sortie twice, so the second start left the carrier up and hid the weapons. One start now, and the gun, release, lock, flare, break and jammer are cleared between runs. The bunker uses a layered blast. Shock Front is the default. Stamp `s16 · 16k`.
+
 ## s16 · 16j — Logic presets and surround
 
 Intro, ending, and mood presets are built from Shahbaz's Logic files. Random picks a different one each sortie. Surround uses positioned Web Audio with HRTF when it is on, plus a width control. The sound tester pan buttons and sliders follow the finger. Stamp `s16 · 16j`.

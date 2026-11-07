@@ -1,3 +1,14 @@
+# Bunker blast (s16 · 16k)
+
+The crack and the rolling body are field recordings of gunpowder explosions at the Tōshō-gū Spring Festival, Nikkō, 18 May 2009, recordist Fg2, public domain (PD-self). Encoded to AAC and Opus with no filter. Files that already touched full scale are 1.5 dB quieter. The sub and the long tail are Shahbaz's Logic files, played as they are, a fraction of a second after the flash.
+
+| Role | File | Source |
+|---|---|---|
+| Flash | sfx/bk_crack | https://commons.wikimedia.org/wiki/File:Explosion-LS100155.ogg |
+| Short body | sfx/bk_mid | https://commons.wikimedia.org/wiki/File:Explosions-LS100150.ogg |
+| Seven-second roll | sfx/bk_roll | https://commons.wikimedia.org/wiki/File:Explosions-LS100152.ogg |
+| Ten-second roll | sfx/bk_long | https://commons.wikimedia.org/wiki/File:Explosions-LS100155.ogg |
+
 # Logic music (s16 · 16j)
 
 Shahbaz's own Logic bounces, converted from the DS-sfx folder to FLAC and then to AAC 256 kb/s and Opus 192 kb/s. No filtering and no time-stretch. Subsonic Boom FX 06 is 1.5 dB quieter so the AAC encode stays under full scale. Files live in `sfx/lx/`.
