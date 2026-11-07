@@ -5,6 +5,10 @@ Branch: `strike-16`. Pages folder: `/strike-16/` only.
 
 Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
 
+## s16 · 16h — valley respawn after a loss
+
+The carrier take-off plays only when a sortie starts from the opening screen. After a crash or a shoot-down, RETRY puts the jet back in the valley on the run-in, wings level, about 80 m above the ground, short of the first SAM. The camera is the usual steady chase. Stamp `s16 · 16h`.
+
 ## s16 · 16g — buttons, the jammer label, and a gun picker
 
 The GUN button sits on the right, above LOCK, clear of FLARE, BREAK and the jammer. The label that read `ECM ×2` is the radar jammer, and it showed how many uses were left. It now reads `JAMS 2`.
