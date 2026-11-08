@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DS s17">
+<meta name="theme-color" content="#0c3a48">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-game-180.png">
+<link rel="icon" href="icons/icon-game-180.png">
+<link rel="manifest" href="manifest-game.webmanifest">
+
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- Credits: see CREDITS.txt (F-35 model by bohmerang/Sketchfab, non-commercial; textures ambientCG CC0) -->
+<title>DEEP STRIKE s17</title>
+<!-- icache:17a -->
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
+<style>
+:root{--g:rgba(178,214,170,.88);--gd:rgba(178,214,170,.35);--m:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+html,body{margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;overscroll-behavior:none;position:fixed;inset:0;background:#050605;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-family:var(--m)}
+canvas{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;display:block;touch-action:none}
+#gl,#hud{touch-action:none}
+#hud{pointer-events:none}
+.btn{position:fixed;border:1px solid var(--gd);color:var(--g);background:rgba(0,12,4,.18);display:flex;align-items:center;justify-content:center;font:600 12px var(--m);letter-spacing:2px;-webkit-tap-highlight-color:transparent;touch-action:none}
+.btn::before,.btn::after{content:"";position:absolute;width:8px;height:8px;border:1px solid var(--g)}
+.btn::before{left:-3px;top:-3px;border-right:0;border-bottom:0}.btn::after{right:-3px;bottom:-3px;border-left:0;border-top:0}
+.btn.off{opacity:.28}
+.btn.hot{border-color:#ffc860;color:#ffd890;animation:p .5s infinite alternate}
+.btn.warn{border-color:#ff5a48;color:#ff8a78;background:rgba(60,0,0,.25);animation:p .25s infinite alternate}
+@keyframes p{to{background:rgba(255,200,90,.14)}}
+#lock{right:calc(14px + env(safe-area-inset-right));bottom:calc(72px + env(safe-area-inset-bottom));width:112px;height:52px}
+#rel{right:calc(14px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));width:112px;height:52px;overflow:hidden}
+#relf{position:absolute;left:0;bottom:0;top:0;width:0;background:rgba(255,200,90,.28)}
+#flr{left:calc(14px + env(safe-area-inset-left));bottom:calc(14px + env(safe-area-inset-bottom));width:104px;height:52px;font-size:14px}
+#brk{left:calc(128px + env(safe-area-inset-left));bottom:calc(14px + env(safe-area-inset-bottom));width:96px;height:52px}
+#ecm{left:calc(130px + env(safe-area-inset-left));bottom:calc(74px + env(safe-area-inset-bottom));width:96px;height:48px;font-size:12px;letter-spacing:.4px}
+#gun{right:calc(14px + env(safe-area-inset-right));bottom:calc(132px + env(safe-area-inset-bottom));left:auto;transform:none;width:112px;height:52px;z-index:6;letter-spacing:.6px}
+#vig{position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;box-shadow:inset 0 0 120px 40px rgba(255,20,10,.85)}
+#mvig{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(0,0,0,.32) 100%)}
+#teach{position:fixed;left:50%;top:22%;transform:translateX(-50%);max-width:80vw;padding:10px 16px;border:1px solid #ff6a58;background:rgba(40,0,0,.72);color:#ffd8d0;font:600 13px var(--m);letter-spacing:1px;text-align:center;z-index:4;pointer-events:none;display:none}
+#thr{position:fixed;left:calc(18px + env(safe-area-inset-left));bottom:calc(124px + env(safe-area-inset-bottom));width:40px;height:130px;border:1px solid var(--gd);touch-action:none}
+#thrk{position:absolute;left:3px;right:3px;height:6px;background:var(--g)}
+#thrl{position:absolute;top:-28px;width:100%;text-align:center;color:var(--g);font-size:9px;letter-spacing:1px;line-height:1.15}
+.ov{position:fixed;inset:0;color:#b9c4b8;z-index:5;background:#070908}
+.scan::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px);mix-blend-mode:multiply}
+#brief{display:flex;gap:2.5vw;padding:calc(12px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) 10px calc(18px + env(safe-area-inset-left));box-sizing:border-box;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:manipulation}
+#bl{flex:0 0 58%;display:flex;flex-direction:column}
+#br{flex:1;display:flex;flex-direction:column;font-size:11px;line-height:1.45;min-width:0}
+.hdr{font-size:10px;letter-spacing:3px;color:#7f8a7e;border-bottom:1px solid #2a312a;padding-bottom:4px;margin-bottom:6px;display:flex;justify-content:space-between}
+#map{position:relative;width:100%;flex:1;min-height:0;border:1px solid #2a312a;inset:auto}
+.k{color:#7f8a7e}.v{color:#d3dccf}.r{color:#c9826f}
+#chat{margin-top:6px;color:#8fae8c;font-size:10px;flex:1;overflow:hidden;border-top:1px solid #2a312a;padding-top:4px;min-height:30px}
+.sbtn{margin-top:8px;padding:11px 0;text-align:center;border:1px solid #9fb59c;color:#dfe8dc;letter-spacing:5px;font-size:13px;background:rgba(160,190,150,.06)}
+.sbtn:active{background:rgba(160,190,150,.2)}
+#tut{background:rgba(3,5,4,.72);display:flex;align-items:center;justify-content:center}
+#tutb{width:min(520px,80vw);border:1px solid #3d4a3c;padding:18px 22px;background:rgba(6,10,7,.85)}
+#tt{color:var(--g);letter-spacing:4px;font-size:15px;margin-bottom:8px}#tp{font-size:12px;line-height:1.6;color:#c3cdc1}#tn{font-size:10px;color:#6f7a6e;margin-top:14px;letter-spacing:2px}
+#end{background:rgba(4,6,5,.82);display:flex;align-items:center;justify-content:center}
+#endb{width:min(460px,80vw);border:1px solid #3d4a3c;padding:16px 22px;background:rgba(6,10,7,.9)}
+#et{letter-spacing:4px;font-size:15px;color:#dfe8dc}#es{color:#d8b25a;font-size:22px;letter-spacing:8px;margin:6px 0}
+table{width:100%;font-size:12px;border-collapse:collapse}td{padding:3px 0;border-bottom:1px solid #1e241e}td:last-child{text-align:right;color:#dfe8dc}
+#setb,#pauseb{position:fixed;top:calc(10px + env(safe-area-inset-top));z-index:40;width:44px;height:44px;border:1px solid rgba(182,220,174,.55);background:rgba(10,14,12,.65);color:#b6dcae;font:20px monospace;display:flex;align-items:center;justify-content:center;border-radius:6px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#setb{left:calc(10px + env(safe-area-inset-left))}
+#pauseb{right:calc(10px + env(safe-area-inset-right));font-size:22px}
+#setp{position:fixed;top:calc(60px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));z-index:41;background:rgba(8,12,10,.94);border:1px solid rgba(182,220,174,.5);padding:14px 16px 18px;color:#b6dcae;font:12px monospace;letter-spacing:1.2px;display:none;width:min(300px,calc(100vw - 24px));max-height:min(70dvh,520px);overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;border-radius:8px}
+#setp.on{display:block}#setp .sethd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px;letter-spacing:2px}
+#setp .setx{width:36px;height:36px;border:1px solid rgba(182,220,174,.45);background:rgba(20,28,22,.8);color:#b6dcae;font:18px monospace;border-radius:4px;touch-action:manipulation}
+#setp label{display:block;margin:12px 0 4px;font-size:11px}
+#setp input[type=range]{width:100%;height:44px;margin:0;accent-color:#b6dcae;touch-action:none;-webkit-appearance:none;appearance:none;background:transparent}
+#setp input[type=range]::-webkit-slider-runnable-track{height:10px;background:rgba(182,220,174,.25);border-radius:5px}
+#setp input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#b6dcae;margin-top:-9px;border:2px solid #0c100e;box-shadow:0 0 0 4px rgba(182,220,174,.15)}
+#setp input[type=range]::-moz-range-track{height:10px;background:rgba(182,220,174,.25);border-radius:5px}
+#setp input[type=range]::-moz-range-thumb{width:28px;height:28px;border-radius:50%;background:#b6dcae;border:2px solid #0c100e}
+#setp select{width:100%;min-height:44px;background:#0c100e;color:#b6dcae;border:1px solid #3d4a3c;padding:10px;margin:2px 0 8px;font:13px monospace;border-radius:4px}
+#pauseOv{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(4,8,6,.82);padding:calc(12px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));box-sizing:border-box;touch-action:manipulation;-webkit-overflow-scrolling:touch;overflow-y:auto}
+#pauseOv.on{display:flex}#pauseCard{width:min(520px,100%);max-height:100%;overflow-y:auto;background:rgba(8,12,10,.95);border:1px solid rgba(182,220,174,.5);padding:16px 18px 20px;color:#cfe0c8;font:12px monospace;border-radius:8px}
+#pauseCard h2{margin:0 0 10px;font:600 16px monospace;letter-spacing:3px;color:#b6dcae}
+#pauseCard .row{display:grid;grid-template-columns:92px 1fr;gap:6px 10px;margin:6px 0;line-height:1.35}
+#pauseCard .k{color:#8fa88a;letter-spacing:1px}#pauseCard .v{color:#e4f0e0}
+#pauseCard .res{margin-top:16px;width:100%;min-height:56px;border:1px solid rgba(182,220,174,.6);background:rgba(40,60,40,.55);color:#d8f0d0;font:600 15px monospace;letter-spacing:2px;border-radius:6px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;position:relative;z-index:52}
+#flash{position:fixed;inset:0;background:#fff0d8;opacity:0;pointer-events:none;z-index:3}
+#nvg{position:fixed;inset:0;pointer-events:none;z-index:4;display:none;background:rgba(70,160,60,.16);mix-blend-mode:screen;box-shadow:inset 0 0 90px 20px rgba(0,30,0,.55)}
+#nvg.on{display:block}
+#nv{display:none;position:fixed;top:calc(58px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));z-index:40;min-height:44px;padding:0 12px;border:1px solid rgba(182,220,174,.55);background:rgba(8,16,10,.8);color:#d7ecd0;border-radius:6px;font:700 12px ui-monospace,Menlo,monospace;touch-action:manipulation}
+body.night #nv{display:flex;align-items:center}
+#nv.on{border-color:#b6ff9a;color:#eaffdf}
+#badge{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;color:#d8f0d0;font:700 15px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:1.5px;padding:6px 14px;border:1px solid rgba(182,220,174,.55);background:rgba(6,10,8,.72);border-radius:4px;text-shadow:0 1px 2px #000;white-space:nowrap}#verpill{margin:8px 0 6px;display:inline-block;color:#e8ffe0;font:700 16px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:1.2px;padding:8px 14px;border:1px solid rgba(182,220,174,.65);background:rgba(20,36,24,.85);border-radius:4px}#sndlive{font:600 13px var(--m);color:#d7ecd0;letter-spacing:.2px;line-height:1.4;margin:0 0 8px}
+#rot{display:none;position:fixed;inset:auto;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:max-content;max-width:calc(100vw - 24px);height:auto;z-index:8;align-items:center;justify-content:center;pointer-events:none!important;touch-action:none;background:rgba(6,10,8,.8);color:#d8f0d0;border:1px solid rgba(182,220,174,.45);border-radius:4px;padding:8px 12px;letter-spacing:1.4px;font-size:11px;line-height:1.35;text-align:center}
+@media (orientation:portrait){#rot{display:flex}}
+html.ds-land #rot,#rot.hide{display:none!important;pointer-events:none!important}
+#tut,#end,#go,#skipTO,#retry,#brief a{touch-action:manipulation}
+#launch{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(220px,52vw);height:56px;z-index:6;display:none;letter-spacing:3px}
+body.to-arm #launch{display:flex}
+body.takingoff #lock,body.takingoff #rel,body.takingoff #flr,body.takingoff #brk,body.takingoff #ecm,body.takingoff #gun{visibility:hidden}
+#tofade{position:fixed;inset:0;background:#071018;opacity:0;pointer-events:none;z-index:9;transition:opacity 1s linear}
+#tofade.on{opacity:1}
+#skipTO{letter-spacing:2px;font-size:12px;opacity:.8;border-color:#6f8f88;color:#c5ddd6}
+.hide{display:none!important}
+</style></head><body>
+<canvas id="gl"></canvas><canvas id="hud"></canvas>
+<div id="thr"><div id="thrl">THROTTLE</div><div id="thrk"></div></div>
+<div id="flr" class="btn">FLARE</div><div id="brk" class="btn">BREAK</div><div id="ecm" class="btn">JAMS 2</div><div id="vig"></div><div id="teach"></div>
+<div id="gun" class="btn">GUN</div>
+<div id="lock" class="btn off">LOCK</div>
+<div id="rel" class="btn off"><div id="relf"></div><span style="position:relative">RELEASE</span></div>
+<div id="flash"></div>
+<div id="setb" title="Sound">⚙</div><div id="pauseb" title="Pause">⏸</div>
+<div id="setp"><div class="sethd"><span>SOUND / FX</span><button type="button" class="setx" id="setx" aria-label="Close">✕</button></div>
+<label>ENGINE <span id="v_eng"></span></label><input type="range" id="s_eng" min="0" max="100">
+<label>MUSIC BED <span id="v_bed"></span></label><input type="range" id="s_bedvol" min="0" max="100">
+<label>BED TRACK</label><select id="s_bed"><option value="ambient">Iron Veil (default)</option><option value="mus_depth">Subsonic Depth</option><option value="mus_dream">Dream Space</option><option value="mus_layers">Propulsion Layers</option><option value="mus_waves">Warm Waves</option><option value="off">Off</option></select>
+<label>SCORE / STINGS <span id="v_mus"></span></label><input type="range" id="s_mus" min="0" max="100">
+<label>EFFECTS <span id="v_fx"></span></label><input type="range" id="s_fx" min="0" max="100">
+<label>INTRO</label><select id="s_intro"></select>
+<label>INTRO LEVEL <span id="v_lv_intro"></span></label><input type="range" id="s_lv_intro" min="0" max="100">
+<label>ENDING</label><select id="s_ending"></select>
+<label>ENDING LEVEL <span id="v_lv_ending"></span></label><input type="range" id="s_lv_ending" min="0" max="100">
+<label>MOOD</label><select id="s_mood"></select>
+<label>MOOD LEVEL <span id="v_lv_mood"></span></label><input type="range" id="s_lv_mood" min="0" max="100">
+<label>SURROUND</label><select id="s_surr"><option value="1">On — headphones</option><option value="0">Off</option></select>
+<label>WIDTH <span id="v_width"></span></label><input type="range" id="s_width" min="0" max="200" value="135">
+<div style="opacity:.55;margin-top:10px;line-height:1.4">Intro plays on take-off. Mood plays in the valley. Ending plays when the mission is complete. Surround places jets, the helicopter, SAMs and explosions around you.</div></div>
+<div id="pauseOv"><div id="pauseCard"><h2>PAUSED — CONTROLS</h2>
+<div class="row"><div class="k">THROTTLE</div><div class="v">Left slider. Drag up/down for thrust. Label shows knots.</div></div>
+<div class="row"><div class="k">SPEED</div><div class="v">Shown under THROTTLE as KTS (knots). Also on the HUD tape.</div></div>
+<div class="row"><div class="k">ALT / AGL</div><div class="v">Right HUD box: AGL = height above ground (m). Stay under 150 m AGL to avoid radar.</div></div>
+<div class="row"><div class="k">HEADING</div><div class="v">Top tape — your compass heading in degrees.</div></div>
+<div class="row"><div class="k">PITCH</div><div class="v">Center ladder marks climb/dive angle. Keep the flight path marker near the horizon.</div></div>
+<div class="row"><div class="k">RWR / SCOPE</div><div class="v">Top-right threat scope. Spikes = radars/SAMs relative to your nose.</div></div>
+<div class="row"><div class="k">FLARE</div><div class="v">Bottom-left. Fires IR decoys. Use when a missile is close (inside the cue window).</div></div>
+<div class="row"><div class="k">BREAK</div><div class="v">Hard turn left/right of the threat to spoil a shot. Short cooldown.</div></div>
+<div class="row"><div class="k">JAMMER</div><div class="v">Jams enemy radar. The number is how many uses are left. You start with 2.</div></div>
+<div class="row"><div class="k">GUN</div><div class="v">Right side, above LOCK. Hold it and put the pipper on a missile, a SAM battery, or the fighter. Nothing fires until you hold it.</div></div>
+<div class="row"><div class="k">BANDIT</div><div class="v">After the bunker, a fighter closes from behind. When the HUD says BANDIT GUNS, break or turn hard before the tracers arrive. Then put the pipper on it and hold GUN. Exfil stays closed until it is destroyed.</div></div>
+<div class="row"><div class="k">SAM BOMB</div><div class="v">Put a locking battery in the HUD box and hold RELEASE. Two bombs. The bunker still needs LOCK first.</div></div>
+<div class="row"><div class="k">LOCK</div><div class="v">Right side. Acquire the bunker target when in range/aspect.</div></div>
+<div class="row"><div class="k">RELEASE</div><div class="v">Tap once when the HUD says IN RANGE. The bomb leaves on that touch. If it cannot, the HUD says why.</div></div>
+<div class="row"><div class="k">HEALTH</div><div class="v">Two hits from SAMs and you are down. DMG appears on the HUD when wounded.</div></div>
+<button type="button" class="res" id="resume">RESUME</button></div></div>
+<div id="nvg"></div><button type="button" id="nv">NV</button>
+<div id="badge" data-patch>s17 · 17a</div>
+<div id="tofade"></div>
+<div id="launch" class="btn">LAUNCH</div>
+<div id="brief" class="ov scan">
+ <div id="bl"><div class="hdr"><span>DEEP STRIKE // IRON VEIL</span><span>s17</span></div><div id="verpill" data-patch>s17 · 17a</div>
+  <div id="sndlive">Sounds: all Current</div>
+  <canvas id="map"></canvas>
+  <div class="hdr" style="border:0;margin:4px 0 0"><span id="mapc">SAT-4 0412Z · VARKESH (FICTIONAL)</span><span>1KM GRID</span></div></div>
+ <div id="br"><div class="hdr"><span>MISSION BRIEF</span><span id="clk">0412Z</span></div>
+  <div><span class="k">OPERATION</span> <span class="v">IRON VEIL // SORTIE 01</span></div>
+  <div><span class="k">TARGET&nbsp;&nbsp;&nbsp;</span> <span class="v">HARDENED C2 FACILITY "KESTREL", 60 M DEPTH</span></div>
+  <div><span class="k">GRID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> <span class="v">41V NK 4180 0712</span></div>
+  <div><span class="k">THREAT&nbsp;&nbsp;&nbsp;</span> <span class="r">3x SA-CLASS SAM TEL (VALLEY), AAA AT TARGET, EW RADAR RIDGE 2140</span></div>
+  <div><span class="k">LAUNCH&nbsp;&nbsp;&nbsp;</span> <span class="v">CARRIER CATAPULT, THEN THE VALLEY</span></div>
+  <div><span class="k">ROUTE&nbsp;&nbsp;&nbsp;&nbsp;</span> <span class="v">VALLEY TRANSIT, NAP-OF-EARTH &lt;150 M AGL</span></div>
+  <div><span class="k">ORDNANCE&nbsp;</span> <span class="v">1x PENETRATOR, CANNON, 2x BOMBS FOR SAM TELs</span></div>
+  <div><span class="k">ROE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> <span class="v">POSITIVE LOCK ON THE BUNKER. AFTER THE STRIKE A FIGHTER INTERCEPTS. GUN IT DOWN, THEN EGRESS NORTH. NO EXFIL WHILE IT IS UP.</span></div>
+  <div id="chat"></div>
+  <div id="snd" style="opacity:.6;font-size:11px;letter-spacing:2px;margin:6px 0">♪ TAP ANYWHERE FOR SOUND</div>
+  <div id="testers" style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 4px">
+    <a href="./sounds.html" style="color:#b6dcae;border:1px solid rgba(182,220,174,.55);padding:10px 12px;min-height:44px;display:inline-flex;align-items:center;text-decoration:none;letter-spacing:1.5px;font-size:12px;border-radius:4px;background:rgba(20,32,24,.65)">SOUND TESTER</a>
+    <a href="./scenery.html" style="color:#b6dcae;border:1px solid rgba(182,220,174,.55);padding:10px 12px;min-height:44px;display:inline-flex;align-items:center;text-decoration:none;letter-spacing:1.5px;font-size:12px;border-radius:4px;background:rgba(20,32,24,.65)">SCENERY TESTER</a>
+  </div>
+  <div class="sbtn" id="go">BEGIN SORTIE</div>
+  <div class="sbtn" id="skipTO">SKIP TAKE-OFF</div></div>
+</div>
+<div id="tut" class="ov hide"><div id="tutb"><div id="tt"></div><div id="tp"></div><div id="tn"></div></div></div>
+<div id="end" class="ov hide"><div id="endb"><div class="hdr"><span>DEBRIEF // IRON VEIL</span><span>s17</span></div><div id="et"></div><div id="es"></div><table id="etab"></table><div class="sbtn" id="retry">RETRY SORTIE</div></div></div>
+<div id="rot">LANDSCAPE PLAYS BEST</div>
+<script>window.__DS_MODE=window.__DS_MODE||'game';</script>
+<script type="module" src="./main.mjs?v=17a"></script></body></html>
