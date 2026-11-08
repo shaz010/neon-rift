@@ -1,9 +1,13 @@
 # DEEP STRIKE — handoff
 
-Live game for this build: https://shaz010.github.io/neon-rift/strike-16/
-Branch: `strike-16`. Pages folder: `/strike-16/` only.
+Live game for this build: https://shaz010.github.io/neon-rift/strike-17/
+Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
-Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
+`/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
+
+## s17 · 17a — escape dogfight
+
+After the bunker, a fighter intercepts. The player turns, breaks, and fires the gun. Exfil stays closed until that fighter is destroyed. The chase camera does not swoop. The bunker blast at detonation is the blast chosen in the sound tester, including Rising Cluster. Stamp `s17 · 17a`.
 
 ## s16 · 16n — audible beds and distinct nights
 

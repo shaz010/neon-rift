@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="DS s16">
+<meta name="apple-mobile-web-app-title" content="DS s17">
 <meta name="theme-color" content="#0c3a48">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-game-180.png">
 <link rel="icon" href="icons/icon-game-180.png">
@@ -12,8 +12,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- Credits: see CREDITS.txt (F-35 model by bohmerang/Sketchfab, non-commercial; textures ambientCG CC0) -->
-<title>DEEP STRIKE s16</title>
-<!-- icache:16n -->
+<title>DEEP STRIKE s17</title>
+<!-- icache:17a -->
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
 <style>
 :root{--g:rgba(178,214,170,.88);--gd:rgba(178,214,170,.35);--m:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
@@ -130,18 +130,19 @@ body.takingoff #lock,body.takingoff #rel,body.takingoff #flr,body.takingoff #brk
 <div class="row"><div class="k">FLARE</div><div class="v">Bottom-left. Fires IR decoys. Use when a missile is close (inside the cue window).</div></div>
 <div class="row"><div class="k">BREAK</div><div class="v">Hard turn left/right of the threat to spoil a shot. Short cooldown.</div></div>
 <div class="row"><div class="k">JAMMER</div><div class="v">Jams enemy radar. The number is how many uses are left. You start with 2.</div></div>
-<div class="row"><div class="k">GUN</div><div class="v">Right side, above LOCK. Hold it and put the pipper on a missile or a SAM battery. Nothing fires until you hold it.</div></div>
+<div class="row"><div class="k">GUN</div><div class="v">Right side, above LOCK. Hold it and put the pipper on a missile, a SAM battery, or the fighter. Nothing fires until you hold it.</div></div>
+<div class="row"><div class="k">BANDIT</div><div class="v">After the bunker, a fighter closes from behind. When the HUD says BANDIT GUNS, break or turn hard before the tracers arrive. Then put the pipper on it and hold GUN. Exfil stays closed until it is destroyed.</div></div>
 <div class="row"><div class="k">SAM BOMB</div><div class="v">Put a locking battery in the HUD box and hold RELEASE. Two bombs. The bunker still needs LOCK first.</div></div>
 <div class="row"><div class="k">LOCK</div><div class="v">Right side. Acquire the bunker target when in range/aspect.</div></div>
 <div class="row"><div class="k">RELEASE</div><div class="v">Tap once when the HUD says IN RANGE. The bomb leaves on that touch. If it cannot, the HUD says why.</div></div>
 <div class="row"><div class="k">HEALTH</div><div class="v">Two hits from SAMs and you are down. DMG appears on the HUD when wounded.</div></div>
 <button type="button" class="res" id="resume">RESUME</button></div></div>
 <div id="nvg"></div><button type="button" id="nv">NV</button>
-<div id="badge" data-patch>s16 · 16n</div>
+<div id="badge" data-patch>s17 · 17a</div>
 <div id="tofade"></div>
 <div id="launch" class="btn">LAUNCH</div>
 <div id="brief" class="ov scan">
- <div id="bl"><div class="hdr"><span>DEEP STRIKE // IRON VEIL</span><span>s16</span></div><div id="verpill" data-patch>s16 · 16n</div>
+ <div id="bl"><div class="hdr"><span>DEEP STRIKE // IRON VEIL</span><span>s17</span></div><div id="verpill" data-patch>s17 · 17a</div>
   <div id="sndlive">Sounds: all Current</div>
   <canvas id="map"></canvas>
   <div class="hdr" style="border:0;margin:4px 0 0"><span id="mapc">SAT-4 0412Z · VARKESH (FICTIONAL)</span><span>1KM GRID</span></div></div>
@@ -153,7 +154,7 @@ body.takingoff #lock,body.takingoff #rel,body.takingoff #flr,body.takingoff #brk
   <div><span class="k">LAUNCH&nbsp;&nbsp;&nbsp;</span> <span class="v">CARRIER CATAPULT, THEN THE VALLEY</span></div>
   <div><span class="k">ROUTE&nbsp;&nbsp;&nbsp;&nbsp;</span> <span class="v">VALLEY TRANSIT, NAP-OF-EARTH &lt;150 M AGL</span></div>
   <div><span class="k">ORDNANCE&nbsp;</span> <span class="v">1x PENETRATOR, CANNON, 2x BOMBS FOR SAM TELs</span></div>
-  <div><span class="k">ROE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> <span class="v">WEAPONS RELEASE ON DESIGNATED TARGET ONLY. POSITIVE LOCK REQUIRED. EGRESS NORTH TO EXFIL.</span></div>
+  <div><span class="k">ROE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> <span class="v">POSITIVE LOCK ON THE BUNKER. AFTER THE STRIKE A FIGHTER INTERCEPTS. GUN IT DOWN, THEN EGRESS NORTH. NO EXFIL WHILE IT IS UP.</span></div>
   <div id="chat"></div>
   <div id="snd" style="opacity:.6;font-size:11px;letter-spacing:2px;margin:6px 0">♪ TAP ANYWHERE FOR SOUND</div>
   <div id="testers" style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 4px">
@@ -164,7 +165,7 @@ body.takingoff #lock,body.takingoff #rel,body.takingoff #flr,body.takingoff #brk
   <div class="sbtn" id="skipTO">SKIP TAKE-OFF</div></div>
 </div>
 <div id="tut" class="ov hide"><div id="tutb"><div id="tt"></div><div id="tp"></div><div id="tn"></div></div></div>
-<div id="end" class="ov hide"><div id="endb"><div class="hdr"><span>DEBRIEF // IRON VEIL</span><span>s16</span></div><div id="et"></div><div id="es"></div><table id="etab"></table><div class="sbtn" id="retry">RETRY SORTIE</div></div></div>
+<div id="end" class="ov hide"><div id="endb"><div class="hdr"><span>DEBRIEF // IRON VEIL</span><span>s17</span></div><div id="et"></div><div id="es"></div><table id="etab"></table><div class="sbtn" id="retry">RETRY SORTIE</div></div></div>
 <div id="rot">LANDSCAPE PLAYS BEST</div>
 <script>window.__DS_MODE=window.__DS_MODE||'game';</script>
-<script type="module" src="./main.mjs?v=16n"></script></body></html>
+<script type="module" src="./main.mjs?v=17a"></script></body></html>
