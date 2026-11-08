@@ -5,6 +5,10 @@ Branch: `strike-16`. Pages folder: `/strike-16/` only.
 
 Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
 
+## s16 · 16l — compact sound picker
+
+The sound tester is one row per sound: a dropdown, Play, and Stop. Music levels, surround, and width sit in the same list. Apply stays fixed at the bottom. A surround test sweeps a tone left, behind, right, then front, and the position buttons play it on the left, right, front, behind, or above. Best with headphones. Stamp `s16 · 16l`.
+
 ## s16 · 16k — gun stays, bunker blast
 
 Retry was starting the sortie twice, so the second start left the carrier up and hid the weapons. One start now, and the gun, release, lock, flare, break and jammer are cleared between runs. The bunker uses a layered blast. Shock Front is the default. Stamp `s16 · 16k`.
