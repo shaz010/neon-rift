@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16m'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16n'])[1];
 const PATCH_LABEL='s16 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -809,7 +809,7 @@ const MUSIC_LV={intro:70,ending:75,mood:55};
 const MUSIC_PRE={
  intro:[['current','Deck only','No added music. Deck sounds stay.'],['i1','Kick Riser','Floating Frequency Kick Space Riser.'],['i2','Synth Riser','80s Synth FX Riser.'],['i3','Layers Under','Dream Space Layers with a quiet sub.'],['i4','Jet Arrival','Jet pass, then the kick riser.'],['random','Random','A different intro each sortie.']],
  ending:[['current','Space Dub','The mission-complete dub already in the game.'],['e1','Dub Lift','Deep Space Dub 02.'],['e2','Low Landing','Dub with Subsonic Boom 01 under it.'],['e3','Sun Down','Sun Up Impact, left long.'],['e4','Pound Close','Pound Down Impact.'],['e5','Back at It','Back at It Bass Impact, played once.'],['random','Random','A different ending each sortie.']],
- mood:[['current','Iron Veil','The valley bed already in the game.'],['m1','Dream Layers','Layers, then a Titan phrase that enters and leaves.'],['m2','Dub Bed','Dub, with a sub that rises and falls.'],['m3','Drift','Layers, then a slow sub that fades away.'],['m4','Rotation','In Rotation fades up, a tom passes through, then the texture returns.'],['m5','Hollow','Long sub tone, then a quiet Titan call.'],['m6','Aftershock','Pound rises, then the layers take over.'],['m7','Sun Under','Sun Up swells, with a sub underneath.'],['m8','Wide Pass','A jet pass over a low layer bed.'],['m9','Boomer Bed','One boomer swell, then the dub.'],['m10','Kick Space','Kick texture, then the long riser underneath.'],['random','Random','A different bed each sortie.']]
+ mood:[['current','Iron Veil','The valley bed already in the game.'],['m1','Dream Layers','Layers, then a Titan phrase that enters and leaves.'],['m2','Dub Bed','Dub, with a sub that rises and falls.'],['m3','Drift','Layers, then a slow sub that fades away.'],['m4','Rotation','In Rotation from its body, a tom hit, then the phrase returns.'],['m5','Hollow','A low sub, then a hollow boom.'],['m6','Aftershock','The pound hits, then the layers.'],['m7','Sun Under','Sun impact from its body, with a sub under it.'],['m8','Wide Pass','A jet pass, a low bed, then a second pass.'],['m9','Boomer Bed','A boomer swell, then the dub.'],['m10','Kick Space','A kick hit, then the riser underneath.'],['random','Random','A different bed each sortie.']]
 };
 const MUSIC_LAY={
  i1:[{k:'lx_riser',v:.62,fade:1.2}], i2:[{k:'lx_80s',v:.55,fade:1}], i3:[{k:'lx_layers',v:.42,loop:1,fade:1.6},{k:'lx_sub08',v:.16,loop:1,fade:2.4}], i4:[{k:'lx_jet1',v:.4,fade:.2},{k:'lx_riser',v:.38,d:.3,fade:1.2}],
@@ -817,20 +817,20 @@ const MUSIC_LAY={
  m1:[{k:'lx_layers',v:.46,loop:1,fade:2.6},{k:'lx_titan',v:.2,d:12,fade:4,hold:6,decay:7}],
  m2:[{k:'lx_dub',v:.4,loop:1,fade:2.2},{k:'lx_sub01',v:.18,d:7,fade:2.2,hold:2,decay:5}],
  m3:[{k:'lx_layers',v:.36,loop:1,fade:2.8},{k:'lx_sub08',v:.2,d:6,fade:4,hold:8,decay:6}],
- m4:[{k:'lx_rot',v:.84,d:0,fade:3.4,hold:19,decay:2.8},{k:'lx_tom',v:.14,d:10,fade:2.6,hold:3.5,decay:4.5},{k:'lx_rot',v:.84,d:22,fade:2.6,hold:18,decay:3}],
- m5:[{k:'lx_s08k',v:.34,loop:1,fade:4},{k:'lx_titan',v:.22,d:14,fade:3.5,hold:5,decay:6}],
- m6:[{k:'lx_pound',v:.32,fade:2.4,hold:6,decay:5},{k:'lx_layers',v:.4,d:6,loop:1,fade:3}],
- m7:[{k:'lx_sun',v:.36,fade:3.2,hold:12,decay:6},{k:'lx_sub08',v:.16,d:4,fade:3,hold:10,decay:5}],
- m8:[{k:'lx_layers',v:.32,loop:1,fade:2.5},{k:'lx_jet2',v:.28,d:1,fade:.4,hold:.6,decay:1.2},{k:'lx_jet1',v:.24,d:16,fade:.35,hold:.5,decay:1}],
- m9:[{k:'lx_boomer',v:.3,fade:2.2,hold:4,decay:4},{k:'lx_dub',v:.38,d:5,loop:1,fade:2.4}],
- m10:[{k:'lx_kick',v:.3,fade:2.8,hold:8,decay:5},{k:'lx_riser',v:.22,d:8,fade:4,hold:10,decay:6}]
+ m4:[{k:'lx_rot',v:1.15,off:10,d:0,fade:.55,hold:11,decay:2.2},{k:'lx_tom',v:.42,off:13.6,d:5.2,fade:.12,hold:1.1,decay:1.3},{k:'lx_rot',v:1.15,off:10,d:11.2,fade:1.2,hold:11,decay:2.4}],
+ m5:[{k:'lx_sub08',v:.72,d:0,fade:.7,hold:2.2,decay:2.4},{k:'lx_s08k',v:1.35,off:8,d:.4,fade:.8,hold:6,decay:2},{k:'lx_sub01',v:.55,d:3.2,fade:.5,hold:2,decay:2}],
+ m6:[{k:'lx_pound',v:1.5,off:8,d:0,fade:.35,hold:2.4,decay:2.2},{k:'lx_layers',v:.95,d:1.6,loop:1,fade:.8}],
+ m7:[{k:'lx_sun',v:1.25,off:13,d:0,fade:.6,hold:8,decay:3},{k:'lx_sub08',v:.62,d:.35,fade:.45,hold:4,decay:2.5}],
+ m8:[{k:'lx_jet2',v:1.15,d:0,fade:.08,hold:1.6,decay:.8},{k:'lx_layers',v:.7,d:.2,loop:1,fade:.6},{k:'lx_jet1',v:1.05,d:3.4,fade:.08,hold:1.3,decay:.7}],
+ m9:[{k:'lx_boomer',v:.85,d:0,fade:.25,hold:3.2,decay:2},{k:'lx_dub',v:.7,d:1.3,loop:1,fade:.7}],
+ m10:[{k:'lx_kick',v:1.05,off:10.8,d:0,fade:.04,hold:1.6,decay:1.2},{k:'lx_riser',v:.48,d:.35,fade:.4,hold:8,decay:3}]
 };
-const MUSIC_SPAN={m1:34,m2:26,m3:32,m4:46,m5:36,m6:28,m7:30,m8:24,m9:28,m10:32};
+const MUSIC_SPAN={m1:34,m2:26,m3:32,m4:26,m5:12,m6:16,m7:14,m8:8,m9:14,m10:12};
 function musicChoice(cat){let id=MUSIC_DEF[cat]; try{const s=localStorage['ds16_'+cat]; if(s)id=s}catch(e){} return MUSIC_PRE[cat].some(x=>x[0]===id)?id:MUSIC_DEF[cat]}
 function musicLevel(cat){let v=MUSIC_LV[cat]; try{const s=localStorage['ds16_lv_'+cat]; if(s!=null&&s!=='')v=+s}catch(e){} return Math.min(100,Math.max(0,v))/100}
 function resolveMusic(cat){const id=musicChoice(cat); if(id!=='random')return id; if(musicRoll[cat])return musicRoll[cat]; const opts=MUSIC_PRE[cat].map(x=>x[0]).filter(x=>x!=='current'&&x!=='random'); let i=Math.floor(Math.random()*opts.length); if(opts[i]===musicRoll.prev)i=(i+1)%opts.length; musicRoll[cat]=opts[i]; musicRoll.prev=opts[i]; return opts[i]}
 function spawnLayers(spec, dest, level){const nodes=[]; const t0=AC.currentTime;
- for(const layer of spec){const buf=SB[layer.k]; if(!buf){SB.get(layer.k); continue} const s=AC.createBufferSource(); s.buffer=buf; s.loop=!!layer.loop; const g=AC.createGain(); const t=t0+(layer.d||0); const peak=Math.max(.0008,(layer.v||.4)*level); const fade=Math.max(.05,layer.fade!=null?layer.fade:.8); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+fade); const hold=layer.hold||0, decay=layer.decay||0; if(hold||decay){ if(hold)g.gain.setValueAtTime(peak,t+fade+hold); if(decay)g.gain.exponentialRampToValueAtTime(.0008,t+fade+hold+decay); if(!layer.loop){try{s.stop(t+fade+hold+decay+.06)}catch(e){}} } s.connect(g).connect(dest); try{s.start(t)}catch(e){} nodes.push({s,g}); sfxLog('music',{k:layer.k,d:layer.d||0,fade:+fade.toFixed(2),v:+peak.toFixed(3)})}
+ for(const layer of spec){const buf=SB[layer.k]; if(!buf){SB.get(layer.k); continue} const s=AC.createBufferSource(); s.buffer=buf; s.loop=!!layer.loop; const off=Math.min(layer.off||0, Math.max(0,buf.duration-.05)); if(layer.loop&&off>0){s.loopStart=off; s.loopEnd=Math.max(off+.25, buf.duration-.03)} const g=AC.createGain(); const t=t0+(layer.d||0); const peak=Math.max(.0008,(layer.v||.4)*level); const fade=Math.max(.04,layer.fade!=null?layer.fade:.8); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+fade); const hold=layer.hold||0, decay=layer.decay||0; if(hold||decay){ if(hold)g.gain.setValueAtTime(peak,t+fade+hold); if(decay)g.gain.exponentialRampToValueAtTime(.0008,t+fade+hold+decay); if(!layer.loop){try{s.stop(t+fade+hold+decay+.06)}catch(e){}} } s.connect(g).connect(dest); try{s.start(t, off)}catch(e){} nodes.push({s,g}); sfxLog('music',{k:layer.k,d:layer.d||0,off,fade:+fade.toFixed(2),v:+peak.toFixed(3)})}
  if(!nodes.length)return null;
  return {nodes, stop(out){const tt=AC.currentTime,o=out==null?1.35:out; for(const n of nodes){try{const cur=Math.max(.0008,n.g.gain.value); n.g.gain.cancelScheduledValues(tt); n.g.gain.setValueAtTime(cur,tt); n.g.gain.exponentialRampToValueAtTime(.0008,tt+Math.max(.2,o)); n.s.stop(tt+o+.06)}catch(e){}}}}}
 function playMusic(id, dest, level){const spec=MUSIC_LAY[id]; if(!AC||!spec||!dest)return null; let dead=false, cur=null, timer=0;
@@ -1228,7 +1228,7 @@ addEventListener('resize',resize);resize();
 function render(){jet.position.copy(S.pos);sun.target.position.copy(S.pos);sun.position.copy(S.pos).addScaledVector(SUN,900);jet.rotation.set(S.pitch,S.yaw,S.roll);const tt=performance.now()/1000;jet.userData.core.material.color.setRGB(.12+S.thr*.25,.05+S.thr*.06,.02);jet.userData.sh.material.uniforms.t.value=tt;jet.userData.sh.material.uniforms.a.value=takingOff()?Math.min(1,.25+S.thr*1.1):.4+S.thr;
  if(CVN.sea&&CVN.sea.visible){CVN.sea.material.uniforms.uTime.value=tt; CVN.sea.material.uniforms.uSun.value.copy(SUN)}
  if(tgtGlow){const live=bunker.visible&&!takingOff(); tgtGlow.visible=tgtBeam.visible=live; if(live){const p=.6+.4*Math.sin(tt*2.4); tgtGlow.scale.setScalar((NIGHT_ON?40:28)+(NIGHT_ON?18:14)*p); tgtGlow.material.opacity=(NIGHT_ON?.45:.28)+(NIGHT_ON?.4:.35)*p; tgtBeam.material.opacity=.12+.2*p; tgtBeam.scale.y=.85+.15*p}}
- if(window.__stars&&window.__stars.visible) window.__stars.position.copy(cam.position);
+ if(window.__stars&&window.__stars.visible) window.__stars.position.copy(cam.position); if(window.__starsBright&&window.__starsBright.visible) window.__starsBright.position.copy(cam.position);
  // Bomb-cam only after a short settle so first-frame compile can't hang on an empty view; jet stays visible in scene
  const useBombCam=S.cine&&S.bomb&&(S.bomb.age||0)>.35;
  if(takingOff()){cam.up.set(0,1,0);
@@ -1408,8 +1408,10 @@ function panPoint(which){
   return p;
 }
 function testerPos(){return panPoint(testerPan)}
-let previewPans=[];
+let previewPans=[], moodPreviewNodes=[];
 function dropPreviewPans(){const a=previewPans; previewPans=[]; for(const pn of a){ if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1); pn._hrtf=0} try{pn.disconnect()}catch(e){} }}
+function dropMoodPreview(){const a=moodPreviewNodes; moodPreviewNodes=[]; for(const n of a){try{n.disconnect()}catch(e){}} window.__moodBus=null}
+function moodPreviewBus(){const g=AC.createGain(); g.gain.value=1; g.connect(AC.mg); moodPreviewNodes.push(g); window.__moodBus=g; return g}
 function refreshPreviewPans(){ for(const pn of previewPans){ pn.panningModel=SURR.on&&pn._hrtf?'HRTF':'equalpower'; setP0(pn, panPoint(testerPan)); } }
 function previewDest(){const pn=mkPan(true,640); pn.rolloffFactor=SURR.on?.35:.12; setP0(pn, panPoint(testerPan)); pn.connect(AC.out); previewPans.push(pn); return pn}
 let surrTest={mode:null,pos:'F',pn:null,nodes:[],raf:0,timer:0,t0:0};
@@ -1461,7 +1463,7 @@ function retriggerSurrTest(){ if(!AC) return; if(surrTest.mode==='sweep') surrHe
 
 function paintFlareChoice(){const sel=document.querySelector('#pickList select[data-kind="flare"]'); if(sel) sel.value=flareChoice().id}
 let playGen=0;
-function stopPreview(){playGen++; stopSndPrev(); stopFlareVoices(); if(typeof musicPreview!=='undefined'&&musicPreview){try{musicPreview.stop()}catch(e){} musicPreview=null} stopTesterEngine(); try{stopBed()}catch(e){} try{riser(false)}catch(e){} try{stopWin()}catch(e){} dropPreviewPans()}
+function stopPreview(){playGen++; stopSndPrev(); stopFlareVoices(); if(typeof musicPreview!=='undefined'&&musicPreview){try{musicPreview.stop()}catch(e){} musicPreview=null} stopTesterEngine(); try{stopBed()}catch(e){} try{riser(false)}catch(e){} try{stopWin()}catch(e){} dropPreviewPans(); dropMoodPreview()}
 function playCurrentPositioned(sec, dest, gen){
   const key={gun:'aaaw',engine:'jet8',aaa:'aaaw',sam:'mlaunch',pass:'jet',boom:'impact',bombrelease:'subdrop',nuke:'nuke',bunker:'nuke',crash:'impact',overhead:'jet8',ambience:'ambient',bed:'ambient'}[sec];
   const loop=sec==='engine'||sec==='ambience'||sec==='bed';
@@ -1489,13 +1491,14 @@ function playChoice(kind, id){
   if(kind==='intro'||kind==='ending'||kind==='mood'){
     let pid=id;
     if(pid==='random'){const opts=MUSIC_PRE[kind].map(x=>x[0]).filter(x=>x!=='current'&&x!=='random'); pid=opts[Math.floor(Math.random()*opts.length)]}
-    const dest=previewDest();
     if(pid==='current'){
-      if(kind==='ending') SB.get(BRIEF_TRACK).then(b=>{if(gen!==playGen||!b)return; const n=src(b,.4,dest,{loop:true,fadeIn:.05,tag:'ending:current'}); if(n&&n.stop)sndPrev.push(n)});
-      else if(kind==='mood') SB.get('ambient').then(b=>{if(gen!==playGen||!b)return; const h=plainLoop(b,.35,dest,{tag:'mood:current'}); if(h)sndPrev.push(h)});
+      const curDest=previewDest();
+      if(kind==='ending') SB.get(BRIEF_TRACK).then(b=>{if(gen!==playGen||!b)return; const n=src(b,.4,curDest,{loop:true,fadeIn:.05,tag:'ending:current'}); if(n&&n.stop)sndPrev.push(n)});
+      else if(kind==='mood') SB.get('ambient').then(b=>{if(gen!==playGen||!b)return; const h=plainLoop(b,.35,curDest,{tag:'mood:current'}); if(h)sndPrev.push(h)});
       return;
     }
-    const go=()=>{musicPreview=playLayers(pid, dest, musicLevel(kind))};
+    const bus=kind==='mood'?moodPreviewBus():previewDest();
+    const go=()=>{musicPreview=playLayers(pid, bus, musicLevel(kind))};
     const need=(MUSIC_LAY[pid]||[]).filter(l=>!SB[l.k]);
     if(!need.length){ if(gen===playGen) go() } else Promise.all(need.map(l=>SB.get(l.k))).then(()=>{if(gen===playGen) go()});
     return;
@@ -1731,11 +1734,12 @@ function setupSceneryTester(){
   running=false; if(S){S.dead=null; S.missile=null; S.phase='ingress'}
   const sel=$('nightSel'); if(sel){sel.innerHTML=NIGHT.map(n=>'<option value="'+n.id+'">'+n.name+'</option>').join(''); sel.value='current';
     const mark=()=>{document.querySelectorAll('#nightBox .choose').forEach(b=>{b.textContent=sel.value==='current'?'✓ Day kept':'✓ '+sel.options[sel.selectedIndex].text})};
-    sel.addEventListener('change',mark); mark();
-    $('nightPrev')?.addEventListener('pointerdown',e=>{e.preventDefault(); const wrap=$('previewWrap'); if(wrap)wrap.classList.add('on'); try{parkScenCruise(); setNight(sel.value); startScenLive()}catch(err){console.warn(err)}});
+    const show=id=>{const wrap=$('previewWrap'); if(wrap)wrap.classList.add('on'); try{parkScenCruise(); setNight(id); startScenLive()}catch(err){console.warn(err)} const lab=$('previewLabel'); if(lab)lab.textContent='LIVE · '+(NIGHT.find(n=>n.id===id)?.name||id); if(wrap)wrap.scrollIntoView({block:'nearest'})};
+    sel.addEventListener('change',()=>{mark(); show(sel.value)}); mark();
+    $('nightPrev')?.addEventListener('pointerdown',e=>{e.preventDefault(); show(sel.value)});
     $('nightStop')?.addEventListener('pointerdown',e=>{e.preventDefault(); setNight('current'); const lab=$('previewLabel'); if(lab)lab.textContent='LIVE · Day'});
-    $('nightChoose')?.addEventListener('pointerdown',e=>{e.preventDefault(); nightId=sel.value; mark(); document.querySelectorAll('#nightBox').forEach(el=>el.classList.add('chosen'))});
-    $('nightApply')?.addEventListener('pointerdown',e=>{e.preventDefault(); const id=sel.value; try{ if(!id||id==='current') localStorage.removeItem('ds16_night'); else localStorage.ds16_night=id }catch(err){} const el=$('picked'); if(el){el.textContent=id&&id!=='current'?('NIGHT APPLIED: '+sel.options[sel.selectedIndex].text):'NIGHT: day kept'; el.classList.add('on')}});
+    $('nightChoose')?.addEventListener('pointerdown',e=>{e.preventDefault(); nightId=sel.value; mark(); show(sel.value)});
+    const apply=$('nightApply'); if(apply){const go=e=>{e.preventDefault(); const id=sel.value||'current'; const nv=nvOn?'1':'0'; try{ if(id==='current')localStorage.removeItem('ds16_night'); else localStorage.ds16_night=id; localStorage.ds16_nv=nv }catch(err){} apply.href='./index.html?night='+encodeURIComponent(id)+'&nv='+nv}; apply.addEventListener('pointerdown',go); apply.addEventListener('click',go)}
     $('nightNV')?.addEventListener('pointerdown',e=>{e.preventDefault(); toggleNV()});
   }
   const list=$('list'); if(!list)return;
@@ -1768,7 +1772,7 @@ function startScenLive(){
   if(_scenLive) return; _scenLive=1;
   function fit(){const w=$('previewWrap'); if(!w)return; const r=w.getBoundingClientRect(); if(r.width<2)return; R.setSize(r.width,r.height,false); cam.aspect=r.width/Math.max(1,r.height); cam.updateProjectionMatrix()}
   fit(); addEventListener('resize',fit); if(window.visualViewport)visualViewport.addEventListener('resize',fit);
-  function frame(){ if(!_scenLive)return; requestAnimationFrame(frame); try{ parkScenCruise(true); if(jet){jet.visible=true; jet.position.copy(S.pos); jet.rotation.set(S.pitch,S.yaw,S.roll)} if(msl)msl.visible=false; if(mslG)mslG.visible=false; if(useBloom&&composer)composer.render(); else R.render(scene,cam);}catch(e){} }
+  function frame(){ if(!_scenLive)return; requestAnimationFrame(frame); try{ parkScenCruise(true); if(jet){jet.visible=true; jet.position.copy(S.pos); jet.rotation.set(S.pitch,S.yaw,S.roll)} if(msl)msl.visible=false; if(mslG)mslG.visible=false; sky.position.copy(cam.position); if(window.__stars&&window.__stars.visible)window.__stars.position.copy(cam.position); if(window.__starsBright&&window.__starsBright.visible)window.__starsBright.position.copy(cam.position); if(NIGHT_ON){expPulse=Math.max(0,expPulse-0.016); R.toneMappingExposure=(nightBase||SCEN.exposure)*(nvOn?1.35:1)*(1+expPulse)} if(useBloom&&composer)composer.render(); else R.render(scene,cam);}catch(e){} }
   requestAnimationFrame(frame);
 }
 function parkScenCruise(keepCam){
@@ -1807,17 +1811,28 @@ function showPicked(payload){
 }
 const NIGHT=[
  {id:'current',name:'Day — current',scen:null},
- {id:'n1',name:'Moon ridge',scen:{turbidity:2.1,rayleigh:.35,mie:.0012,mieG:.8,sunEl:-6,sunAz:1.2,sunInt:.22,hemi:.28,exposure:.4,env:.16,fogDen:.000035,snowAlt0:470,snowAlt1:680,snowAmt:1,warmth:-.08,clouds:0}},
- {id:'n2',name:'Star field',scen:{turbidity:1.6,rayleigh:.22,mie:.0008,mieG:.75,sunEl:-14,sunAz:.4,sunInt:.08,hemi:.16,exposure:.34,env:.1,fogDen:.00002,snowAlt0:490,snowAlt1:700,snowAmt:1,warmth:-.12,clouds:0}},
- {id:'n3',name:'Overcast black',scen:{turbidity:8,rayleigh:.5,mie:.006,mieG:.6,sunEl:-2,sunAz:.6,sunInt:.05,hemi:.2,exposure:.32,env:.08,fogDen:.00008,snowAlt0:500,snowAlt1:720,snowAmt:1,warmth:0,clouds:.35}},
- {id:'n4',name:'Moon valley',scen:{turbidity:2.4,rayleigh:.4,mie:.0015,mieG:.82,sunEl:-4,sunAz:1.5,sunInt:.28,hemi:.34,exposure:.46,env:.18,fogDen:.00003,snowAlt0:460,snowAlt1:660,snowAmt:1,warmth:-.04,clouds:0}},
- {id:'n5',name:'Target glow',scen:{turbidity:2.2,rayleigh:.3,mie:.001,mieG:.78,sunEl:-10,sunAz:.9,sunInt:.12,hemi:.22,exposure:.38,env:.12,fogDen:.000025,snowAlt0:490,snowAlt1:700,snowAmt:1,warmth:.02,clouds:0}},
- {id:'n6',name:'Storm black',scen:{turbidity:9,rayleigh:.45,mie:.008,mieG:.55,sunEl:-8,sunAz:.2,sunInt:.04,hemi:.14,exposure:.3,env:.07,fogDen:.00011,snowAlt0:510,snowAlt1:740,snowAmt:1,warmth:-.02,clouds:.5}}
+ {id:'n1',name:'Moon ridge',scen:{turbidity:2.2,rayleigh:.55,mie:.0014,mieG:.8,sunEl:11,sunAz:1.35,sunInt:1.15,hemi:.95,exposure:.72,env:.22,fogDen:.000012,snowAlt0:430,snowAlt1:640,snowAmt:1.05,warmth:-.15,clouds:0}},
+ {id:'n2',name:'Star field',scen:{turbidity:1.5,rayleigh:.45,mie:.0007,mieG:.72,sunEl:3,sunAz:.3,sunInt:.7,hemi:1.05,exposure:.66,env:.12,fogDen:0,snowAlt0:520,snowAlt1:760,snowAmt:.85,warmth:-.2,clouds:0}},
+ {id:'n3',name:'Overcast black',scen:{turbidity:10,rayleigh:1.6,mie:.01,mieG:.55,sunEl:32,sunAz:.5,sunInt:.55,hemi:1.25,exposure:.62,env:.12,fogDen:.00022,snowAlt0:560,snowAlt1:820,snowAmt:.4,warmth:0,clouds:.7}},
+ {id:'n4',name:'Moon valley',scen:{turbidity:2.6,rayleigh:.7,mie:.0018,mieG:.84,sunEl:7,sunAz:2.1,sunInt:1.7,hemi:.85,exposure:.8,env:.2,fogDen:.00004,snowAlt0:500,snowAlt1:720,snowAmt:.7,warmth:.15,clouds:0}},
+ {id:'n5',name:'Target glow',scen:{turbidity:1.8,rayleigh:.25,mie:.0008,mieG:.75,sunEl:-8,sunAz:.8,sunInt:.12,hemi:.3,exposure:.48,env:.06,fogDen:.000015,snowAlt0:540,snowAlt1:800,snowAmt:.6,warmth:.05,clouds:0}},
+ {id:'n6',name:'Storm black',scen:{turbidity:12,rayleigh:.8,mie:.014,mieG:.5,sunEl:6,sunAz:.15,sunInt:.35,hemi:1.05,exposure:.58,env:.08,fogDen:.00055,snowAlt0:480,snowAlt1:700,snowAmt:.5,warmth:-.05,clouds:.85}}
 ];
+const NIGHT_LOOK={
+ n1:{hemi:0x8eaeef,ground:0x1a2840,sun:0xd5e4ff,fog:0x1a2744,stars:0,bunk:0,moon:1.15},
+ n2:{hemi:0x8aa0e8,ground:0x101828,sun:0x99aadd,fog:0x0c1424,stars:1,dense:1,starSize:2.4,bright:6.2,bunk:0,moon:.55},
+ n3:{hemi:0xa3aaa4,ground:0x4a524c,sun:0xb7beb8,fog:0x8d968f,stars:0,bunk:0,moon:.45},
+ n4:{hemi:0xf0e2c4,ground:0x3a3428,sun:0xffe2b0,fog:0x6a5840,stars:0,bunk:6,moon:1.85},
+ n5:{hemi:0x243448,ground:0x141820,sun:0x6688aa,fog:0x121820,stars:1,bright:3.4,bunk:4,bunkColor:0xff7a18,moon:.18,glow:1},
+ n6:{hemi:0x6d7a62,ground:0x2c3328,sun:0x8a947c,fog:0x4d5a48,stars:0,bunk:0,moon:.28}
+};
 let bunkLight=null;
-function ensureStars(){if(window.__stars)return; const n=520,pos=new Float32Array(n*3); for(let i=0;i<n;i++){const r=9000+Math.random()*3500,th=Math.random()*6.283,ph=Math.random()*1.15; pos[i*3]=Math.cos(th)*Math.sin(ph)*r; pos[i*3+1]=Math.cos(ph)*r; pos[i*3+2]=Math.sin(th)*Math.sin(ph)*r} const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); const p=new THREE.Points(g,new THREE.PointsMaterial({color:0xe7eeff,size:16,sizeAttenuation:true,transparent:true,opacity:.9,depthWrite:false})); p.visible=false; scene.add(p); window.__stars=p}
-function setNight(id){const p=NIGHT.find(x=>x.id===id)||NIGHT[0]; nightId=p.id; if(!p.scen){NIGHT_ON=false; nvOn=false; Object.assign(SCEN,SCEN_DEFAULT); applyScen(); if(window.__stars)window.__stars.visible=false; if(bunkLight)bunkLight.visible=false; document.body.classList.remove('night'); const g=$('nvg'); if(g)g.classList.remove('on'); return} NIGHT_ON=true; Object.assign(SCEN,SCEN_DEFAULT,p.scen); nightBase=SCEN.exposure; applyScen(); ensureStars(); window.__stars.visible=true; if(!bunkLight){bunkLight=new THREE.PointLight(0xffe6c4,7,520); bunkLight.position.copy(BUNK); bunkLight.position.y+=24; scene.add(bunkLight)} bunkLight.visible=true; document.body.classList.add('night')}
-function bootNight(){let id=''; try{id=localStorage.ds16_night||''}catch(e){} if(id&&id!=='current'&&NIGHT.some(n=>n.id===id)) setNight(id)}
+function starTex(){if(starTex.t)return starTex.t; const c=document.createElement('canvas'); c.width=c.height=32; const x=c.getContext('2d'); const grd=x.createRadialGradient(16,16,0,16,16,16); grd.addColorStop(0,'rgba(255,255,255,1)'); grd.addColorStop(.35,'rgba(255,255,255,.9)'); grd.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=grd; x.fillRect(0,0,32,32); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return starTex.t=t}
+function starShell(n, size, e0, e1){const pos=new Float32Array(n*3); for(let i=0;i<n;i++){const e=e0+Math.random()*(e1-e0), th=Math.random()*6.283, r=2600, ce=Math.cos(e); pos[i*3]=Math.cos(th)*ce*r; pos[i*3+1]=Math.sin(e)*r; pos[i*3+2]=Math.sin(th)*ce*r} const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); const p=new THREE.Points(g,new THREE.PointsMaterial({map:starTex(),color:0xffffff,size,sizeAttenuation:false,transparent:true,opacity:1,depthWrite:false,depthTest:false,fog:false,alphaTest:.05})); p.renderOrder=30; p.frustumCulled=false; p.visible=false; scene.add(p); return p}
+function ensureStars(){if(window.__stars)return; window.__stars=starShell(640,2.3,0.05,0.62); window.__starsBright=starShell(80,6,0.08,0.48); const cv=document.createElement('canvas'); cv.width=cv.height=128; const gx=cv.getContext('2d'); const grd=gx.createRadialGradient(64,64,0,64,64,64); grd.addColorStop(0,'rgba(255,186,80,1)'); grd.addColorStop(.28,'rgba(255,110,30,.7)'); grd.addColorStop(1,'rgba(255,70,0,0)'); gx.fillStyle=grd; gx.fillRect(0,0,128,128); const tex=new THREE.CanvasTexture(cv); const mat=new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}); const s=new THREE.Sprite(mat); s.scale.set(2800,1600,1); s.position.copy(BUNK); s.position.y+=1300; s.visible=false; scene.add(s); window.__tgtGlowNight=s}
+function paintNightLook(id){const L=NIGHT_LOOK[id]; if(window.__tgtGlowNight)window.__tgtGlowNight.visible=!!(L&&L.glow); const hideStars=()=>{if(window.__stars)window.__stars.visible=false; if(window.__starsBright)window.__starsBright.visible=false}; if(!L){hemiL.color.set(0xb8c8dc); hemiL.groundColor.set(0x5a5040); sun.color.set(0xfff0dc); if(scene.fog)scene.fog.color.set(0xa7b2bd); hideStars(); if(bunkLight)bunkLight.visible=false; return} hemiL.color.set(L.hemi); hemiL.groundColor.set(L.ground); sun.color.set(L.sun); if(L.moon!=null)sun.intensity=L.moon; if(scene.fog&&L.fog)scene.fog.color.set(L.fog); if(window.__stars){window.__stars.visible=!!(L.stars&&L.dense); window.__stars.material.size=L.starSize||2.3} if(window.__starsBright){window.__starsBright.visible=!!L.stars; window.__starsBright.material.size=L.bright||5} if(bunkLight){bunkLight.visible=!!L.bunk; bunkLight.intensity=L.bunk||0; bunkLight.color.set(L.bunkColor||0xffe6c4); bunkLight.distance=L.bunk?14000:520}}
+function setNight(id){const p=NIGHT.find(x=>x.id===id)||NIGHT[0]; nightId=p.id; if(!p.scen){NIGHT_ON=false; nvOn=false; Object.assign(SCEN,SCEN_DEFAULT); applyScen(); paintNightLook(null); document.body.classList.remove('night'); const g=$('nvg'); if(g)g.classList.remove('on'); const b=$('nv'); if(b)b.classList.remove('on'); return} NIGHT_ON=true; Object.assign(SCEN,SCEN_DEFAULT,p.scen); nightBase=SCEN.exposure; applyScen(); ensureStars(); if(!bunkLight){bunkLight=new THREE.PointLight(0xffb060,0,14000); bunkLight.position.copy(BUNK); bunkLight.position.y+=40; scene.add(bunkLight)} paintNightLook(p.id); document.body.classList.add('night')}
+function bootNight(){let id='', nv=''; try{const q=new URLSearchParams(location.search); if(q.has('night')){id=q.get('night')||''; if(!id||id==='current')localStorage.removeItem('ds16_night'); else localStorage.ds16_night=id} else id=localStorage.ds16_night||''; if(q.has('nv')){nv=q.get('nv')||'0'; localStorage.ds16_nv=nv} else nv=localStorage.ds16_nv||'0'}catch(e){} if(id&&id!=='current'&&NIGHT.some(n=>n.id===id))setNight(id); if(nv==='1'&&NIGHT_ON)toggleNV()}
 if(DS_MODE==='game'){bootNight(); if($('nv'))$('nv').addEventListener('pointerdown',e=>{e.stopPropagation(); toggleNV()})}
 
 

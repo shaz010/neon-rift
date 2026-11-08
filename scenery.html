@@ -28,7 +28,7 @@ canvas#gl{position:absolute;inset:0;width:100%!important;height:100%!important;d
 #nightBox{margin:10px;padding:10px;border:1px solid rgba(182,220,174,.4);border-radius:8px;background:rgba(8,12,10,.9);display:flex;flex-direction:column;gap:8px}
 #nightBox select{min-height:44px;width:100%;background:#0c100e;color:#e8ffe0;border:1px solid rgba(182,220,174,.5);border-radius:6px;font:16px var(--m)}
 #nightBox .acts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-#nightBox button{min-height:44px;border-radius:6px;border:1px solid rgba(182,220,174,.5);background:rgba(20,32,24,.9);color:#e8ffe0;font:700 12px var(--m);touch-action:manipulation}
+#nightBox button,#nightBox a.apply{min-height:44px;border-radius:6px;border:1px solid rgba(182,220,174,.5);background:rgba(20,32,24,.9);color:#e8ffe0;font:700 12px var(--m);touch-action:manipulation;display:flex;align-items:center;justify-content:center;text-decoration:none}
 #nightBox .apply{grid-column:1/-1;background:rgba(70,110,60,.95)}
 #nightBox p{margin:0;font-size:12px;opacity:.8;line-height:1.35}
 #nvg{position:fixed;inset:0;pointer-events:none;z-index:8;display:none;background:rgba(70,160,60,.16);mix-blend-mode:screen;box-shadow:inset 0 0 90px 20px rgba(0,30,0,.55)}
@@ -49,7 +49,7 @@ canvas#gl{position:absolute;inset:0;width:100%!important;height:100%!important;d
 </head>
 <body>
 <div id="bar">
-  <div class="patch" data-patch>s16 · 16m</div>
+  <div class="patch" data-patch>s16 · 16n</div>
   <h1>DEEP STRIKE · s16 — SCENERY</h1>
   <a class="back" href="./index.html">← Back to game</a>
   <div id="picked">PICKED: —</div>
@@ -68,7 +68,7 @@ canvas#gl{position:absolute;inset:0;width:100%!important;height:100%!important;d
     <button type="button" id="nightStop">STOP</button>
     <button type="button" id="nightChoose" class="choose">✓ Choose</button>
     <button type="button" id="nightNV">NIGHT VISION</button>
-    <button type="button" id="nightApply" class="apply">APPLY TO GAME</button>
+    <a id="nightApply" class="apply" href="./index.html">APPLY TO GAME</a>
   </div>
 </div>
 <div id="list"></div>
@@ -84,6 +84,6 @@ canvas#gl{position:absolute;inset:0;width:100%!important;height:100%!important;d
 <select id="s_bed" class="hide"></select><span id="v_eng"></span><span id="v_mus"></span><span id="v_bed"></span><span id="v_fx"></span><button id="setx" type="button"></button><div id="resume"></div>
 <div id="tt"></div><div id="tp"></div><div id="tn"></div><div id="mapc"></div><div id="previewLabel" class="hide"></div>
 <script>window.__DS_MODE='scenery';</script>
-<script type="module" src="./main.mjs?v=16m"></script>
+<script type="module" src="./main.mjs?v=16n"></script>
 </body>
 </html>

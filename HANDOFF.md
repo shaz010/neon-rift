@@ -5,6 +5,10 @@ Branch: `strike-16`. Pages folder: `/strike-16/` only.
 
 Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
 
+## s16 · 16n — audible beds and distinct nights
+
+The six quiet beds were silent at the start of the Logic files. They now begin where the sound actually is, at the same level in the picker and in flight. Each night look has its own light and fog. Star field puts stars in the sky you can see. Choosing one updates the live picture. Stamp `s16 · 16n`.
+
 ## s16 · 16m — mood variety, rising cluster, night preview
 
 Rotation fades up on its own bus, then a tom passes through and the texture returns. More valley beds use the existing Logic files as sequences, not one stacked loop. Rising Cluster is an extra bunker choice: detonations swell, then rumble. Night looks stay on the scenery tester until Apply. Stamp `s16 · 16m`.
