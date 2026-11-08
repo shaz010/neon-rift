@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16l'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','16m'])[1];
 const PATCH_LABEL='s16 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -170,6 +170,9 @@ const scene=new THREE.Scene(); scene.fog=null;
 const cam=new THREE.PerspectiveCamera(60,1,1,16000); cam.rotation.order='YXZ';
 const SCEN={turbidity:2.6,rayleigh:.95,mie:.0025,mieG:.78,sunEl:21,sunAz:.62,sunInt:4.5,hemi:1.15,exposure:.88,env:.75,fogDen:0,fogFar:14000,snowAlt0:490,snowAlt1:700,snowAmt:1,warmth:0,clouds:0};
 const SCEN_DEFAULT={...SCEN};
+let NIGHT_ON=false, expPulse=0, nvOn=false, nightBase=SCEN.exposure, nightId='current';
+function nightKick(a){if(!NIGHT_ON)return; expPulse=Math.min(.26, expPulse+(a||.16))}
+function toggleNV(){nvOn=!nvOn; const g=$('nvg'); if(g)g.classList.toggle('on',nvOn); const b=$('nv'); if(b)b.classList.toggle('on',nvOn); document.querySelectorAll('#nightNV').forEach(el=>el.classList.toggle('on',nvOn))}
 const SUN=new THREE.Vector3().setFromSphericalCoords(1,(90-SCEN.sunEl)*D2R,SCEN.sunAz);
 const sky=new Sky(); sky.scale.setScalar(14000); const su=sky.material.uniforms;
 su.turbidity.value=SCEN.turbidity; su.rayleigh.value=SCEN.rayleigh; su.mieCoefficient.value=SCEN.mie; su.mieDirectionalG.value=SCEN.mieG; su.sunPosition.value.copy(SUN);
@@ -632,7 +635,7 @@ function initAudio(){if(AC){AC.resume();return}const ACC=window.AudioContext||wi
  AC.introG=AC.createGain();AC.introG.gain.value=1;AC.introG.connect(AC.mus);
  AC.deckJetG=AC.createGain();AC.deckJetG.gain.value=0; AC.jetIdlePan=mkPan(true,70); AC.deckJetG.connect(AC.jetIdlePan); AC.jetIdlePan.connect(AC.mus);
  AC.deckRotorG=AC.createGain();AC.deckRotorG.gain.value=0; AC.rotorPan=mkPan(true,22); AC.deckRotorG.connect(AC.rotorPan); AC.rotorPan.connect(AC.mus);
- AC.moodG=AC.createGain();AC.moodG.gain.value=0;AC.moodG.connect(AC.bedB);
+ AC.moodG=AC.createGain();AC.moodG.gain.value=0;AC.moodG.connect(mg);
  // ambience sub drone
  {const nb=mkSeamless(noiseBuf(2),.5);const n=AC.createBufferSource();n.buffer=nb;n.loop=true;n.playbackRate.value=.48;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=70;const g=AC.createGain();g.gain.value=.75;const o=AC.createOscillator();o.frequency.value=46;const og=AC.createGain();og.gain.value=.05;o.connect(og).connect(AC.amb);o.start();n.connect(f).connect(g).connect(AC.amb);n.start(0,Math.random()*5)}
 
@@ -750,7 +753,15 @@ const SND=[
   Object.assign(C('b3','Double Wave',null,'Field blast, Deep Space Boomer, then a second Subsonic 06.'),{layers:[{k:'bk_mid',v:.55,d:0,hold:5.3},{k:'lx_boomer',v:.46,d:.18,hold:8},{k:'lx_s01k',v:.36,d:.5,hold:12},{k:'lx_s06',v:.3,d:1.05,hold:10}]}),
   Object.assign(C('b4','Titan Break',null,'Flash, SubDrop, Titan Call, then the Back at It tail.'),{layers:[{k:'bk_crack',v:.5,d:0,hold:1.6},{k:'lx_drop',v:.34,d:.1,hold:1.1},{k:'lx_titan',v:.52,d:.22,hold:12},{k:'lx_back',v:.32,d:.75,hold:11}]}),
   Object.assign(C('b5','Valley Hammer',null,'Seven-second field roll, Subsonic 09, Boomer FX 29 and Subsonic 01.'),{layers:[{k:'bk_roll',v:.5,d:0,hold:7.1},{k:'lx_s09',v:.38,d:.22,hold:12},{k:'lx_b29',v:.36,d:.5,hold:12},{k:'lx_s01k',v:.26,d:.9,hold:10}]}),
-  Object.assign(C('b6','Deep End',null,'Long field roll, SubDrop, Deep Space Boomer, Subsonic 06 and Back at It.'),{layers:[{k:'bk_long',v:.46,d:0,hold:10},{k:'lx_drop',v:.26,d:.14,hold:1.1},{k:'lx_boomer',v:.4,d:.24,hold:8},{k:'lx_s06',v:.34,d:.42,hold:11},{k:'lx_back',v:.28,d:1.1,hold:12}]})
+  Object.assign(C('b6','Deep End',null,'Long field roll, SubDrop, Deep Space Boomer, Subsonic 06 and Back at It.'),{layers:[{k:'bk_long',v:.46,d:0,hold:10},{k:'lx_drop',v:.26,d:.14,hold:1.1},{k:'lx_boomer',v:.4,d:.24,hold:8},{k:'lx_s06',v:.34,d:.42,hold:11},{k:'lx_back',v:.28,d:1.1,hold:12}]}),
+  Object.assign(C('b7','Rising Cluster',null,'Staggered detonations that swell to a peak, then a long rumble. Not the saved default.'),{layers:[
+    {k:'bk_crack',v:.2,d:0,attack:1.5,hold:.35,decay:1.8},
+    {k:'bk_mid',v:.24,d:1.15,attack:1.7,hold:.4,decay:2.2},
+    {k:'bk_roll',v:.26,d:2.4,attack:1.8,hold:.5,decay:2.6},
+    {k:'lx_s06',v:.4,d:.7,attack:3.3,hold:.7,decay:6.2},
+    {k:'lx_b29',v:.22,d:1.7,attack:2.8,hold:1.1,decay:6},
+    {k:'bk_long',v:.2,d:3.6,attack:2.4,hold:2.2,decay:5.2}
+  ]})
  ]},
  {id:'radar',title:'Radar / lock — choose one',loop:0,notLogic:1,cur:'Synth beeps, not a Logic file.',cands:[C('current','',null),C('d1','Boomer FX 40.caf','snd_d1'),C('d2','Rumble Sub Bass.caf','snd_d2'),C('d3','Rumble Noise FX.caf','snd_d3'),C('d4','Boomer FX 26.caf','snd_d4'),C('d5','Boomer FX 21.caf','snd_d5')]},
  {id:'crash',title:'Crash — choose one',loop:0,notLogic:1,cur:'Impact plus sub, two files at once.',cands:[C('current','',null),C('c1','Boomer FX 20.caf','snd_c1'),C('c2','Boomer FX 46.caf','snd_c2'),C('c3','Boomer FX 13.caf','snd_c3'),C('c4','Boomer FX 19.caf','snd_c4'),C('c5','Boomer FX 43.caf','snd_c5')]},
@@ -798,27 +809,43 @@ const MUSIC_LV={intro:70,ending:75,mood:55};
 const MUSIC_PRE={
  intro:[['current','Deck only','No added music. Deck sounds stay.'],['i1','Kick Riser','Floating Frequency Kick Space Riser.'],['i2','Synth Riser','80s Synth FX Riser.'],['i3','Layers Under','Dream Space Layers with a quiet sub.'],['i4','Jet Arrival','Jet pass, then the kick riser.'],['random','Random','A different intro each sortie.']],
  ending:[['current','Space Dub','The mission-complete dub already in the game.'],['e1','Dub Lift','Deep Space Dub 02.'],['e2','Low Landing','Dub with Subsonic Boom 01 under it.'],['e3','Sun Down','Sun Up Impact, left long.'],['e4','Pound Close','Pound Down Impact.'],['e5','Back at It','Back at It Bass Impact, played once.'],['random','Random','A different ending each sortie.']],
- mood:[['current','Iron Veil','The valley bed already in the game.'],['m1','Dream Layers','Dream Space Layers, looping.'],['m2','Dub Bed','Deep Space Dub, looping low.'],['m3','Drift','Layers plus a quiet Subsonic 08.'],['m4','Rotation','In Rotation FX, kept low.'],['random','Random','A different bed each sortie.']]
+ mood:[['current','Iron Veil','The valley bed already in the game.'],['m1','Dream Layers','Layers, then a Titan phrase that enters and leaves.'],['m2','Dub Bed','Dub, with a sub that rises and falls.'],['m3','Drift','Layers, then a slow sub that fades away.'],['m4','Rotation','In Rotation fades up, a tom passes through, then the texture returns.'],['m5','Hollow','Long sub tone, then a quiet Titan call.'],['m6','Aftershock','Pound rises, then the layers take over.'],['m7','Sun Under','Sun Up swells, with a sub underneath.'],['m8','Wide Pass','A jet pass over a low layer bed.'],['m9','Boomer Bed','One boomer swell, then the dub.'],['m10','Kick Space','Kick texture, then the long riser underneath.'],['random','Random','A different bed each sortie.']]
 };
 const MUSIC_LAY={
- i1:[{k:'lx_riser',v:.62}], i2:[{k:'lx_80s',v:.55}], i3:[{k:'lx_layers',v:.42,loop:1},{k:'lx_sub08',v:.16,loop:1}], i4:[{k:'lx_jet1',v:.4},{k:'lx_riser',v:.38}],
- e1:[{k:'lx_dub',v:.55,loop:1}], e2:[{k:'lx_dub',v:.48,loop:1},{k:'lx_sub01',v:.26}], e3:[{k:'lx_sun',v:.5}], e4:[{k:'lx_pound',v:.46}], e5:[{k:'lx_back',v:.42}],
- m1:[{k:'lx_layers',v:.5,loop:1}], m2:[{k:'lx_dub',v:.4,loop:1}], m3:[{k:'lx_layers',v:.38,loop:1},{k:'lx_sub08',v:.14,loop:1}], m4:[{k:'lx_rot',v:.3,loop:1}]
+ i1:[{k:'lx_riser',v:.62,fade:1.2}], i2:[{k:'lx_80s',v:.55,fade:1}], i3:[{k:'lx_layers',v:.42,loop:1,fade:1.6},{k:'lx_sub08',v:.16,loop:1,fade:2.4}], i4:[{k:'lx_jet1',v:.4,fade:.2},{k:'lx_riser',v:.38,d:.3,fade:1.2}],
+ e1:[{k:'lx_dub',v:.55,loop:1,fade:1.4}], e2:[{k:'lx_dub',v:.48,loop:1,fade:1.4},{k:'lx_sub01',v:.26,d:.4,fade:1.2,hold:3,decay:3}], e3:[{k:'lx_sun',v:.5,fade:1.6}], e4:[{k:'lx_pound',v:.46,fade:1.1}], e5:[{k:'lx_back',v:.42,fade:1.4}],
+ m1:[{k:'lx_layers',v:.46,loop:1,fade:2.6},{k:'lx_titan',v:.2,d:12,fade:4,hold:6,decay:7}],
+ m2:[{k:'lx_dub',v:.4,loop:1,fade:2.2},{k:'lx_sub01',v:.18,d:7,fade:2.2,hold:2,decay:5}],
+ m3:[{k:'lx_layers',v:.36,loop:1,fade:2.8},{k:'lx_sub08',v:.2,d:6,fade:4,hold:8,decay:6}],
+ m4:[{k:'lx_rot',v:.84,d:0,fade:3.4,hold:19,decay:2.8},{k:'lx_tom',v:.14,d:10,fade:2.6,hold:3.5,decay:4.5},{k:'lx_rot',v:.84,d:22,fade:2.6,hold:18,decay:3}],
+ m5:[{k:'lx_s08k',v:.34,loop:1,fade:4},{k:'lx_titan',v:.22,d:14,fade:3.5,hold:5,decay:6}],
+ m6:[{k:'lx_pound',v:.32,fade:2.4,hold:6,decay:5},{k:'lx_layers',v:.4,d:6,loop:1,fade:3}],
+ m7:[{k:'lx_sun',v:.36,fade:3.2,hold:12,decay:6},{k:'lx_sub08',v:.16,d:4,fade:3,hold:10,decay:5}],
+ m8:[{k:'lx_layers',v:.32,loop:1,fade:2.5},{k:'lx_jet2',v:.28,d:1,fade:.4,hold:.6,decay:1.2},{k:'lx_jet1',v:.24,d:16,fade:.35,hold:.5,decay:1}],
+ m9:[{k:'lx_boomer',v:.3,fade:2.2,hold:4,decay:4},{k:'lx_dub',v:.38,d:5,loop:1,fade:2.4}],
+ m10:[{k:'lx_kick',v:.3,fade:2.8,hold:8,decay:5},{k:'lx_riser',v:.22,d:8,fade:4,hold:10,decay:6}]
 };
+const MUSIC_SPAN={m1:34,m2:26,m3:32,m4:46,m5:36,m6:28,m7:30,m8:24,m9:28,m10:32};
 function musicChoice(cat){let id=MUSIC_DEF[cat]; try{const s=localStorage['ds16_'+cat]; if(s)id=s}catch(e){} return MUSIC_PRE[cat].some(x=>x[0]===id)?id:MUSIC_DEF[cat]}
 function musicLevel(cat){let v=MUSIC_LV[cat]; try{const s=localStorage['ds16_lv_'+cat]; if(s!=null&&s!=='')v=+s}catch(e){} return Math.min(100,Math.max(0,v))/100}
 function resolveMusic(cat){const id=musicChoice(cat); if(id!=='random')return id; if(musicRoll[cat])return musicRoll[cat]; const opts=MUSIC_PRE[cat].map(x=>x[0]).filter(x=>x!=='current'&&x!=='random'); let i=Math.floor(Math.random()*opts.length); if(opts[i]===musicRoll.prev)i=(i+1)%opts.length; musicRoll[cat]=opts[i]; musicRoll.prev=opts[i]; return opts[i]}
-function playLayers(id, dest, level){const spec=MUSIC_LAY[id]; if(!AC||!spec||!dest)return null; const nodes=[];
- for(const layer of spec){const buf=SB[layer.k]; if(!buf){SB.get(layer.k); continue} const s=AC.createBufferSource(); s.buffer=buf; s.loop=!!layer.loop; const g=AC.createGain(); const t=AC.currentTime; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime((layer.v||.4)*level,t+.4); s.connect(g).connect(dest); s.start(); nodes.push({s,g}); sfxLog('music',{id,k:layer.k})}
- if(!nodes.length)return null; return {stop(){const t=AC.currentTime; for(const n of nodes){try{n.g.gain.cancelScheduledValues(t); n.g.gain.setTargetAtTime(0,t,.12); n.s.stop(t+.35)}catch(e){}}}}}
+function spawnLayers(spec, dest, level){const nodes=[]; const t0=AC.currentTime;
+ for(const layer of spec){const buf=SB[layer.k]; if(!buf){SB.get(layer.k); continue} const s=AC.createBufferSource(); s.buffer=buf; s.loop=!!layer.loop; const g=AC.createGain(); const t=t0+(layer.d||0); const peak=Math.max(.0008,(layer.v||.4)*level); const fade=Math.max(.05,layer.fade!=null?layer.fade:.8); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+fade); const hold=layer.hold||0, decay=layer.decay||0; if(hold||decay){ if(hold)g.gain.setValueAtTime(peak,t+fade+hold); if(decay)g.gain.exponentialRampToValueAtTime(.0008,t+fade+hold+decay); if(!layer.loop){try{s.stop(t+fade+hold+decay+.06)}catch(e){}} } s.connect(g).connect(dest); try{s.start(t)}catch(e){} nodes.push({s,g}); sfxLog('music',{k:layer.k,d:layer.d||0,fade:+fade.toFixed(2),v:+peak.toFixed(3)})}
+ if(!nodes.length)return null;
+ return {nodes, stop(out){const tt=AC.currentTime,o=out==null?1.35:out; for(const n of nodes){try{const cur=Math.max(.0008,n.g.gain.value); n.g.gain.cancelScheduledValues(tt); n.g.gain.setValueAtTime(cur,tt); n.g.gain.exponentialRampToValueAtTime(.0008,tt+Math.max(.2,o)); n.s.stop(tt+o+.06)}catch(e){}}}}}
+function playMusic(id, dest, level){const spec=MUSIC_LAY[id]; if(!AC||!spec||!dest)return null; let dead=false, cur=null, timer=0;
+ const arm=()=>{ if(dead)return; const prev=cur; cur=spawnLayers(spec,dest,level); if(prev)prev.stop(1.5); const span=MUSIC_SPAN[id]; if(span) timer=setTimeout(arm, Math.max(4,span-1.1)*1000); };
+ arm();
+ return {stop(){dead=true; clearTimeout(timer); if(cur)cur.stop(1.3)}}}
+function playLayers(id, dest, level){return playMusic(id, dest, level)}
 function startIntroMusic(){if(!AC||!takingOff())return; if(INTRO_TRACK){if(introS)return; const token=++introTok; const arm=buf=>{if(token!==introTok||!buf||introS||!takingOff())return; introS=plainLoop(buf,.18*musicLevel('intro'),AC.introG,{tag:'intro'})}; if(SB[INTRO_TRACK])arm(SB[INTRO_TRACK]); else SB.get(INTRO_TRACK).then(arm); return}
- const id=resolveMusic('intro'); if(id==='current')return; if(introHandle)return; const go=()=>{if(introHandle||!takingOff())return; introHandle=playLayers(id,AC.introG,musicLevel('intro'))}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
+ const id=resolveMusic('intro'); if(id==='current')return; if(introHandle)return; const go=()=>{if(introHandle||!takingOff())return; introHandle=playMusic(id,AC.introG,musicLevel('intro'))}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
 function stopIntroMusic(){introTok++; if(introS){try{introS.stop()}catch(e){} introS=null} if(introHandle){try{introHandle.stop()}catch(e){} introHandle=null}}
 function startMood(){if(!AC||takingOff())return; const id=resolveMusic('mood'); if(id==='current'){if(moodHandle){moodHandle.stop(); moodHandle=null} if(AC.moodG)AC.moodG.gain.setTargetAtTime(0,AC.currentTime,.2); return}
- if(moodHandle)return; const go=()=>{if(moodHandle||takingOff())return; if(AC.moodG)AC.moodG.gain.setTargetAtTime(1,AC.currentTime,.2); moodHandle=playLayers(id,AC.moodG,musicLevel('mood'))}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
+ if(moodHandle)return; const go=()=>{if(moodHandle||takingOff())return; if(AC.moodG)AC.moodG.gain.setTargetAtTime(1,AC.currentTime,.3); moodHandle=playMusic(id,AC.moodG,musicLevel('mood'))}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
 function stopMood(){if(moodHandle){try{moodHandle.stop()}catch(e){} moodHandle=null} if(AC&&AC.moodG)AC.moodG.gain.setTargetAtTime(0,AC.currentTime,.2)}
 function playEnding(){if(!AC)return; const id=resolveMusic('ending'); if(id==='current'){SB.get(BRIEF_TRACK).then(b=>{if(!b||running)return; stopWin(); winSrc=src(b,0,AC.musB,{loop:true}); winSrc.g.gain.setValueAtTime(0,AC.currentTime); winSrc.g.gain.linearRampToValueAtTime(.5*musicLevel('ending')/.75,AC.currentTime+1.2)}); return}
- const go=()=>{if(running)return; if(endHandle)endHandle.stop(); endHandle=playLayers(id,AC.musB,musicLevel('ending'))}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
+ const go=()=>{if(running)return; if(endHandle)endHandle.stop(); endHandle=playMusic(id,AC.musB,musicLevel('ending'))}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
 let deckJet=null, deckRotor=null;
 function deckOne(key,vol){if(!AC||!SB[key])return; src(SB[key],vol,AC.mus,{pri:1,fadeIn:.012,tag:'deck:'+key})}
 function startDeckAmbience(){if(!AC||!takingOff())return;
@@ -844,7 +871,7 @@ function riser(on){if(!AC)return;const t=AC.currentTime;if(on&&!riserS&&SB.riser
  if(!on&&riserS){riserS.g.gain.cancelScheduledValues(t);riserS.g.gain.setTargetAtTime(0,t,.08);const r=riserS;setTimeout(()=>{try{r.stop()}catch(e){}},800);riserS=null}}
 function play(buf,vol=.5){if(!AC||!buf)return;src(buf,vol,AC.out)}
 function blip(f,d=.08,v=.15,type='sine'){if(!AC)return;sfxLog('blip',{f,d,v});const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=Math.min(f,600);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v*.45,t+.025);g.gain.exponentialRampToValueAtTime(.0005,t+d+.05);o.connect(g).connect(AC.tone);o.start(t);o.stop(t+d+.08)}
-function playBunker(c,P){if(!AC||!c||!c.layers)return; const go=()=>{if(!AC)return; let dest=AC.bigB; if(P){const pn=mkPan(true,320); setP0(pn,P); pn.connect(AC.bigB); dest=pn; setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1); pn._hrtf=0} try{pn.disconnect()}catch(e){}},14000)} const t0=AC.currentTime; for(const layer of c.layers){const buf=SB[layer.k]; if(!buf)continue; const s=src(buf,layer.v,dest,{when:t0+(layer.d||0),pri:1,fadeIn:.004,tag:'bunker:'+layer.k}); if(s&&s.stop){if(layer.hold){try{s.stop(t0+(layer.d||0)+layer.hold)}catch(e){}} sndPrev.push(s)}} sfxLog('bunker',{id:c.id})}; const need=c.layers.filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
+function playBunker(c,P){if(!AC||!c||!c.layers)return; const go=()=>{if(!AC)return; let dest=AC.bigB; if(P){const pn=mkPan(true,320); setP0(pn,P); pn.connect(AC.bigB); dest=pn; setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1); pn._hrtf=0} try{pn.disconnect()}catch(e){}},16000)} const t0=AC.currentTime; for(const layer of c.layers){const buf=SB[layer.k]; if(!buf)continue; if(layer.attack){const s=AC.createBufferSource(); s.buffer=buf; const g=AC.createGain(); const t=t0+(layer.d||0); const peak=Math.max(.0008,layer.v||.2); const atk=Math.max(.2,layer.attack); const hold=layer.hold==null?.4:layer.hold; const dec=layer.decay==null?3:layer.decay; g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+atk); g.gain.setValueAtTime(peak,t+atk+hold); g.gain.exponentialRampToValueAtTime(.0008,t+atk+hold+dec); s.connect(g).connect(dest); s.start(t); try{s.stop(t+atk+hold+dec+.05)}catch(e){} sndPrev.push(s); sfxLog('bunker',{id:c.id,k:layer.k,d:layer.d||0,attack:atk,peak:+peak.toFixed(3)})} else {const s=src(buf,layer.v,dest,{when:t0+(layer.d||0),pri:1,fadeIn:.004,tag:'bunker:'+layer.k}); if(s&&s.stop){if(layer.hold){try{s.stop(t0+(layer.d||0)+layer.hold)}catch(e){}} sndPrev.push(s)} sfxLog('bunker',{id:c.id,k:layer.k})}}}; const need=c.layers.filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
 function bunkerBlast(P){const c=sndChoice('bunker'); if(c&&c.layers)playBunker(c,P||BUNK); else boomSfx(true,P||BUNK)}
 function boomSfx(big,P){if(!AC)return;sfxLog('boomSfx',{big:!!big});
   const at=P||null;
@@ -871,7 +898,7 @@ function whoosh(){if(!AC)return;sfxLog('whoosh',{});const t=AC.currentTime,n=AC.
 function passBy(P){if(!AC)return; if(useSnd('pass',P))return; sfxLog('passBy',{});const pn=mkPan(true,80);setP0(pn,P);sweepLR(pn,P,1.3);pn.connect(AC.out);const t=AC.currentTime,n=AC.createBufferSource();n.buffer=noiseBuf(1.5);n.playbackRate.setValueAtTime(.85,t);n.playbackRate.exponentialRampToValueAtTime(.55,t+1.2);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(320,t);f.frequency.exponentialRampToValueAtTime(100,t+1.2);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.7,t+.25);g.gain.exponentialRampToValueAtTime(.001,t+1.5);n.connect(f).connect(g).connect(pn);n.start();n.stop(t+1.6);n.onended=()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}};thud(pn,.55,45,20,1.3);if(SB.subdrop)psrc('subdrop',.3,P,true,{ref:80,rate:.85,pri:1,fadeIn:.2,tag:'subdrop'})}
 // ---------- state ----------
 let S;
-function reset(){releaseControls(); const fromDeath=valleyRespawn; valleyRespawn=false; if(S&&S.missile&&AC)mslAudioStop(S.missile);S={phase:'ingress',pos:new THREE.Vector3(vx(300),70,300),yaw:0,pitch:0,roll:0,thr:.7,det:0,detT:0,t:0,ts:1,locked:false,relHold:0,bomb:null,boomT:-1,penT:0,flares:8,missile:null,cine:false,cineA:null,aaaT:0,srchT:0,sites:SITES.map(()=>({st:'off',trk:0,shots:0,dead:0,warned:0,warnT:0})),samShots:0,err:0,dead:null,shake:0,msg:'',msgT:0,flareCD:0,egressLaunch:false,sec:[],hp:2,brk:0,brkCD:0,brkDir:1,ecm:0,ecmCD:0,ecmN:2,defeated:0,flakT:2,aaaS:0,teachT:0,smT:0,gunCD:0,gunSnd:0,iron:2,ironHold:0,ironBomb:null,beamT:0};
+function reset(){releaseControls(); try{stopMood()}catch(e){} const fromDeath=valleyRespawn; valleyRespawn=false; if(S&&S.missile&&AC)mslAudioStop(S.missile);S={phase:'ingress',pos:new THREE.Vector3(vx(300),70,300),yaw:0,pitch:0,roll:0,thr:.7,det:0,detT:0,t:0,ts:1,locked:false,relHold:0,bomb:null,boomT:-1,penT:0,flares:8,missile:null,cine:false,cineA:null,aaaT:0,srchT:0,sites:SITES.map(()=>({st:'off',trk:0,shots:0,dead:0,warned:0,warnT:0})),samShots:0,err:0,dead:null,shake:0,msg:'',msgT:0,flareCD:0,egressLaunch:false,sec:[],hp:2,brk:0,brkCD:0,brkDir:1,ecm:0,ecmCD:0,ecmN:2,defeated:0,flakT:2,aaaS:0,teachT:0,smT:0,gunCD:0,gunSnd:0,iron:2,ironHold:0,ironBomb:null,beamT:0};
  if(S&&S.missile)mslAudioStop(S.missile);mslG.visible=bomb.visible=msl.visible=ring.visible=dome.visible=bulge.visible=false;debris.forEach(d=>scene.remove(d.m));debris.length=0;parts.forEach(p=>scene.remove(p.m));parts.length=0;bunker.visible=true;$('end').classList.add('hide');
  rounds.forEach(r=>{if(r.m)r.m.visible=false});rounds.length=0;SITE_G.forEach(g=>{if(g)g.visible=true});ironMesh.visible=false;gunDown=false;stopIntroMusic();stopDeckAmbience();
  if(DS_MODE==='game'&&!skipTakeoff&&!fromDeath){S.phase='deck';S.pos.set(CVN.jetX,CVN.jetY,CVN.jetZ);S.yaw=0;S.pitch=0;S.roll=0;S.thr=.18;S.spd=0;S.to={armed:0,shot:0,climb:0,hand:0,pulled:0,settled:0,steam:0,swapped:0,fade:0};setThr(.18);document.body.classList.add('takingoff','to-deck');document.body.classList.remove('to-arm')}
@@ -1116,7 +1143,7 @@ function updNuke(dt,rdt){if(!NK)return;NK.t+=dt;NK.r+=rdt;const t=NK.t,B=BUNK;
  grade.u.uS.value=Math.max(0,1-t/16)*sstep(0,.6,t);const sc=tmp.set(B.x,B.y+h*.35,B.z).project(cam);grade.u.uC.value.set(sc.x*.5+.5,sc.y*.5+.5);
  if(fade<=0){NK.all.forEach(x=>scene.remove(x));NK=null;grade.u.uS.value=0}}
 window.__nuke=()=>{S.phase="penetrate";S.penT=1.7;bigBoom()};window.__sam=i=>{S.sites[i].shots=0;S.missile=null;launchSAM(i)};
-function bigBoom(){S.boomT=0;S.shake=.9;bunker.visible=false;bulge.visible=false;bunkerBlast(BUNK);ring.visible=dome.visible=true;ring.position.copy(BUNK).y+=3;dome.position.copy(BUNK);
+function bigBoom(){S.boomT=0;S.shake=.9;bunker.visible=false;bulge.visible=false;nightKick(.2);bunkerBlast(BUNK);ring.visible=dome.visible=true;ring.position.copy(BUNK).y+=3;dome.position.copy(BUNK);
  $('flash').style.transition='none';$('flash').style.background='#ffffff';$('flash').style.opacity=1;setTimeout(()=>{$('flash').style.transition='opacity 2.6s ease-out';$('flash').style.opacity=0},140);S.cineA=null;nukeStart();
  const K=2.6,o={must:1};
  spr(tmp.copy(BUNK).setY(BUNK.y+40),0xfff2d0,160*K,.8,null,{add:true,tex:glowTex,fog:false,grow:300*K,must:1});
@@ -1172,7 +1199,7 @@ function update(rdt){
   const gentle=S.samShots<=1,sp=Math.min(gentle?300:420,m.v.length()+160*dt),dir=m.v.clone().normalize(),want=tgt.clone().sub(m.p).normalize();dir.lerp(want,clamp(dt*(m.p.distanceTo(S.pos)<900?(gentle?2.4:3.4):(gentle?1.5:2)),0,1)).normalize();m.v.copy(dir).multiplyScalar(sp);const r0=m.p.clone().sub(S.pos);m.p.addScaledVector(m.v,dt);{const r1=m.p.clone().sub(S.pos),dd=r1.clone().sub(r0),L=dd.lengthSq();const t=L>0?clamp(-r0.dot(dd)/L,0,1):1;m.cpa=r0.addScaledVector(dd,t).length()}
   msl.position.copy(m.p);msl.lookAt(tmp.copy(m.p).add(m.v));m.tr=(m.tr||0)+dt;const boost=m.life>17;{const dj=m.p.distanceTo(S.pos);mslG.visible=true;mslG.position.copy(m.p);mslG.scale.setScalar((boost?72:48)*(1+.12*Math.sin(S.t*40))*Math.max(1,dj/1800));}if(m.tr>(MOB?.05:.035)){m.tr=0;spr(m.p,boost?0xf2eee6:0xe0dbd2,boost?11:8,boost?11:8,new THREE.Vector3(rnd(2),rnd(2),rnd(2)),{grow:boost?8:6,o:.75,drag:.3,must:1})}spr(m.p,0xffd090,boost?7:3,.12,null,{add:true,tex:glowTex,fog:false});
   mslAudioUpd(m,dt);{const dj=m.p.distanceTo(S.pos);if(!m.ws&&dj<260&&(m.decoy||m.lost)){m.ws=1; if(!useSnd('pass',m.p)){whoosh();passBy(m.p)} S.shake=Math.max(S.shake,.25)}}
-  if(!m.decoy&&!m.lost&&Math.min(m.cpa??1e9,m.p.distanceTo(S.pos))<75){mslAudioStop(m);S.missile=null;msl.visible=false;mslG.visible=false;S.sites[m.site].next=S.t+4;$('flash').style.transition='none';$('flash').style.background='#ffb070';$('flash').style.opacity=.85;setTimeout(()=>{$('flash').style.transition='opacity 1.2s';$('flash').style.opacity=0},90);if(!useSnd('boom',S.pos)){src(SB.sub08,.8,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:sub08'});if(SB.hitsub)src(SB.hitsub,.85,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:hitsub'});if(AC){if(SB.impact)src(SB.impact,.9,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:impact'});else thud(AC.bigB,.9,55,22,1.6); }}S.shake=1;;S.hp--;if(S.hp>0){fire(tmp.copy(S.pos).addScaledVector(fwd,-30),.35);msg('HIT! AIRFRAME DAMAGED — ONE MORE HIT IS FATAL');S.dmgT=3;return}fire(S.pos,.9);return die('SHOT DOWN — SAM HIT')}
+  if(!m.decoy&&!m.lost&&Math.min(m.cpa??1e9,m.p.distanceTo(S.pos))<75){mslAudioStop(m);S.missile=null;msl.visible=false;mslG.visible=false;S.sites[m.site].next=S.t+4;nightKick(.16);$('flash').style.transition='none';$('flash').style.background='#ffb070';$('flash').style.opacity=NIGHT_ON?.22:.85;setTimeout(()=>{$('flash').style.transition='opacity 1.4s';$('flash').style.opacity=0},NIGHT_ON?160:90);if(!useSnd('boom',S.pos)){src(SB.sub08,.8,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:sub08'});if(SB.hitsub)src(SB.hitsub,.85,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:hitsub'});if(AC){if(SB.impact)src(SB.impact,.9,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:impact'});else thud(AC.bigB,.9,55,22,1.6); }}S.shake=1;;S.hp--;if(S.hp>0){fire(tmp.copy(S.pos).addScaledVector(fwd,-30),.35);msg('HIT! AIRFRAME DAMAGED — ONE MORE HIT IS FATAL');S.dmgT=3;return}fire(S.pos,.9);return die('SHOT DOWN — SAM HIT')}
   if(m.p.y<H(m.p.x,m.p.z)||m.life<=0||(m.decoy&&m.dt<=0)){const pd=m.p.distanceTo(S.pos);fire(m.p,m.decoy?.45:.25);if(m.decoy){spr(m.p,0xfff0d0,90,.35,null,{add:true,tex:glowTex,fog:false,grow:120,must:1});for(let k=0;k<30;k++)spr(m.p,0xffc080,3,1.4,new THREE.Vector3(rnd(160),rnd(160),rnd(160)),{add:true,tex:glowTex,g:20,fog:false,must:1});if(pd<1200){S.shake=Math.max(S.shake,.2+.5*(1-pd/1200));heavy('sub08',.45*(1-pd/1500),1.35)}}boomSfx(false,m.p);if(AC&&pd<4000){psrc('hitsub',.4,m.p,true,{ref:280,rate:.95,pri:1,fadeIn:.008,tag:'psrc:hitsub'});if(!psrc('impact',.4,m.p,true,{ref:250,rate:.9,pri:1,fadeIn:.008,tag:'psrc:impact'})){const pn=mkPan(true,150);setP0(pn,m.p);pn.connect(AC.out);thud(pn,.85,55,24,1.3);setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}},1800)}}mslAudioStop(m);S.sites[m.site].next=S.t+2.5;S.missile=null;msl.visible=false;mslG.visible=false;if(!S.dead&&!m.def){S.defeated++;msg(m.lost?'MISSILE LOST — TERRAIN MASK':'MISSILE DEFEATED')}}}
  updRounds(rdt);
  S.brk=Math.max(0,S.brk-rdt);S.brkCD=Math.max(0,S.brkCD-rdt);S.ecm=Math.max(0,S.ecm-rdt);S.ecmCD=Math.max(0,S.ecmCD-rdt);S.teachT=Math.max(0,S.teachT-rdt);S.dmgT=Math.max(0,(S.dmgT||0)-rdt);
@@ -1184,7 +1211,7 @@ function update(rdt){
  updParts(dt);S.flareCD=Math.max(0,S.flareCD-rdt);if(S.msgT>0)S.msgT-=rdt;S.shake=Math.max(0,S.shake-rdt);radDish.rotation.y+=dt*.8;
  if(S.phase==='egress'&&S.boomT>2&&S.pos.distanceTo(EXIT)<700){S.phase='done';showEnd(true)}
  if(S.pos.z<EXZ-900&&S.phase!=='egress'&&S.phase!=='done')die('LEFT THE AO');
- mixFlightAudio(rdt)}
+ if(NIGHT_ON){expPulse=Math.max(0,expPulse-rdt*.32); const nv=nvOn?1.35:1; R.toneMappingExposure=(nightBase||SCEN.exposure)*nv*(1+expPulse)*(MOB?.82/.88:1)} mixFlightAudio(rdt)}
 function release(){if(window.__ft)window.__ft.markRel();S.relHold=0;S._relT0=0;S.locked=false;S.phase='bombfall';
  const q=inBox();S.err=(1-q)*14+Math.random()*2;const a=Math.random()*6.28;
  S.bomb={p:S.pos.clone().add(new THREE.Vector3(0,-2,0)),v:fwd.clone().multiplyScalar(Math.max(120,S.spd)),s:Math.max(120,S.spd),aim:BUNK.clone().add(new THREE.Vector3(Math.cos(a)*S.err,0,Math.sin(a)*S.err)),tti:99,age:0};bomb.visible=true;jet.visible=true;
@@ -1200,7 +1227,8 @@ function resize(){W=innerWidth;Hh=innerHeight;dpr=Math.min(devicePixelRatio,2);R
 addEventListener('resize',resize);resize();
 function render(){jet.position.copy(S.pos);sun.target.position.copy(S.pos);sun.position.copy(S.pos).addScaledVector(SUN,900);jet.rotation.set(S.pitch,S.yaw,S.roll);const tt=performance.now()/1000;jet.userData.core.material.color.setRGB(.12+S.thr*.25,.05+S.thr*.06,.02);jet.userData.sh.material.uniforms.t.value=tt;jet.userData.sh.material.uniforms.a.value=takingOff()?Math.min(1,.25+S.thr*1.1):.4+S.thr;
  if(CVN.sea&&CVN.sea.visible){CVN.sea.material.uniforms.uTime.value=tt; CVN.sea.material.uniforms.uSun.value.copy(SUN)}
- if(tgtGlow){const live=bunker.visible&&!takingOff(); tgtGlow.visible=tgtBeam.visible=live; if(live){const p=.6+.4*Math.sin(tt*2.4); tgtGlow.scale.setScalar(28+14*p); tgtGlow.material.opacity=.28+.35*p; tgtBeam.material.opacity=.12+.2*p; tgtBeam.scale.y=.85+.15*p}}
+ if(tgtGlow){const live=bunker.visible&&!takingOff(); tgtGlow.visible=tgtBeam.visible=live; if(live){const p=.6+.4*Math.sin(tt*2.4); tgtGlow.scale.setScalar((NIGHT_ON?40:28)+(NIGHT_ON?18:14)*p); tgtGlow.material.opacity=(NIGHT_ON?.45:.28)+(NIGHT_ON?.4:.35)*p; tgtBeam.material.opacity=.12+.2*p; tgtBeam.scale.y=.85+.15*p}}
+ if(window.__stars&&window.__stars.visible) window.__stars.position.copy(cam.position);
  // Bomb-cam only after a short settle so first-frame compile can't hang on an empty view; jet stays visible in scene
  const useBombCam=S.cine&&S.bomb&&(S.bomb.age||0)>.35;
  if(takingOff()){cam.up.set(0,1,0);
@@ -1701,6 +1729,15 @@ let scenActiveId='s15';
 function setupSceneryTester(){
   document.body.classList.add('sceneryMode');
   running=false; if(S){S.dead=null; S.missile=null; S.phase='ingress'}
+  const sel=$('nightSel'); if(sel){sel.innerHTML=NIGHT.map(n=>'<option value="'+n.id+'">'+n.name+'</option>').join(''); sel.value='current';
+    const mark=()=>{document.querySelectorAll('#nightBox .choose').forEach(b=>{b.textContent=sel.value==='current'?'✓ Day kept':'✓ '+sel.options[sel.selectedIndex].text})};
+    sel.addEventListener('change',mark); mark();
+    $('nightPrev')?.addEventListener('pointerdown',e=>{e.preventDefault(); const wrap=$('previewWrap'); if(wrap)wrap.classList.add('on'); try{parkScenCruise(); setNight(sel.value); startScenLive()}catch(err){console.warn(err)}});
+    $('nightStop')?.addEventListener('pointerdown',e=>{e.preventDefault(); setNight('current'); const lab=$('previewLabel'); if(lab)lab.textContent='LIVE · Day'});
+    $('nightChoose')?.addEventListener('pointerdown',e=>{e.preventDefault(); nightId=sel.value; mark(); document.querySelectorAll('#nightBox').forEach(el=>el.classList.add('chosen'))});
+    $('nightApply')?.addEventListener('pointerdown',e=>{e.preventDefault(); const id=sel.value; try{ if(!id||id==='current') localStorage.removeItem('ds16_night'); else localStorage.ds16_night=id }catch(err){} const el=$('picked'); if(el){el.textContent=id&&id!=='current'?('NIGHT APPLIED: '+sel.options[sel.selectedIndex].text):'NIGHT: day kept'; el.classList.add('on')}});
+    $('nightNV')?.addEventListener('pointerdown',e=>{e.preventDefault(); toggleNV()});
+  }
   const list=$('list'); if(!list)return;
   list.innerHTML='';
   // Still-first gallery — never empty even if WebGL fails on iPhone
@@ -1768,6 +1805,20 @@ function showPicked(payload){
   el.textContent='PICKED: '+payload.name+' ('+payload.id+')';
   el.classList.add('on');
 }
+const NIGHT=[
+ {id:'current',name:'Day — current',scen:null},
+ {id:'n1',name:'Moon ridge',scen:{turbidity:2.1,rayleigh:.35,mie:.0012,mieG:.8,sunEl:-6,sunAz:1.2,sunInt:.22,hemi:.28,exposure:.4,env:.16,fogDen:.000035,snowAlt0:470,snowAlt1:680,snowAmt:1,warmth:-.08,clouds:0}},
+ {id:'n2',name:'Star field',scen:{turbidity:1.6,rayleigh:.22,mie:.0008,mieG:.75,sunEl:-14,sunAz:.4,sunInt:.08,hemi:.16,exposure:.34,env:.1,fogDen:.00002,snowAlt0:490,snowAlt1:700,snowAmt:1,warmth:-.12,clouds:0}},
+ {id:'n3',name:'Overcast black',scen:{turbidity:8,rayleigh:.5,mie:.006,mieG:.6,sunEl:-2,sunAz:.6,sunInt:.05,hemi:.2,exposure:.32,env:.08,fogDen:.00008,snowAlt0:500,snowAlt1:720,snowAmt:1,warmth:0,clouds:.35}},
+ {id:'n4',name:'Moon valley',scen:{turbidity:2.4,rayleigh:.4,mie:.0015,mieG:.82,sunEl:-4,sunAz:1.5,sunInt:.28,hemi:.34,exposure:.46,env:.18,fogDen:.00003,snowAlt0:460,snowAlt1:660,snowAmt:1,warmth:-.04,clouds:0}},
+ {id:'n5',name:'Target glow',scen:{turbidity:2.2,rayleigh:.3,mie:.001,mieG:.78,sunEl:-10,sunAz:.9,sunInt:.12,hemi:.22,exposure:.38,env:.12,fogDen:.000025,snowAlt0:490,snowAlt1:700,snowAmt:1,warmth:.02,clouds:0}},
+ {id:'n6',name:'Storm black',scen:{turbidity:9,rayleigh:.45,mie:.008,mieG:.55,sunEl:-8,sunAz:.2,sunInt:.04,hemi:.14,exposure:.3,env:.07,fogDen:.00011,snowAlt0:510,snowAlt1:740,snowAmt:1,warmth:-.02,clouds:.5}}
+];
+let bunkLight=null;
+function ensureStars(){if(window.__stars)return; const n=520,pos=new Float32Array(n*3); for(let i=0;i<n;i++){const r=9000+Math.random()*3500,th=Math.random()*6.283,ph=Math.random()*1.15; pos[i*3]=Math.cos(th)*Math.sin(ph)*r; pos[i*3+1]=Math.cos(ph)*r; pos[i*3+2]=Math.sin(th)*Math.sin(ph)*r} const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); const p=new THREE.Points(g,new THREE.PointsMaterial({color:0xe7eeff,size:16,sizeAttenuation:true,transparent:true,opacity:.9,depthWrite:false})); p.visible=false; scene.add(p); window.__stars=p}
+function setNight(id){const p=NIGHT.find(x=>x.id===id)||NIGHT[0]; nightId=p.id; if(!p.scen){NIGHT_ON=false; nvOn=false; Object.assign(SCEN,SCEN_DEFAULT); applyScen(); if(window.__stars)window.__stars.visible=false; if(bunkLight)bunkLight.visible=false; document.body.classList.remove('night'); const g=$('nvg'); if(g)g.classList.remove('on'); return} NIGHT_ON=true; Object.assign(SCEN,SCEN_DEFAULT,p.scen); nightBase=SCEN.exposure; applyScen(); ensureStars(); window.__stars.visible=true; if(!bunkLight){bunkLight=new THREE.PointLight(0xffe6c4,7,520); bunkLight.position.copy(BUNK); bunkLight.position.y+=24; scene.add(bunkLight)} bunkLight.visible=true; document.body.classList.add('night')}
+function bootNight(){let id=''; try{id=localStorage.ds16_night||''}catch(e){} if(id&&id!=='current'&&NIGHT.some(n=>n.id===id)) setNight(id)}
+if(DS_MODE==='game'){bootNight(); if($('nv'))$('nv').addEventListener('pointerdown',e=>{e.stopPropagation(); toggleNV()})}
 
 
 // Frame-time / longtask instrumentation (game freezes)

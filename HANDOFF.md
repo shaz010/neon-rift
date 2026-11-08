@@ -5,6 +5,10 @@ Branch: `strike-16`. Pages folder: `/strike-16/` only.
 
 Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
 
+## s16 · 16m — mood variety, rising cluster, night preview
+
+Rotation fades up on its own bus, then a tom passes through and the texture returns. More valley beds use the existing Logic files as sequences, not one stacked loop. Rising Cluster is an extra bunker choice: detonations swell, then rumble. Night looks stay on the scenery tester until Apply. Stamp `s16 · 16m`.
+
 ## s16 · 16l — compact sound picker
 
 The sound tester is one row per sound: a dropdown, Play, and Stop. Music levels, surround, and width sit in the same list. Apply stays fixed at the bottom. A surround test sweeps a tone left, behind, right, then front, and the position buttons play it on the left, right, front, behind, or above. Best with headphones. Stamp `s16 · 16l`.
