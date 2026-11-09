@@ -5,6 +5,14 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17e — terrain-hugging score
+
+A multiplier from ×1 to ×5 builds while the jet is low and fast, and falls off as it climbs. Passing close to the ground or a ridge is a near miss: a short whoosh, a small shake, and a streak bonus. Above the ceiling the radar spikes, then a SAM lock, then a launch. Dropping into the weeds breaks that lock. The ground still kills. The debrief shows the score, the best streak, and the saved high score.
+
+The 17d picks, Mood Off, and the F-15 fight are unchanged. The Home Screen name is DS 17e, and the sound icon is SND 17e. iOS keeps the old icon until the shortcut is removed and added again.
+
+Stamp `s17 · 17e`.
+
 ## s17 · 17d — mood off, and a real fighter
 
 Mood has an Off. It silences the valley synth, and that choice stays in the pick code, so a refresh, a retry, and a Home Screen launch that can read the code keep it off. The baked gun, bunker, flare, pass, impact, AAA, engine, and deck picks are unchanged. SAM and crash stay Current.
@@ -129,4 +137,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17d. Mood Off silences the synth and persists. The escape fighter is the CC0 F-15. Baked sound picks are unchanged. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. Terrain multiplier, refuelling, fuel, and varied sorties wait until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17e. Terrain-hugging multiplier, near misses, and a ceiling SAM spike are in. 17d sounds, Mood Off, and the F-15 fight stay. Home Screen labels read DS 17e and SND 17e. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. Refuelling, the fuel clock, and varied sorties wait until Shahbaz says Next.
