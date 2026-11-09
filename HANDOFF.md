@@ -5,6 +5,16 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17c — picks in the build, fighter in front
+
+The sound bank picks are the build defaults: Deep Report, Oil Rise, Pressure Hiss, Shells Overhead, Violent Hit, Fifty Cal, F-105 Whine, and Pier Bed. SAM launch and the crash stay on the sound-tester choice. Current on a row keeps that saved sound. Apply writes a pick code into the page, a cookie, and the address. The brief can paste a code, because an iPhone Home Screen icon does not share the sound page's storage. Empty storage still plays the baked picks.
+
+Apply and the Game button stay in the app, so the game brief opens in place. iOS no longer gets a temporary page whose close returns to the sound picker.
+
+After the bunker the fighter is in front of the chase view, with its silhouette, a target box, a lead marker, and an arrow when it leaves the screen. The gun fires only while it is held. Six hits, the guns warning, and the exfil gate are unchanged. Oil Rise is the bunker detonation. The generic blast does not play over it.
+
+Stamp `s17 · 17c`.
+
 ## s17 · 17b — separate sound bank
 
 A new page, `sound-bank.html`, offers a short list of CC0 field recordings. Current keeps the sound-tester choice. Apply sends only the new overrides together with the choices already saved. Each row is wired to the sortie event it names. Sirens were not shipped. Stamp `s17 · 17b`.
@@ -111,4 +121,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17b sound bank delivered (source 4745551, Pages b6fdc5f), awaiting Shahbaz's listening and Apply feedback; gameplay expansion paused until sound is right.
+Current project checkpoint: DEEP STRIKE s17 · 17c. Shahbaz's sound picks are baked into the build, Oil Rise is the bunker detonation, and the fighter appears in front after the strike. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. No further combat stages.
