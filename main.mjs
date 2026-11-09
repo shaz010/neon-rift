@@ -1,6 +1,6 @@
-const DS_MODE=(window.__DS_MODE)||(/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
+const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17a'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17b'])[1];
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -654,7 +654,7 @@ const BRIEF_TRACK='brief';
 const INTRO_TRACK=null;
 const ASSET_V='15';
 const SB={b:{},load(){for(const k of[BRIEF_TRACK,'nuke','sub01','sub08','jet','ambient','riser','jet8','drone','flak','flak2','impact','mlaunch','mmotor','sweep','subdrop','aaaw','msub','hitsub','mus_depth','mus_dream','mus_layers','mus_waves','flare_thump','flare_hiss'])this.get(k)},
- get(k){if(this.b[k])return this.b[k]; const dir=k.indexOf('lx_')===0?'sfx/lx/':'sfx/'; const tryf=ext=>fetch(dir+k+'.'+ext+'?v='+ASSET_V).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(a=>new Promise((res,rej)=>AC.decodeAudioData(a.slice(0),res,rej)));
+ get(k){if(this.b[k])return this.b[k]; const dir=k.indexOf('nb_')===0?'sfx/nb/':k.indexOf('lx_')===0?'sfx/lx/':'sfx/'; const tryf=ext=>fetch(dir+k+'.'+ext+'?v='+ASSET_V).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}).then(a=>new Promise((res,rej)=>AC.decodeAudioData(a.slice(0),res,rej)));
   const wavFirst=/^flare_(thunder|soft|deep|sub|body)$/.test(k)||k.indexOf('snd_')===0;
   const order=wavFirst?['wav','m4a','mp3','ogg']:['m4a','wav','mp3','ogg'];
   const chain=order.slice(1).reduce((p,ext)=>p.catch(()=>tryf(ext)), tryf(order[0]));
@@ -679,7 +679,7 @@ function thud(dest,v,f0=70,f1=32,dur=.35,t=AC.currentTime){f0=Math.min(f0,55);fo
 function nburst(dest,v,lp,dur,t=AC.currentTime,bp){lp=Math.min(lp,220);const n=AC.createBufferSource();n.buffer=noiseBuf(1.5);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(lp,t);f.frequency.exponentialRampToValueAtTime(Math.max(40,lp*.2),t+dur);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.12);g.gain.exponentialRampToValueAtTime(.0008,t+dur);n.connect(f).connect(g).connect(dest);n.start(t,Math.random());n.stop(t+dur+.02);sfxLog('nburst',{v,lp,dur,fadeIn:.12})}
 let hrtfN=0;
 // AAA cannon burst at world pos: heavy thud + crack per round, HRTF positioned
-function aaaBurst(P,rounds=5){if(!AC)return; if(useSnd('aaa',P))return; if(AC.voices>10&&!window.__sfxTest)return; const d=P.distanceTo(S.pos),pn=mkPan(true,220);setP0(pn,P);const g=AC.createGain();g.gain.value=1;pn.connect(g).connect(AC.out);const t=AC.currentTime+d/343*.28;AC.voices++;
+function aaaBurst(P,rounds=5){if(!AC)return; if(holdCustom('aaa',P))return; if(AC.voices>10&&!window.__sfxTest)return; const d=P.distanceTo(S.pos),pn=mkPan(true,220);setP0(pn,P);const g=AC.createGain();g.gain.value=1;pn.connect(g).connect(AC.out);const t=AC.currentTime+d/343*.28;AC.voices++;
  const near=clamp(1-d/9000,.15,1);sfxLog('aaaBurst',{d:+d.toFixed(0),near:+near.toFixed(2)});
  // ONLY cannon aaaw — never old aaa.mp3; synth fallback is slow dark thud only (no nburst crack)
  if(SB.aaaw){const s=src(SB.aaaw,.6+near*.35,pn,{when:t,pri:1,fadeIn:.008,tag:'aaaw'});AC.voices--;s.onended=null; if(sndBypass&&s.stop)sndPrev.push(s)}
@@ -721,7 +721,7 @@ if($('setx'))$('setx').addEventListener('pointerdown',e=>{e.stopPropagation();cl
 if($('pauseb'))$('pauseb').addEventListener('pointerdown',e=>{e.stopPropagation();initAudio();if(!running)return;if(freezeWhy==='user')setFrozen(false);else{closeSettings();setFrozen(true,'user')}});
 if($('resume')){const _res=e=>{e.preventDefault();e.stopPropagation();setFrozen(false)};$('resume').addEventListener('pointerdown',_res,{passive:false});$('resume').addEventListener('click',_res)}
 [['s_eng','eng'],['s_mus','mus'],['s_bedvol','bed'],['s_fx','fx']].forEach(([id])=>{const el=$(id);if(!el)return;el.addEventListener('pointerdown',e=>{try{el.setPointerCapture(e.pointerId)}catch(x){}e.stopPropagation()});el.addEventListener('touchmove',e=>e.stopPropagation(),{passive:false})});
-applyVol();$('s_bed').value=BED;$('s_bed').addEventListener('change',e=>{initAudio();setBed(e.target.value)});
+applyVol();if($('s_bed')){$('s_bed').value=BED;$('s_bed').addEventListener('change',e=>{initAudio();setBed(e.target.value)})}
 function musRMS(){if(!AC||!AC.an)return 0;const a=new Float32Array(AC.an.fftSize);AC.an.getFloatTimeDomainData(a);let s=0;for(const v of a)s+=v*v;return Math.sqrt(s/a.length)}
 let JET=null,briefSrc=null,briefT=null,riserS=null,flyCD=0,ambS=null;
 async function prewarmAudio(){if(!AC||AC._pw)return;AC._pw=1;
@@ -782,7 +782,7 @@ let sndBypass=0, sndPrev=[];
 function stopSndPrev(){const a=sndPrev; sndPrev=[]; for(const s of a){try{s&&s.stop&&s.stop()}catch(e){}}}
 function plainLoop(buf,vol,dest,meta){if(!AC||!buf)return null; const s=AC.createBufferSource(); s.buffer=buf; s.loop=true; s.playbackRate.value=1; const g=AC.createGain(); g.gain.value=0; g.gain.setTargetAtTime(vol,AC.currentTime,.05); s.connect(g).connect(dest); s.start(); sfxLog('sndPlay',Object.assign({rate:1,vol,mode:'plain'},meta||{})); return {a:s,g,plain:1,stop(t){try{g.gain.setTargetAtTime(0,AC.currentTime,.08); s.stop((t||AC.currentTime)+.2)}catch(e){}}}}
 let aaaShots=[], boomShots=[], gunShots=[];
-function useSnd(sec,P){if(sndBypass)return false; const c=sndChoice(sec); if(!c||c.id==='current')return false; if(!SB[c.key]){SB.get(c.key); return false} const buf=SB[c.key]; const fade=sec==='gun'?0.012:sec==='aaa'?0.005:0.008; const vol=sec==='gun'?0.9:0.5; const bag=sec==='gun'?gunShots:sec==='aaa'?aaaShots:sec==='boom'?boomShots:null; if(bag){while(bag.length>=2){const old=bag.shift(); try{old&&old.stop&&old.stop(0); sfxLog(sec+'Cap',{stopped:1})}catch(e){}}} let node; if(P){const pn=mkPan(true,140); setP0(pn,P); if(sec==='pass')sweepLR(pn,P,1.3); pn.connect(AC.out); node=src(buf,vol,pn,{pri:1,rate:1,fadeIn:fade,tag:'snd:'+sec+':'+c.id}); const hold=((buf.duration)||3)*1000+500; setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1); pn._hrtf=0} try{pn.disconnect()}catch(e){} if(bag){const i=bag.indexOf(node); if(i>=0)bag.splice(i,1)}},hold)} else node=src(buf,vol,AC.out,{pri:1,rate:1,fadeIn:fade,tag:'snd:'+sec+':'+c.id}); if(bag&&node&&node.stop){bag.push(node); const prev=node.onended; node.onended=()=>{if(typeof prev==='function')prev(); const i=bag.indexOf(node); if(i>=0)bag.splice(i,1)}} sfxLog('sndPlay',{sec,id:c.id,rate:1,file:c.name}); return !!node}
+function useSnd(sec,P){if(sndBypass)return false; const c=sndChoice(sec); if(!c||c.id==='current')return false; if(!c.key)return false; if(!SB[c.key]){SB.get(c.key); sfxLog('sndWait',{sec,id:c.id}); return true} const buf=SB[c.key]; const fade=sec==='gun'?0.012:sec==='aaa'?0.005:0.008; const vol=sec==='gun'?0.9:0.5; const bag=sec==='gun'?gunShots:sec==='aaa'?aaaShots:sec==='boom'?boomShots:null; if(bag){while(bag.length>=2){const old=bag.shift(); try{old&&old.stop&&old.stop(0); sfxLog(sec+'Cap',{stopped:1})}catch(e){}}} let node; if(P){const pn=mkPan(true,140); setP0(pn,P); if(sec==='pass')sweepLR(pn,P,1.3); pn.connect(AC.out); node=src(buf,vol,pn,{pri:1,rate:1,fadeIn:fade,tag:'snd:'+sec+':'+c.id}); const hold=((buf.duration)||3)*1000+500; setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1); pn._hrtf=0} try{pn.disconnect()}catch(e){} if(bag){const i=bag.indexOf(node); if(i>=0)bag.splice(i,1)}},hold)} else node=src(buf,vol,AC.out,{pri:1,rate:1,fadeIn:fade,tag:'snd:'+sec+':'+c.id}); if(bag&&node&&node.stop){bag.push(node); const prev=node.onended; node.onended=()=>{if(typeof prev==='function')prev(); const i=bag.indexOf(node); if(i>=0)bag.splice(i,1)}} sfxLog('sndPlay',{sec,id:c.id,rate:1,file:c.name}); return !!node}
 function playSndBuf(sec,c,dest){if(!AC||!c||!c.key||!SB[c.key])return false; const out=dest||AC.out; const s=sndSec(sec); if(s&&s.loop){const h=plainLoop(SB[c.key],.45,out,{sec,id:c.id,file:c.name}); if(h)sndPrev.push(h)} else {const n=src(SB[c.key],sec==='gun'?0.9:.5,out,{pri:1,rate:1,fadeIn:sec==='gun'?0.012:.008,tag:'snd:'+sec+':'+c.id}); if(n&&n.stop)sndPrev.push(n); sfxLog('sndPlay',{sec,id:c.id,rate:1,file:c.name})} return true}
 function stopBed(){if(bedS){try{bedS.stop()}catch(e){}bedS=null}if(droneS){try{droneS.stop()}catch(e){}droneS=null}}
 function startBed(){if(!AC)return;stopBed();
@@ -851,11 +851,13 @@ function playEnding(){if(!AC)return; const id=resolveMusic('ending'); if(id==='c
 let deckJet=null, deckRotor=null;
 function deckOne(key,vol){if(!AC||!SB[key])return; src(SB[key],vol,AC.mus,{pri:1,fadeIn:.012,tag:'deck:'+key})}
 function startDeckAmbience(){if(!AC||!takingOff())return;
+ const nbD=nbSpec('deck'); if(nbD){const k=nbD.layers[0].k; if(!SB[k]){SB.get(k); return} if(!deckJet){deckJet=plainLoop(SB[k],(nbD.layers[0].v||.24)*(nbLevel()/0.8),AC.deckJetG,{tag:'nb:deck',id:nbD.id}); sfxLog('nb',{cat:'deck',id:nbD.id,k})} return}
  if(!deckJet&&SB.deck_jet)deckJet=plainLoop(SB.deck_jet,1,AC.deckJetG,{tag:'deck:jet'});
  if(!deckRotor&&SB.deck_rotor)deckRotor=plainLoop(SB.deck_rotor,1,AC.deckRotorG,{tag:'deck:rotor'})}
 function stopDeckAmbience(){if(deckJet){try{deckJet.stop()}catch(e){} deckJet=null} if(deckRotor){try{deckRotor.stop()}catch(e){} deckRotor=null}
  if(AC&&AC.deckJetG){const t=AC.currentTime; AC.deckJetG.gain.setTargetAtTime(0,t,.15); AC.deckRotorG.gain.setTargetAtTime(0,t,.15)}}
 function startJet(){
+ const nbE=nbSpec('engine'); if(nbE){const k=nbE.layers[0].k; if(!SB[k]){SB.get(k); return} if(!JET){JET=plainLoop(SB[k],(nbE.layers[0].v||.3)*(nbLevel()/0.8),AC.engB,{tag:'nb:engine',id:nbE.id}); sfxLog('nb',{cat:'engine',id:nbE.id,k}); if(!takingOff()){startBed(); ambS=bedS}} return}
  const engC=sndChoice('engine');
  if(engC.id!=='current'){
   if(!SB[engC.key]){SB.get(engC.key); return}
@@ -873,23 +875,23 @@ function riser(on){if(!AC)return;const t=AC.currentTime;if(on&&!riserS&&SB.riser
  if(!on&&riserS){riserS.g.gain.cancelScheduledValues(t);riserS.g.gain.setTargetAtTime(0,t,.08);const r=riserS;setTimeout(()=>{try{r.stop()}catch(e){}},800);riserS=null}}
 function play(buf,vol=.5){if(!AC||!buf)return;src(buf,vol,AC.out)}
 function blip(f,d=.08,v=.15,type='sine'){if(!AC)return;sfxLog('blip',{f,d,v});const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=Math.min(f,600);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v*.45,t+.025);g.gain.exponentialRampToValueAtTime(.0005,t+d+.05);o.connect(g).connect(AC.tone);o.start(t);o.stop(t+d+.08)}
-function playBunker(c,P){if(!AC||!c||!c.layers)return; const go=()=>{if(!AC)return; let dest=AC.bigB; if(P){const pn=mkPan(true,320); setP0(pn,P); pn.connect(AC.bigB); dest=pn; setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1); pn._hrtf=0} try{pn.disconnect()}catch(e){}},16000)} const t0=AC.currentTime; for(const layer of c.layers){const buf=SB[layer.k]; if(!buf)continue; if(layer.attack){const s=AC.createBufferSource(); s.buffer=buf; const g=AC.createGain(); const t=t0+(layer.d||0); const peak=Math.max(.0008,layer.v||.2); const atk=Math.max(.2,layer.attack); const hold=layer.hold==null?.4:layer.hold; const dec=layer.decay==null?3:layer.decay; g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+atk); g.gain.setValueAtTime(peak,t+atk+hold); g.gain.exponentialRampToValueAtTime(.0008,t+atk+hold+dec); s.connect(g).connect(dest); s.start(t); try{s.stop(t+atk+hold+dec+.05)}catch(e){} sndPrev.push(s); sfxLog('bunker',{id:c.id,k:layer.k,d:layer.d||0,attack:atk,peak:+peak.toFixed(3)})} else {const s=src(buf,layer.v,dest,{when:t0+(layer.d||0),pri:1,fadeIn:.004,tag:'bunker:'+layer.k}); if(s&&s.stop){if(layer.hold){try{s.stop(t0+(layer.d||0)+layer.hold)}catch(e){}} sndPrev.push(s)} sfxLog('bunker',{id:c.id,k:layer.k})}}}; const need=c.layers.filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
+function playBunker(c,P){if(!AC||!c||!c.layers)return; const go=()=>{if(!AC)return; let dest=AC.bigB; if(P){const pn=mkPan(true,320); setP0(pn,P); pn.connect(AC.bigB); dest=pn; setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1); pn._hrtf=0} try{pn.disconnect()}catch(e){}},16000)} const t0=AC.currentTime; for(const layer of c.layers){const buf=SB[layer.k]; if(!buf)continue; if(layer.attack){const s=AC.createBufferSource(); s.buffer=buf; const g=AC.createGain(); const t=t0+(layer.d||0); const peak=Math.max(.0008,layer.v||.2); const atk=Math.max(.2,layer.attack); const hold=layer.hold==null?.4:layer.hold; const dec=layer.decay==null?3:layer.decay; g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+atk); g.gain.setValueAtTime(peak,t+atk+hold); g.gain.exponentialRampToValueAtTime(.0008,t+atk+hold+dec); s.connect(g).connect(dest); const off=Math.min(layer.off||0, Math.max(0,buf.duration-.05)); s.start(t, off); try{s.stop(t+atk+hold+dec+.05)}catch(e){} sndPrev.push(s); sfxLog('bunker',{id:c.id,k:layer.k,d:layer.d||0,off,attack:atk,peak:+peak.toFixed(3)})} else {const s=src(buf,layer.v,dest,{when:t0+(layer.d||0),pri:1,fadeIn:.004,tag:'bunker:'+layer.k}); if(s&&s.stop){if(layer.hold){try{s.stop(t0+(layer.d||0)+layer.hold)}catch(e){}} sndPrev.push(s)} sfxLog('bunker',{id:c.id,k:layer.k})}}}; const need=c.layers.filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
 function bunkerLayered(){const c=sndChoice('bunker'); return !!(c&&c.layers&&c.layers.length)}
-function bunkerBlast(P){const c=sndChoice('bunker'); window.__bunkerPlayed=c&&c.id||''; if(c&&c.layers&&c.layers.length)playBunker(c,P||BUNK); else boomSfx(true,P||BUNK)}
+function bunkerBlast(P){if(playBank('bunker',P||BUNK)){window.__bunkerPlayed='nb:'+nbChoice('bunker'); return} const c=sndChoice('bunker'); window.__bunkerPlayed=c&&c.id||''; if(c&&c.layers&&c.layers.length)playBunker(c,P||BUNK); else boomSfx(true,P||BUNK)}
 function boomSfx(big,P){if(!AC)return;sfxLog('boomSfx',{big:!!big});
   const at=P||null;
+  if(!big&&holdCustom('boom',at||(S&&S.pos)))return;
   if(big){ if(useSnd('nuke',at||S.pos))return; try{duck(.3,1.8,4)}catch(e){}
     const dest=at?boomPan(at,AC.bigB):AC.bigB;
     if(SB.nuke){src(SB.nuke,1.0,dest,{pri:1,fadeIn:.008,tag:'heavy:nuke'}); return}
     if(SB.impact)src(SB.impact,.95,dest,{pri:1,fadeIn:.008,tag:'boom:impact'});
     if(SB.sub08)src(SB.sub08,.65,dest,{pri:1,fadeIn:.008,tag:'boom:sub08'});
     return}
-  if(useSnd('boom',at||S.pos))return;
   const dest=at?boomPan(at,AC.bigB):AC.bigB;
   if(SB.sub08)src(SB.sub08,.55,dest,{pri:1,fadeIn:.008,tag:'boom:sub08'});
   else if(SB.impact)src(SB.impact,.5,dest,{pri:1,fadeIn:.008,tag:'boom:impact'});
 }
-function crashSfx(){if(!AC)return; if(useSnd('crash',S.pos))return; sfxLog('crashSfx',{});
+function crashSfx(){if(!AC)return; if(holdCustom('crash',S.pos))return; sfxLog('crashSfx',{});
   try{duck(.25,1.0,2.5)}catch(e){}
   // One clean Logic hit + one sub — no stacked pitch-shifts / huge noise graphs (was freezing iOS)
   const dest=AC.bigB||AC.out;
@@ -898,7 +900,7 @@ function crashSfx(){if(!AC)return; if(useSnd('crash',S.pos))return; sfxLog('cras
   if(SB.sub08)src(SB.sub08,.7,dest,{pri:1,fadeIn:.008,tag:'crash:sub08'});
 }
 function whoosh(){if(!AC)return;sfxLog('whoosh',{});const t=AC.currentTime,n=AC.createBufferSource();n.buffer=noiseBuf(1.2);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(280,t);f.frequency.exponentialRampToValueAtTime(120,t+1.1);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.4,t+.35);g.gain.exponentialRampToValueAtTime(.001,t+1.4);n.connect(f).connect(g).connect(AC.out);n.start();thud(AC.out,.4,48,22,1.2)}
-function passBy(P){if(!AC)return; if(useSnd('pass',P))return; sfxLog('passBy',{});const pn=mkPan(true,80);setP0(pn,P);sweepLR(pn,P,1.3);pn.connect(AC.out);const t=AC.currentTime,n=AC.createBufferSource();n.buffer=noiseBuf(1.5);n.playbackRate.setValueAtTime(.85,t);n.playbackRate.exponentialRampToValueAtTime(.55,t+1.2);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(320,t);f.frequency.exponentialRampToValueAtTime(100,t+1.2);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.7,t+.25);g.gain.exponentialRampToValueAtTime(.001,t+1.5);n.connect(f).connect(g).connect(pn);n.start();n.stop(t+1.6);n.onended=()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}};thud(pn,.55,45,20,1.3);if(SB.subdrop)psrc('subdrop',.3,P,true,{ref:80,rate:.85,pri:1,fadeIn:.2,tag:'subdrop'})}
+function passBy(P){if(!AC)return; if(holdCustom('pass',P))return; sfxLog('passBy',{});const pn=mkPan(true,80);setP0(pn,P);sweepLR(pn,P,1.3);pn.connect(AC.out);const t=AC.currentTime,n=AC.createBufferSource();n.buffer=noiseBuf(1.5);n.playbackRate.setValueAtTime(.85,t);n.playbackRate.exponentialRampToValueAtTime(.55,t+1.2);const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(320,t);f.frequency.exponentialRampToValueAtTime(100,t+1.2);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.7,t+.25);g.gain.exponentialRampToValueAtTime(.001,t+1.5);n.connect(f).connect(g).connect(pn);n.start();n.stop(t+1.6);n.onended=()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}};thud(pn,.55,45,20,1.3);if(SB.subdrop)psrc('subdrop',.3,P,true,{ref:80,rate:.85,pri:1,fadeIn:.2,tag:'subdrop'})}
 // ---------- state ----------
 let S;
 function reset(){releaseControls(); try{stopMood()}catch(e){} const fromDeath=valleyRespawn; valleyRespawn=false; if(S&&S.missile&&AC)mslAudioStop(S.missile);S={phase:'ingress',pos:new THREE.Vector3(vx(300),70,300),yaw:0,pitch:0,roll:0,thr:.7,det:0,detT:0,t:0,ts:1,locked:false,relHold:0,bomb:null,boomT:-1,penT:0,flares:8,missile:null,cine:false,cineA:null,aaaT:0,srchT:0,sites:SITES.map(()=>({st:'off',trk:0,shots:0,dead:0,warned:0,warnT:0})),samShots:0,err:0,dead:null,shake:0,msg:'',msgT:0,flareCD:0,egressLaunch:false,sec:[],hp:2,brk:0,brkCD:0,brkDir:1,ecm:0,ecmCD:0,ecmN:2,defeated:0,flakT:2,aaaS:0,teachT:0,smT:0,gunCD:0,gunSnd:0,iron:2,ironHold:0,ironBomb:null,beamT:0};
@@ -1016,12 +1018,84 @@ const FLARE_OPTS=[
  {id:'body',name:'Full Body',desc:'Bass with more body. Source: Boomer FX 14.caf.',key:'flare_body'},
 ];
 function flareChoice(){let id=FLARE_DEFAULT; try{const saved=localStorage.ds15_flare; if(saved)id=saved}catch(e){} return FLARE_OPTS.find(o=>o.id===id)||FLARE_OPTS[0]}
+// New bank. Current means "keep the sound-tester choice". Layers are the same
+// object the preview and the sortie both play.
+const NB_MEM={};
+const NB={
+ gun:[
+  {id:'current',name:'Current',desc:'The gun already chosen on the sound tester.'},
+  {id:'reverb',name:'Big Cannon',desc:'Short hall cannon, SSE/USC. The shot only, not a snare.',layers:[{k:'nb_gun_reverb',off:0,dur:.5,v:.7}]},
+  {id:'naval',name:'Naval 6-inch',desc:'Close naval thud. Playback starts after the quiet opening.',layers:[{k:'nb_gun_naval',off:.25,dur:.65,v:.85}]},
+  {id:'deep',name:'Deep Report',desc:'Bass-heavy Gold Library gun. The report near the end of the take.',layers:[{k:'nb_gun_deep',off:11.15,dur:.7,v:.8}]}
+ ],
+ bunker:[
+  {id:'current',name:'Current',desc:'The bunker blast already chosen, including Rising Cluster.'},
+  {id:'oil',name:'Oil Rise',desc:'Several booms that build, then a long low tail. Vintage field tape, not listened to here.',layers:[
+    {k:'nb_b_oil',v:.42,off:.35,d:0,attack:1.5,hold:2.2,decay:4.2},
+    {k:'nb_b_cluster',v:.36,off:.08,d:1.05,attack:.8,hold:1.1,decay:2.2},
+    {k:'nb_b_rumble',v:.34,off:.15,d:2.3,attack:2.2,hold:2.6,decay:5}
+  ]},
+  {id:'atom',name:'Atomic Tail',desc:'A heavy hit, a rumble under it, then the burn. Swells, then fades.',layers:[
+    {k:'nb_b_huge',v:.4,off:.17,d:0,attack:1.15,hold:1.3,decay:4.2},
+    {k:'nb_b_atom',v:.36,off:.11,d:.7,attack:1.7,hold:2,decay:5},
+    {k:'nb_b_burn',v:.28,off:.05,d:3.1,attack:2,hold:1.8,decay:4}
+  ]}
+ ],
+ flare:[
+  {id:'current',name:'Current',desc:'The flare already chosen on the sound tester.'},
+  {id:'pop',name:'Flare Gun',desc:'The report of a flare gun, then the start of the burn.',layers:[{k:'nb_fl_gun',off:.09,dur:1.15,v:.7}]},
+  {id:'hiss',name:'Pressure Hiss',desc:'A short pressurized blast. Not a siren.',layers:[{k:'nb_fl_hiss',off:1.15,dur:1.5,v:.8}]}
+ ],
+ sam:[
+  {id:'current',name:'Current',desc:'The SAM launch already chosen on the sound tester.'},
+  {id:'atlas',name:'Atlas Roar',desc:'Rocket ignition and the first climb. Trimmed past the quiet head.',layers:[{k:'nb_sam_atlas',off:.3,dur:4.2,v:.42}]},
+  {id:'v2',name:'V2 Fire',desc:'A different rocket fire-up. Starts where the roar is.',layers:[{k:'nb_sam_v2',off:7.6,dur:3.2,v:.5}]}
+ ],
+ pass:[
+  {id:'current',name:'Current',desc:'The missile pass already chosen on the sound tester.'},
+  {id:'shells',name:'Shells Overhead',desc:'Large shells going over. A pass, not a launch.',layers:[{k:'nb_pass_shells',off:3.4,dur:2.2,v:.6}]},
+  {id:'jet',name:'Fighter Doppler',desc:'A fast jet pass. Used when a missile goes by.',layers:[{k:'nb_pass_jet',off:.33,dur:2.3,v:.62}]}
+ ],
+ boom:[
+  {id:'current',name:'Current',desc:'Impacts other than the bunker stay on the sound-tester explosion.'},
+  {id:'metal',name:'Metal Debris',desc:'Fighter kill and other blasts. The bunker mix is separate.',layers:[{k:'nb_boom_metal',off:3,dur:2.4,v:.85,bus:'big'}]},
+  {id:'hit',name:'Violent Hit',desc:'A hotter debris blast, played quieter so it does not clip.',layers:[{k:'nb_boom_hit',off:.55,dur:1.8,v:.32,bus:'big'}]}
+ ],
+ crash:[
+  {id:'current',name:'Current',desc:'The crash already chosen on the sound tester.'},
+  {id:'long',name:'Breakup',desc:'A long wood-and-metal crash for the player jet.',layers:[{k:'nb_crash_long',off:0,dur:3.2,v:.62,bus:'big'}]}
+ ],
+ aaa:[
+  {id:'current',name:'Current',desc:'The valley cannon already chosen on the sound tester.'},
+  {id:'fifty',name:'Fifty Cal',desc:'A short machine-gun burst for the valley AAA, not the player gun.',layers:[{k:'nb_aaa_50',off:2.05,dur:.55,v:.75}]}
+ ],
+ engine:[
+  {id:'current',name:'Current',desc:'The engine loop already chosen on the sound tester.'},
+  {id:'whine',name:'F-105 Whine',desc:'A sustained jet whine, looped.',layers:[{k:'nb_eng_whine',off:.45,v:.28,loop:1}]},
+  {id:'idle',name:'Jet Idle',desc:'An idling jet, looped under the sortie.',layers:[{k:'nb_eng_idle',off:0,v:.4,loop:1}]}
+ ],
+ deck:[
+  {id:'current',name:'Current',desc:'The carrier deck sounds already in the take-off.'},
+  {id:'pier',name:'Pier Bed',desc:'Deck and water ambience during take-off only. Replaces the deck loops while it is selected.',layers:[{k:'nb_deck_pier',off:0,v:.24,loop:1}]}
+ ]
+};
+function rememberNb(cat,id){NB_MEM[cat]=id||'current'; try{ if(!id||id==='current')localStorage.removeItem('ds17_nb_'+cat); else localStorage['ds17_nb_'+cat]=id }catch(e){}}
+function nbChoice(cat){let id=NB_MEM[cat]; if(!id){try{id=localStorage['ds17_nb_'+cat]||'current'}catch(e){id='current'}} if(!NB[cat]||!NB[cat].some(o=>o.id===id))return 'current'; return id}
+function nbSpec(cat){const id=nbChoice(cat); if(id==='current')return null; return NB[cat].find(o=>o.id===id)||null}
+function nbLevel(){let v=NB_MEM.lv; if(v==null){try{v=localStorage.ds17_nb_lv}catch(e){} } v=v==null||v===''?80:+v; return Math.min(100,Math.max(0,v))/100}
+function nbKeys(){const keys=[]; for(const cat of Object.keys(NB)){const spec=nbSpec(cat); if(spec)for(const l of spec.layers||[])keys.push(l.k)} return keys}
+function nbHandoff(){const parts=[]; for(const cat of Object.keys(NB)){const id=nbChoice(cat); if(id!=='current')parts.push(cat+':'+id)} parts.push('lv:'+Math.round(nbLevel()*100)); return parts.join(',')}
+function bankDest(P,bus){const dest=bus==='big'?(AC.bigB||AC.out):AC.out; if(!P)return dest; const pn=mkPan(true,bus==='big'?280:160); setP0(pn,P); pn.connect(dest); setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}},9000); return pn}
+function spawnNb(layer,dest,lv,cat,id){const buf=SB[layer.k]; if(!buf||!AC)return; const s=AC.createBufferSource(); s.buffer=buf; const off=Math.min(layer.off||0, Math.max(0,buf.duration-.05)); const dur=layer.dur?Math.min(layer.dur, Math.max(.05,buf.duration-off)):undefined; if(layer.loop){s.loop=true; if(off>0){s.loopStart=off; s.loopEnd=Math.max(off+.25, buf.duration-.03)}} const g=AC.createGain(); const t=AC.currentTime+(layer.d||0); const peak=Math.max(.0008,(layer.v||.5)*lv); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+Math.max(.01,layer.fade||.02)); if(!layer.loop&&dur){const end=t+dur; g.gain.setValueAtTime(peak,Math.max(t+.04,end-.1)); g.gain.exponentialRampToValueAtTime(.0008,end)} s.connect(g).connect(dest); try{s.start(t,off,layer.loop?undefined:dur)}catch(e){try{s.start(t,off)}catch(e2){}} if(!layer.loop&&dur){try{s.stop(t+dur+.03)}catch(e){}} if(DS_MODE!=='game')sndPrev.push({stop(tt){try{g.gain.cancelScheduledValues(AC.currentTime); g.gain.setTargetAtTime(0,AC.currentTime,.05); s.stop((tt||AC.currentTime)+.12)}catch(e){}}}); sfxLog('nb',{cat,id,k:layer.k,off:+off.toFixed(2),dur:dur||0,v:+peak.toFixed(3)})}
+function playBank(cat,P){const spec=nbSpec(cat); if(!spec)return false; const lv=nbLevel()/0.8; if(spec.layers.some(l=>l.attack)){const layers=spec.layers.map(l=>Object.assign({},l,{v:Math.max(.0008,(l.v||.4)*lv)})); playBunker({id:'nb_'+cat+'_'+spec.id,layers},P||(S&&S.pos)); sfxLog('nb',{cat,id:spec.id,mix:1}); return true} const bus=(spec.layers[0]&&spec.layers[0].bus)||''; const dest=bankDest(P,bus); let pending=false; for(const layer of spec.layers){if(!SB[layer.k]){SB.get(layer.k); pending=true; continue} spawnNb(layer,dest,lv,cat,spec.id)} if(pending)sfxLog('nbWait',{cat,id:spec.id}); return true}
+function holdCustom(sec,P){if(playBank(sec,P))return true; return useSnd(sec,P)}
 // Safari and an iPhone Home Screen icon do not share localStorage. sounds.html
 // can hand the ticks over by opening index.html?ds=flare:thunder,boom:rl1
 function applySndFromUrl(){
-  let raw=''; try{raw=new URLSearchParams(location.search).get('ds')||''}catch(e){return}
-  if(!raw)return;
-  for(const part of raw.split(',')){
+  let raw='', nb=''; try{const q=new URLSearchParams(location.search); raw=q.get('ds')||''; nb=q.get('nb')||''}catch(e){return}
+  if(nb){for(const part of nb.split(',')){const i=part.indexOf(':'); if(i<1)continue; const k=decodeURIComponent(part.slice(0,i)), v=decodeURIComponent(part.slice(i+1)); if(k==='lv'){NB_MEM.lv=v; try{localStorage.ds17_nb_lv=v}catch(e){}} else if(NB[k]&&NB[k].some(o=>o.id===v))rememberNb(k,v)}}
+  if(!raw&&!nb)return;
+  if(raw)for(const part of raw.split(',')){
     const i=part.indexOf(':'); if(i<1)continue;
     const k=decodeURIComponent(part.slice(0,i)), v=decodeURIComponent(part.slice(i+1));
     if(!v)continue;
@@ -1032,14 +1106,15 @@ function applySndFromUrl(){
     else if(k==='lv_intro'||k==='lv_ending'||k==='lv_mood'){ try{localStorage['ds16_'+k]=Math.min(100,Math.max(0,+v||0))}catch(e){} }
     else { const s=sndSec(k); if(s&&sndList(s).some(c=>c.id===v))rememberSnd(k,v) }
   }
-  try{const u=new URL(location.href); if(!u.searchParams.has('ds'))return; u.searchParams.delete('ds'); history.replaceState(null,'',u.pathname+u.search+u.hash)}catch(e){}
+  try{const u=new URL(location.href); if(!u.searchParams.has('ds')&&!u.searchParams.has('nb'))return; u.searchParams.delete('ds'); u.searchParams.delete('nb'); history.replaceState(null,'',u.pathname+u.search+u.hash)}catch(e){}
 }
-function gameQuery(){const parts=[]; const q=sndHandoff(); if(q)parts.push('ds='+encodeURIComponent(q)); try{const n=localStorage.ds16_night; if(n&&n!=='current')parts.push('night='+encodeURIComponent(n)); if(localStorage.ds16_nv==='1')parts.push('nv=1')}catch(e){} return parts.length?('?'+parts.join('&')):''}
+function gameQuery(){const parts=[]; const q=sndHandoff(); if(q)parts.push('ds='+encodeURIComponent(q)); const nb=nbHandoff(); if(nb)parts.push('nb='+encodeURIComponent(nb)); try{const n=localStorage.ds16_night; if(n&&n!=='current')parts.push('night='+encodeURIComponent(n)); if(localStorage.ds16_nv==='1')parts.push('nv=1')}catch(e){} return parts.length?('?'+parts.join('&')):''}
 const SND_SHORT={gun:'Gun',engine:'Engine',aaa:'Cannon',sam:'SAM',pass:'Pass',boom:'Explosion',bombrelease:'Release',nuke:'Nuke',bunker:'Bunker',radar:'Radar',crash:'Crash',overhead:'Overhead',ambience:'Ambience',bed:'Bed'};
 function sndSummary(){
   const bits=[];
   const fl=flareChoice(); if(fl.id!=='current')bits.push('Flare '+(fl.name||fl.id));
   for(const s of SND){ const c=sndChoice(s.id); if(!c||c.id==='current')continue; bits.push((SND_SHORT[s.id]||s.id)+' '+(c.name||c.id)); }
+  for(const cat of Object.keys(NB)){const spec=nbSpec(cat); if(spec)bits.push(cat+' '+spec.name)}
   return bits.length?('Sounds: '+bits.join(' · ')):'Sounds: all Current';
 }
 function paintSndLive(){const el=$('sndlive'); if(el)el.textContent=sndSummary()}
@@ -1068,12 +1143,12 @@ function startFlare(opt){if(!AC)return; const choice=opt||flareChoice();
  flareLive.push(nodes); sfxLog('flareSfx',{id:choice.id,lvl:+lvl.toFixed(3),rate:1});
  const dur=((choice.key&&SB[choice.key]&&SB[choice.key].duration)||2.4)+.35;
  setTimeout(()=>{try{pn.disconnect()}catch(e){} const i=flareLive.indexOf(nodes); if(i>=0)flareLive.splice(i,1)}, dur*1000)}
-function flareSfx(){startFlare(flareChoice())}
+function flareSfx(){if(playBank('flare',S.pos))return; startFlare(flareChoice())}
 function launchSAM(i){if(S.missile||S.samShots>=7||S.cine||(S.bandit&&!S.bandit.dead))return;if(i==null){let bd=1e9;SITES.forEach((st,k)=>{const d=st.p.distanceTo(S.pos);if(d<bd){bd=d;i=k}});if(bd>9000)return}
  const P=SITES[i].p;S.samShots++;S.missile={p:P.clone().add(new THREE.Vector3(0,8,0)),v:new THREE.Vector3(0,90,0),life:20,decoy:null,site:i,blind:0,lost:false};msl.visible=true;mslAudioStart(S.missile);if(S.samShots===1&&!localStorage.ds14_def){localStorage.ds14_def=1;S.teachT=5}const sal=S.sites[i].shots>1;msg((sal?'SECOND LAUNCH — ':'LAUNCH LAUNCH — ')+SITES[i].n);S.lastLaunch=S.t;samRoar(P.distanceTo(S.pos));rwrLaunch(P,sal);
  for(let k=0;k<(MOB?16:28);k++){const a=Math.random()*6.283,sp=20+Math.random()*45;spr(tmp.copy(P).setY(P.y+3),k%3?0xcfc8bc:0xe8e2d8,14,6+Math.random()*5,new THREE.Vector3(Math.cos(a)*sp,4+Math.random()*12,Math.sin(a)*sp),{grow:16,o:.75,drag:.5,fadeIn:.15,must:1})}
  spr(tmp.copy(P).setY(P.y+6),0xffd8a0,70,.5,null,{add:true,tex:glowTex,fog:false,grow:60,must:1});for(let k=0;k<6;k++)spr(P,0xffa050,10,.6,new THREE.Vector3(rnd(30),20+Math.random()*30,rnd(30)),{add:true,fog:false,must:1})}
-function samRoar(d){if(!AC)return; if(useSnd('sam',S.missile?S.missile.p:S.pos))return; sfxLog('samRoar',{d:+d.toFixed(0)});const t=AC.currentTime,v=.45*clamp(1-d/9000,0.08,1),n=AC.createBufferSource();n.buffer=noiseBuf(4);const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(280,t);lp.frequency.exponentialRampToValueAtTime(120,t+3.5);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.25);g.gain.setTargetAtTime(v*.5,t+.5,.7);g.gain.setTargetAtTime(0,t+2,.9);n.connect(lp).connect(g).connect(AC.out);n.start(t);n.stop(t+4);if(SB.sub08)src(SB.sub08,.35*clamp(1-d/9000,.2,1),AC.out,{fadeIn:.008,tag:'heavy:sub08'});if(S.missile){psrc('mlaunch',.85,S.missile.p,true,{ref:400,pri:1,fadeIn:.008,tag:'mlaunch'});psrc('msub',.65,S.missile.p,true,{ref:500,pri:1,fadeIn:.008,tag:'msub'})}else heavy('msub',.5*clamp(1-d/9000,.25,1),1,true)}
+function samRoar(d){if(!AC)return; if(holdCustom('sam',S.missile?S.missile.p:S.pos))return; sfxLog('samRoar',{d:+d.toFixed(0)});const t=AC.currentTime,v=.45*clamp(1-d/9000,0.08,1),n=AC.createBufferSource();n.buffer=noiseBuf(4);const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(280,t);lp.frequency.exponentialRampToValueAtTime(120,t+3.5);const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.25);g.gain.setTargetAtTime(v*.5,t+.5,.7);g.gain.setTargetAtTime(0,t+2,.9);n.connect(lp).connect(g).connect(AC.out);n.start(t);n.stop(t+4);if(SB.sub08)src(SB.sub08,.35*clamp(1-d/9000,.2,1),AC.out,{fadeIn:.008,tag:'heavy:sub08'});if(S.missile){psrc('mlaunch',.85,S.missile.p,true,{ref:400,pri:1,fadeIn:.008,tag:'mlaunch'});psrc('msub',.65,S.missile.p,true,{ref:500,pri:1,fadeIn:.008,tag:'msub'})}else heavy('msub',.5*clamp(1-d/9000,.25,1),1,true)}
 function rwrLaunch(P,sal){if(!AC)return; if(useSnd('radar',P))return; sfxLog('rwrLaunch',{});const t=AC.currentTime;for(let k=0;k<8;k++){const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=k%2?520:400;g.gain.setValueAtTime(0,t+k*.09);g.gain.linearRampToValueAtTime(.028,t+k*.09+.03);g.gain.linearRampToValueAtTime(0,t+k*.09+.1);o.connect(g).connect(AC.tone);o.start(t+k*.09);o.stop(t+k*.09+.12)}
  try{if(false){const rx=P.x-S.pos.x,rz=P.z-S.pos.z;let a=Math.atan2(-rx,-rz)-S.yaw;let c=Math.round(((-a/(Math.PI*2))*12%12+12)%12)||12;const u=new SpeechSynthesisUtterance((sal?'Second missile, ':'Missile launch, ')+c+' o clock');u.rate=1.2;u.pitch=.75;u.volume=Math.min(1,VOL.fx+.2);speechSynthesis.cancel();speechSynthesis.speak(u)}}catch(e){}}
 function lockTone(){if(!AC)return;sfxLog('lockTone',{});const t=AC.currentTime;for(let k=0;k<4;k++){const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=k%2?680:540;g.gain.setValueAtTime(0,t+k*.16);g.gain.linearRampToValueAtTime(.045,t+k*.16+.02);g.gain.linearRampToValueAtTime(0,t+k*.16+.12);o.connect(g).connect(AC.tone);o.start(t+k*.16);o.stop(t+k*.16+.14)}}
@@ -1094,7 +1169,7 @@ function updSites(dt){let anyTrk=false,anySrch=false;if(S.cine||S.phase==='done'
 const GUN_RANGE=2600, MSL_HIT=36, SITE_HIT=50, BOMB_R=78;
 function nose(){fwd.set(-Math.sin(S.yaw)*Math.cos(S.pitch),Math.sin(S.pitch),-Math.cos(S.yaw)*Math.cos(S.pitch));return fwd}
 function segNear(ax,ay,az,bx,by,bz,px,py,pz){const abx=bx-ax,aby=by-ay,abz=bz-az,apx=px-ax,apy=py-ay,apz=pz-az,L=abx*abx+aby*aby+abz*abz||1e-6;let t=(apx*abx+apy*aby+apz*abz)/L;if(t<0)t=0;else if(t>1)t=1;return Math.hypot(apx-abx*t,apy-aby*t,apz-abz*t)}
-function gunSnd(){if(!AC||S.gunSnd>0)return;S.gunSnd=.28;if(useSnd('gun',S.pos))return;if(useSnd('aaa',S.pos))return;if(SB.aaaw)src(SB.aaaw,.32,AC.out,{pri:1,fadeIn:.005,tag:'gun'});else thud(AC.out,.22,46,24,.18)}
+function gunSnd(){if(!AC||S.gunSnd>0)return;S.gunSnd=.28;if(playBank('gun',S.pos))return;if(useSnd('gun',S.pos))return;if(useSnd('aaa',S.pos))return;if(SB.aaaw)src(SB.aaaw,.32,AC.out,{pri:1,fadeIn:.005,tag:'gun'});else thud(AC.out,.22,46,24,.18)}
 function fireCannon(){if(!S||S.dead||S.cine||takingOff()||S.phase==='done'||S.phase==='bombfall'||S.phase==='penetrate'||S.gunCD>0)return;S.gunCD=.11;nose();
  const p=S.pos.clone().addScaledVector(fwd,14),v=fwd.clone().multiplyScalar(1800);let m=tracers.find(t=>!t.visible)||tracers[0];m.visible=true;m.position.copy(p);
  rounds.push({p,v,life:GUN_RANGE/1800,m,px:p.x,py:p.y,pz:p.z});if(rounds.length>14){const old=rounds.shift();if(old.m&&old.m!==m)old.m.visible=false}gunSnd()}
@@ -1429,7 +1504,7 @@ $('retry').addEventListener('pointerdown',e=>{e.stopPropagation();requestBegin()
 function goFS(){const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(f&&!document.fullscreenElement&&!document.webkitFullscreenElement){try{const p=f.call(d,{navigationUI:'hide'});p&&p.catch&&p.catch(()=>{})}catch(e){}}try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}
 if(DS_MODE==='game')addEventListener('pointerdown',goFS,{once:true});
 if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.target.closest&&e.target.closest('#brief,#tut,#end,#go,#retry,#setp,#pauseOv,#pauseCard,input,select,textarea,a,button.label'))return;e.preventDefault()},{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault())}if(DS_MODE==='game')addEventListener('resize',()=>scrollTo(0,0));
-async function begin(){reset();jet.visible=true;const keep=musicRoll.prev; musicRoll={prev:keep}; const musicId=takingOff()?resolveMusic('intro'):resolveMusic('mood'); const musicKeys=(MUSIC_LAY[musicId]||[]).map(l=>l.k); const bunk=(sndChoice('bunker').layers||[]).map(l=>l.k); if(AC){AC.resume(); const deckKeys=['deck_jet','deck_rotor','deck_clank','deck_steam','deck_call']; if(INTRO_TRACK)deckKeys.push(INTRO_TRACK); await Promise.all(['jet8','jet','ambient','aaaw','sub08',...deckKeys,...musicKeys,...bunk].map(k=>SB.get(k).catch(()=>null))); try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3);}catch(e){} const fk=flareChoice().key; if(fk)SB.get(fk).catch(()=>{}); try{for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)SB.get(c.key).catch(()=>{})}}catch(e){} prewarmAudio(); } prewarmGfx(); if(takingOff()){startDeckAmbience(); startIntroMusic()} else startMood(); running=true;last=performance.now()}
+async function begin(){reset();jet.visible=true;const keep=musicRoll.prev; musicRoll={prev:keep}; const musicId=takingOff()?resolveMusic('intro'):resolveMusic('mood'); const musicKeys=(MUSIC_LAY[musicId]||[]).map(l=>l.k); const bunk=(sndChoice('bunker').layers||[]).map(l=>l.k); const nbK=nbKeys(); const sndK=[]; for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)sndK.push(c.key)} if(AC){AC.resume(); const deckKeys=['deck_jet','deck_rotor','deck_clank','deck_steam','deck_call']; if(INTRO_TRACK)deckKeys.push(INTRO_TRACK); await Promise.all(['jet8','jet','ambient','aaaw','sub08',...deckKeys,...musicKeys,...bunk,...nbK,...sndK].map(k=>SB.get(k).catch(()=>null))); try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3);}catch(e){} const fk=flareChoice().key; if(fk)SB.get(fk).catch(()=>{}); try{for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)SB.get(c.key).catch(()=>{})}}catch(e){} prewarmAudio(); } prewarmGfx(); if(takingOff()){startDeckAmbience(); startIntroMusic()} else startMood(); running=true;last=performance.now()}
 reset();
 if(DS_MODE==='game'){clock();drawMap();chat();addEventListener('resize',()=>{if(!$('brief').classList.contains('hide'))drawMap()});requestAnimationFrame(step)}
 
@@ -1944,6 +2019,19 @@ function buildMusicPicker(){const host=$('musicBox'); if(!host){bindGameMusic();
  document.querySelectorAll('#musicBox input[type=range]').forEach(el=>{if(el._smooth)return; el._smooth=1; el.style.touchAction='none'; let pid=null; const setFrom=e=>{const r=el.getBoundingClientRect(); const t=Math.min(1,Math.max(0,(e.clientX-r.left)/Math.max(1,r.width))); const min=+el.min||0, max=+el.max||100; el.value=String(min+t*(max-min)); el.dispatchEvent(new Event('input',{bubbles:true}))}; el.addEventListener('pointerdown',e=>{e.preventDefault(); e.stopPropagation(); pid=e.pointerId; try{el.setPointerCapture(pid)}catch(x){} setFrom(e)}); el.addEventListener('pointermove',e=>{if(e.pointerId!==pid)return; e.preventDefault(); setFrom(e)}); el.addEventListener('pointerup',e=>{if(e.pointerId===pid)pid=null}); el.addEventListener('pointercancel',e=>{if(e.pointerId===pid)pid=null}); el.addEventListener('touchmove',e=>{if(pid!=null)e.preventDefault()},{passive:false})});
  bindGameMusic();
 }
+const NB_LABEL={gun:'GUN — your cannon',bunker:'BUNKER — the strike',flare:'FLARE',sam:'SAM LAUNCH',pass:'MISSILE PASS',boom:'IMPACTS — kills and blasts, not the bunker',crash:'CRASH — your jet',aaa:'AAA — valley guns',engine:'ENGINE',deck:'DECK — take-off only'};
+function stopBankPreview(){stopPreview(); if(JET){try{JET.stop()}catch(e){} JET=null} try{stopDeckAmbience()}catch(e){}}
+function previewCurrentBank(cat){const P=panPoint(testerPan); if(cat==='gun')gunSnd(); else if(cat==='bunker')bunkerBlast(P); else if(cat==='flare')flareSfx(); else if(cat==='sam')samRoar(600); else if(cat==='pass')passBy(P); else if(cat==='boom')boomSfx(false,P); else if(cat==='crash')crashSfx(); else if(cat==='aaa')aaaBurst(P); else if(cat==='engine')startJet(); else if(cat==='deck'){const was=S&&S.phase; if(S)S.phase='deck'; startDeckAmbience(); if(S)S.phase=was}}
+async function previewBank(cat){stopBankPreview(); ensureAudioSync(); const spec=nbSpec(cat); if(!spec){previewCurrentBank(cat); return} await Promise.all((spec.layers||[]).map(l=>SB.get(l.k).catch(()=>null))); playBank(cat, panPoint(testerPan))}
+function setupBank(){document.body.classList.add('soundsMode'); running=false; const host=$('bankList'); if(!host)return; host.innerHTML='';
+ for(const cat of Object.keys(NB)){const row=document.createElement('div'); row.className='pick'; row.innerHTML='<div class="nm"></div><select></select><button type="button" class="play">PLAY</button><button type="button" class="stop">STOP</button><div class="desc"></div>'; row.querySelector('.nm').textContent=NB_LABEL[cat]||cat; const sel=row.querySelector('select'); sel.dataset.cat=cat; for(const o of NB[cat]){const op=document.createElement('option'); op.value=o.id; op.textContent=o.name; sel.appendChild(op)} sel.value=nbChoice(cat); const desc=row.querySelector('.desc'); const paint=()=>{const o=NB[cat].find(x=>x.id===sel.value); desc.textContent=(sel.value==='current'?'Sound tester choice. ':'Selected. ')+(o?o.desc:'')}; sel.addEventListener('change',()=>{rememberNb(cat,sel.value); paint()}); paint(); row.querySelector('.play').addEventListener('pointerdown',e=>{e.preventDefault(); previewBank(cat)}); row.querySelector('.stop').addEventListener('pointerdown',e=>{e.preventDefault(); stopBankPreview()}); host.appendChild(row)}
+ const lv=$('nbLv'); if(lv){lv.value=String(Math.round(nbLevel()*100)); const b=$('nbLvN'); if(b)b.textContent=lv.value; lv.addEventListener('input',()=>{NB_MEM.lv=lv.value; try{localStorage.ds17_nb_lv=lv.value}catch(e){} if(b)b.textContent=lv.value})}
+ document.querySelectorAll('#bankPan [data-pan]').forEach(btn=>btn.addEventListener('pointerdown',e=>{e.preventDefault(); testerPan=btn.dataset.pan; document.querySelectorAll('#bankPan [data-pan]').forEach(x=>x.classList.toggle('on',x===btn)); refreshPreviewPans()}));
+ const apply=$('bankApply'); if(apply){const go=e=>{e.preventDefault(); host.querySelectorAll('select').forEach(sel=>rememberNb(sel.dataset.cat, sel.value)); const href='./index.html'+gameQuery(); apply.href=href; if(e.type==='pointerdown')location.assign(href)}; apply.addEventListener('pointerdown',go); apply.addEventListener('click',go)}
+ const unlock=$('unlockBtn'); if(unlock)unlock.addEventListener('pointerdown',e=>{e.preventDefault(); ensureAudioSync(); const u=$('unlock'); if(u)u.remove()});
+ window.__nb=()=>{const o={lv:Math.round(nbLevel()*100)}; for(const c of Object.keys(NB))o[c]=nbChoice(c); return o};
+}
 if(DS_MODE==='sounds')setupSoundTester();
+else if(DS_MODE==='bank')setupBank();
 else if($('s_intro'))bindGameMusic();
 else if(DS_MODE==='scenery')setupSceneryTester();
