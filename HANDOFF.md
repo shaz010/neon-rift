@@ -104,3 +104,11 @@ Stamp is `s16 · 16a` (`main.mjs?v=16a`). Home-screen icon is sea-teal with an a
 ## Deploy
 
 Copy this branch into `gh-pages` at `strike-16/` only, then push `gh-pages`. Cache-bust is the `?v=` on `main.mjs`.
+
+## Bot continuity and recovery
+
+Every bot working on this project, and any new bot Shahbaz creates, follows the shared "Bot continuity and recovery" skill. The ready-to-paste setup pack is at `docs/Bot-Continuity-Setup-Pack.md`.
+
+Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
+
+Current project checkpoint: DEEP STRIKE s17 · 17b sound bank delivered (source 4745551, Pages b6fdc5f), awaiting Shahbaz's listening and Apply feedback; gameplay expansion paused until sound is right.
