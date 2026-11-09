@@ -14,4 +14,4 @@ The player's own jet remains the F-35 already credited in `CREDITS.txt` (Sketchf
 
 The escape fighter in s17 · 17d is the same CC0 F-15, `models/deck/f15.glb`, with the gear hidden. No second model was added.
 
-The tanker in s17 · 17f is built in the game from simple shapes. No tanker model file was added.
+The tanker in s17 · 17f, kept in 17g, is built in the game from simple shapes. No tanker model file was added.

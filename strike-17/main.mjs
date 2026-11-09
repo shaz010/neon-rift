@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17f'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17g'])[1];
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -260,6 +260,8 @@ const glowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64
    vec3 pert=vec3(0.,kx.y,kx.x)*b.x+vec3(ky.x,0.,ky.y)*b.y+vec3(kz.x,kz.y,0.)*b.z;
    normal=normalize(normal+(viewMatrix*vec4(pert,0.)).xyz*mix(.85,.45,snN));}`)};
 const tmesh=new THREE.Mesh(g,tm);tmesh.receiveShadow=true;scene.add(tmesh);window.__tmesh=tmesh;}
+const _gyRay=new THREE.Raycaster(), _gyDir=new THREE.Vector3(0,-1,0), _gyO=new THREE.Vector3();
+function groundY(x,z){const mesh=window.__tmesh; if(!mesh)return H(x,z); _gyO.set(x,6000,z); _gyRay.set(_gyO,_gyDir); _gyRay.far=9000; const hit=_gyRay.intersectObject(mesh,false); return hit.length?hit[0].point.y:H(x,z)}
 // Optional cloud cards for scenery tester (hidden at SCEN.clouds=0)
 {const cg=new THREE.Group();cg.visible=false;window.__cloudGroup=cg;const N=MOB?6:10;
  for(let i=0;i<N;i++){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
@@ -562,7 +564,7 @@ function mixFlightAudio(rdt){if(!AC||!eng)return; const tt=AC.currentTime;
  if(JET){const pr=JET.plain?1:.72+S.thr*.48;const nodes=JET.a?[JET.a]:(JET.playbackRate?[JET]:[]);nodes.forEach((n)=>{try{n.playbackRate.setTargetAtTime(pr,tt,.35)}catch(e){}}); if(JET.plain&&JET.g)JET.g.gain.setTargetAtTime((S.cine?.08:.1+S.thr*.32)*(warnA?.6:1),tt,.35); else AC.jet.gain.setTargetAtTime((S.cine?.08:.1+S.thr*.32)*(warnA?.6:1),tt,.35); if(!JET.plain)AC.jlp.frequency.setTargetAtTime(S.cine?800:1800+S.thr*4200,tt,.35)}AC.sub.gain.setTargetAtTime(JET&&JET.plain?0:(S.cine?.03:.05+S.thr*.12),tt,.35);AC.subO&&AC.subO.forEach((o,k)=>o.frequency.setTargetAtTime((36+S.thr*14)*(k+1),tt,.4));updListener();
  AC.wind.g.gain.setTargetAtTime(S.cine?.004:.014+S.thr*.008+Math.min(1,Math.abs(S.roll))*.008,tt,.6);AC.wind.bp.frequency.setTargetAtTime(380+S.thr*420,tt,.6);
  const tense=S.th&&(S.th.anyTrk||S.th.anySrch);AC.mus.gain.setTargetAtTime(warnA?.45:1,tt,.15);
- const bedOn=!takingOff()&&BED!=='off';AC.amb.gain.setTargetAtTime(bedOn?(S.cine?.1:(warnA?.22:tense?.48:.4)):0,tt,takingOff()?.3:1.2);
+ const bedOn=!takingOff()&&BED!=='off';AC.amb.gain.setTargetAtTime(bedOn?MUSIC_CAP:0,tt,takingOff()?.3:.4);
  if(AC.deckJetG){const hold=takingOff()&&(S.phase==='deck'||S.phase==='signal'||S.phase==='cat'); const fade=takingOff()&&!hold; AC.deckJetG.gain.setTargetAtTime(hold?.1:fade?.03:0,tt,.35); AC.deckRotorG.gain.setTargetAtTime(hold?.15:fade?.04:0,tt,.35); if(CVN.heli&&AC.rotorPan){CVN.heli.updateWorldMatrix(true,false); const e=CVN.heli.matrixWorld.elements; setP(AC.rotorPan,{x:e[12],y:e[13],z:e[14]})} if(CVN.taxi&&AC.jetIdlePan){CVN.taxi.updateWorldMatrix(true,false); const e=CVN.taxi.matrixWorld.elements; setP(AC.jetIdlePan,{x:e[12],y:e[13],z:e[14]})}}
  const moodId=musicChoice('mood'); const moodOn=moodId!=='current'&&moodId!=='off'&&!takingOff()&&!(S&&S.quiet); if(moodOn)AC.amb.gain.setTargetAtTime(0,tt,.4); if((moodId==='off'||(S&&S.quiet))&&moodHandle)stopMood(true);
  if(S&&S.quiet){if(!S._bedHeld){try{stopBed()}catch(e){} S._bedHeld=1} stopMood(true); AC.amb.gain.cancelScheduledValues(tt); AC.amb.gain.value=0; if(AC.moodG){AC.moodG.gain.cancelScheduledValues(tt); AC.moodG.gain.value=0} AC.wind.g.gain.cancelScheduledValues(tt); AC.wind.g.gain.value=.005; const eg=JET&&JET.plain&&JET.g?JET.g:AC.jet; if(eg){eg.gain.cancelScheduledValues(tt); eg.gain.value=.04} AC.sub.gain.cancelScheduledValues(tt); AC.sub.gain.value=.01}
@@ -705,7 +707,7 @@ function mslAudioStop(m){const a=m&&m.au;if(!a)return;m.au=null;const t=AC.curre
 function heavy(k,v,rate=1,pri){if(!AC||!SB[k])return false;src(SB[k],v,pri?AC.bigB:AC.out,{rate,pri,fadeIn:.008,tag:'heavy:'+k});return true}
 function duck(depth,hold,rec){if(!AC)return;const t=AC.currentTime,g=AC.dk.gain;g.cancelScheduledValues(t);g.setValueAtTime(g.value,t);g.linearRampToValueAtTime(depth,t+.03);g.setValueAtTime(depth,t+hold);g.linearRampToValueAtTime(1,t+hold+rec)}
 const BED_OPTS=['ambient','mus_depth','mus_dream','mus_layers','mus_waves','off'];
-let BED=localStorage.ds15_bed||'ambient';if(!BED_OPTS.includes(BED))BED='ambient';
+let BED='off'; try{const saved=localStorage.ds17g_bed; if(saved&&BED_OPTS.includes(saved))BED=saved}catch(e){}
 let bedS=null,droneS=null;
 const VOL=Object.assign({eng:.7,mus:.7,bed:.85,fx:.85},JSON.parse(localStorage.ds_vol||'{}'));
 function applyVol(){[['eng','s_eng','v_eng'],['mus','s_mus','v_mus'],['bed','s_bedvol','v_bed'],['fx','s_fx','v_fx']].forEach(([k,id,vid])=>{const el=$(id),v=$(vid);if(el)el.value=Math.round((VOL[k]??.7)*100);if(v)v.textContent=Math.round((VOL[k]??.7)*100)});if(!AC)return;const t=AC.currentTime;AC.engB.gain.setTargetAtTime(VOL.eng*1.4,t,.05);AC.musB.gain.setTargetAtTime(VOL.mus*1.4,t,.05);if(AC.bedB)AC.bedB.gain.setTargetAtTime((VOL.bed??.85)*1.8,t,.05);AC.fxB.gain.setTargetAtTime(VOL.fx/.85,t,.05)}
@@ -806,7 +808,8 @@ function startBed(){if(!AC)return;stopBed();
  }else if(SB[ambC.key]) droneS=plainLoop(SB[ambC.key],.28,AC.amb,{sec:'ambience',id:ambC.id});
  else SB.get(ambC.key);
 }
-function setBed(id){if(!BED_OPTS.includes(id))return;BED=id;localStorage.ds15_bed=id;const sel=$('s_bed');if(sel)sel.value=id;if(JET||ambS)startBed()}
+const MUSIC_CAP=0.0316;
+function setBed(id){if(!BED_OPTS.includes(id))return;BED=id;try{localStorage.ds17g_bed=id; localStorage.ds15_bed=id}catch(e){}const sel=$('s_bed');if(sel)sel.value=id;if(JET||ambS)startBed()}
 let introS=null, introTok=0, introHandle=null, moodHandle=null, endHandle=null, musicRoll={};
 const MUSIC_DEF={intro:'i1',ending:'e1',mood:'off'};
 const MUSIC_LV={intro:70,ending:75,mood:55};
@@ -830,9 +833,9 @@ const MUSIC_LAY={
  m10:[{k:'lx_kick',v:1.05,off:10.8,d:0,fade:.04,hold:1.6,decay:1.2},{k:'lx_riser',v:.48,d:.35,fade:.4,hold:8,decay:3}]
 };
 const MUSIC_SPAN={m1:34,m2:26,m3:32,m4:26,m5:12,m6:16,m7:14,m8:8,m9:14,m10:12};
-function musicChoice(cat){let id=MUSIC_DEF[cat]; try{const s=localStorage['ds16_'+cat]; if(s)id=s}catch(e){} if(cat==='mood'&&id!=='off'){let allow=''; try{allow=localStorage.ds17f_mood||''}catch(e){} if(allow!==id)id='off'} return MUSIC_PRE[cat].some(x=>x[0]===id)?id:MUSIC_DEF[cat]}
-function musicLevel(cat){let v=MUSIC_LV[cat]; try{const s=localStorage['ds16_lv_'+cat]; if(s!=null&&s!=='')v=+s}catch(e){} return Math.min(100,Math.max(0,v))/100}
-function rememberMusic(cat,id){try{localStorage['ds16_'+cat]=id; if(cat==='mood')localStorage.ds17f_mood=id}catch(e){} musicRoll[cat]=null; try{writePickStores(pickCode())}catch(e){}}
+function musicChoice(cat){let id=MUSIC_DEF[cat]; try{const s=localStorage['ds16_'+cat]; if(s)id=s}catch(e){} if(cat==='mood'&&id!=='off'){let allow=''; try{allow=localStorage.ds17g_mood||''}catch(e){} if(allow!==id)id='off'} return MUSIC_PRE[cat].some(x=>x[0]===id)?id:MUSIC_DEF[cat]}
+function musicLevel(cat){let v=MUSIC_LV[cat]; try{const s=localStorage['ds16_lv_'+cat]; if(s!=null&&s!=='')v=+s}catch(e){} return Math.min(MUSIC_CAP, Math.min(100,Math.max(0,v))/100)}
+function rememberMusic(cat,id){try{localStorage['ds16_'+cat]=id; if(cat==='mood'){localStorage.ds17g_mood=id; localStorage.ds17f_mood=id}}catch(e){} musicRoll[cat]=null; try{writePickStores(pickCode())}catch(e){}}
 function resolveMusic(cat){const id=musicChoice(cat); if(id!=='random')return id; if(musicRoll[cat])return musicRoll[cat]; const opts=MUSIC_PRE[cat].map(x=>x[0]).filter(x=>x!=='current'&&x!=='random'&&x!=='off'); let i=Math.floor(Math.random()*opts.length); if(opts[i]===musicRoll.prev)i=(i+1)%opts.length; musicRoll[cat]=opts[i]; musicRoll.prev=opts[i]; return opts[i]}
 function spawnLayers(spec, dest, level){const nodes=[]; const t0=AC.currentTime;
  for(const layer of spec){const buf=SB[layer.k]; if(!buf){SB.get(layer.k); continue} const s=AC.createBufferSource(); s.buffer=buf; s.loop=!!layer.loop; const off=Math.min(layer.off||0, Math.max(0,buf.duration-.05)); if(layer.loop&&off>0){s.loopStart=off; s.loopEnd=Math.max(off+.25, buf.duration-.03)} const g=AC.createGain(); const t=t0+(layer.d||0); const peak=Math.max(.0008,(layer.v||.4)*level); const fade=Math.max(.04,layer.fade!=null?layer.fade:.8); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+fade); const hold=layer.hold||0, decay=layer.decay||0; if(hold||decay){ if(hold)g.gain.setValueAtTime(peak,t+fade+hold); if(decay)g.gain.exponentialRampToValueAtTime(.0008,t+fade+hold+decay); if(!layer.loop){try{s.stop(t+fade+hold+decay+.06)}catch(e){}} } s.connect(g).connect(dest); try{s.start(t, off)}catch(e){} nodes.push({s,g}); sfxLog('music',{k:layer.k,d:layer.d||0,off,fade:+fade.toFixed(2),v:+peak.toFixed(3)})}
@@ -1096,7 +1099,7 @@ function pickCode(){let s=''; for(const c of NB_CATS){const i=NB[c].findIndex(o=
 function applyPickCode(code){if(!code||code.length<13)return false; NB_CATS.forEach((c,i)=>{const idx=parseInt(code[i],36); const opt=NB[c]&&NB[c][idx]; if(opt)rememberNb(c,opt.id)}); const lv=String(Math.min(100,Math.max(0,+code.slice(10,13)||80))); NB_MEM.lv=lv; try{localStorage.ds17_nb_lv=lv}catch(e){} if(code[13]==='-'&&code.length>14)applyDsString(code.slice(14)); return true}
 function writePickStores(code){if(!code)return; try{localStorage.ds17_pick=code}catch(e){} try{document.cookie='ds17p='+encodeURIComponent(code)+'; Max-Age=31536000; Path=/; SameSite=Lax'}catch(e){}}
 function readPickCookie(){try{const m=document.cookie.match(/(?:^|; )ds17p=([^;]*)/); return m?decodeURIComponent(m[1]):''}catch(e){return ''}}
-function applyDsString(raw){if(!raw)return; for(const part of raw.split(',')){const i=part.indexOf(':'); if(i<1)continue; const k=decodeURIComponent(part.slice(0,i)), v=decodeURIComponent(part.slice(i+1)); if(!v)continue; if(k==='flare'){ if(FLARE_OPTS.some(o=>o.id===v)){try{localStorage.ds15_flare=v}catch(e){}} } else if(k==='mood'){ let allow=''; try{allow=localStorage.ds17f_mood||''}catch(e){} const use=(v==='off'||(allow&&allow===v))?v:'off'; try{localStorage.ds16_mood=use; if(!allow)localStorage.ds17f_mood=use}catch(e){} } else if(k==='intro'||k==='ending'){ if(MUSIC_PRE[k].some(x=>x[0]===v)){try{localStorage['ds16_'+k]=v}catch(e){}} } else if(k==='surr'){ SURR.on=v!=='0'; try{localStorage.ds16_surr=SURR.on?'1':'0'}catch(e){} } else if(k==='width'){ SURR.width=Math.min(2,Math.max(0,+v||0)); try{localStorage.ds16_width=SURR.width}catch(e){} } else if(k==='lv_intro'||k==='lv_ending'||k==='lv_mood'){ try{localStorage['ds16_'+k]=Math.min(100,Math.max(0,+v||0))}catch(e){} } else { const s=sndSec(k); if(s&&sndList(s).some(c=>c.id===v))rememberSnd(k,v) } }}
+function applyDsString(raw){if(!raw)return; for(const part of raw.split(',')){const i=part.indexOf(':'); if(i<1)continue; const k=decodeURIComponent(part.slice(0,i)), v=decodeURIComponent(part.slice(i+1)); if(!v)continue; if(k==='flare'){ if(FLARE_OPTS.some(o=>o.id===v)){try{localStorage.ds15_flare=v}catch(e){}} } else if(k==='mood'){ let allow=''; try{allow=localStorage.ds17g_mood||''}catch(e){} const use=(v==='off'||(allow&&allow===v))?v:'off'; try{localStorage.ds16_mood=use; if(!allow)localStorage.ds17g_mood=use}catch(e){} } else if(k==='intro'||k==='ending'){ if(MUSIC_PRE[k].some(x=>x[0]===v)){try{localStorage['ds16_'+k]=v}catch(e){}} } else if(k==='surr'){ SURR.on=v!=='0'; try{localStorage.ds16_surr=SURR.on?'1':'0'}catch(e){} } else if(k==='width'){ SURR.width=Math.min(2,Math.max(0,+v||0)); try{localStorage.ds16_width=SURR.width}catch(e){} } else if(k==='lv_intro'||k==='lv_ending'||k==='lv_mood'){ try{localStorage['ds16_'+k]=Math.min(100,Math.max(0,+v||0))}catch(e){} } else { const s=sndSec(k); if(s&&sndList(s).some(c=>c.id===v))rememberSnd(k,v) } }}
 function bankDest(P,bus){const dest=bus==='big'?(AC.bigB||AC.out):AC.out; if(!P)return dest; const pn=mkPan(true,bus==='big'?280:160); setP0(pn,P); pn.connect(dest); setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}},9000); return pn}
 function spawnNb(layer,dest,lv,cat,id){const buf=SB[layer.k]; if(!buf||!AC)return; const s=AC.createBufferSource(); s.buffer=buf; const off=Math.min(layer.off||0, Math.max(0,buf.duration-.05)); const dur=layer.dur?Math.min(layer.dur, Math.max(.05,buf.duration-off)):undefined; if(layer.loop){s.loop=true; if(off>0){s.loopStart=off; s.loopEnd=Math.max(off+.25, buf.duration-.03)}} const g=AC.createGain(); const t=AC.currentTime+(layer.d||0); const peak=Math.max(.0008,(layer.v||.5)*lv); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+Math.max(.01,layer.fade||.02)); if(!layer.loop&&dur){const end=t+dur; g.gain.setValueAtTime(peak,Math.max(t+.04,end-.1)); g.gain.exponentialRampToValueAtTime(.0008,end)} s.connect(g).connect(dest); try{s.start(t,off,layer.loop?undefined:dur)}catch(e){try{s.start(t,off)}catch(e2){}} if(!layer.loop&&dur){try{s.stop(t+dur+.03)}catch(e){}} if(DS_MODE!=='game')sndPrev.push({stop(tt){try{g.gain.cancelScheduledValues(AC.currentTime); g.gain.setTargetAtTime(0,AC.currentTime,.05); s.stop((tt||AC.currentTime)+.12)}catch(e){}}}); sfxLog('nb',{cat,id,k:layer.k,off:+off.toFixed(2),dur:dur||0,v:+peak.toFixed(3)})}
 function playBank(cat,P){const spec=nbSpec(cat); if(!spec)return false; const lv=nbLevel()/0.8; if(spec.layers.some(l=>l.attack)){const layers=spec.layers.map(l=>Object.assign({},l,{v:Math.max(.0008,(l.v||.4)*lv)})); playBunker({id:'nb_'+cat+'_'+spec.id,layers},P||(S&&S.pos)); sfxLog('nb',{cat,id:spec.id,mix:1}); return true} const bus=(spec.layers[0]&&spec.layers[0].bus)||''; const dest=bankDest(P,bus); let pending=false; for(const layer of spec.layers){if(!SB[layer.k]){SB.get(layer.k); pending=true; continue} spawnNb(layer,dest,lv,cat,spec.id)} if(pending)sfxLog('nbWait',{cat,id:spec.id}); return true}
@@ -1151,7 +1154,7 @@ function startFlare(opt){if(!AC)return; const choice=opt||flareChoice();
  const dur=((choice.key&&SB[choice.key]&&SB[choice.key].duration)||2.4)+.35;
  setTimeout(()=>{try{pn.disconnect()}catch(e){} const i=flareLive.indexOf(nodes); if(i>=0)flareLive.splice(i,1)}, dur*1000)}
 function flareSfx(){if(playBank('flare',S.pos))return; startFlare(flareChoice())}
-function launchSAM(i){if(S.missile||S.samShots>=7||S.cine||(S.bandit&&!S.bandit.dead))return;if(i==null){let bd=1e9;SITES.forEach((st,k)=>{const d=st.p.distanceTo(S.pos);if(d<bd){bd=d;i=k}});if(bd>9000)return}
+function launchSAM(i){if(S.missile||S.samShots>=7||S.cine||S.safe||(S.bandit&&!S.bandit.dead))return;if(i==null){let bd=1e9;SITES.forEach((st,k)=>{const d=st.p.distanceTo(S.pos);if(d<bd){bd=d;i=k}});if(bd>9000)return}
  const P=SITES[i].p;S.samShots++;S.missile={p:P.clone().add(new THREE.Vector3(0,8,0)),v:new THREE.Vector3(0,90,0),life:20,decoy:null,site:i,blind:0,lost:false};msl.visible=true;mslAudioStart(S.missile);if(S.samShots===1&&!localStorage.ds14_def){localStorage.ds14_def=1;S.teachT=5}const sal=S.sites[i].shots>1;msg((sal?'SECOND LAUNCH — ':'LAUNCH LAUNCH — ')+SITES[i].n);S.lastLaunch=S.t;samRoar(P.distanceTo(S.pos));rwrLaunch(P,sal);
  for(let k=0;k<(MOB?16:28);k++){const a=Math.random()*6.283,sp=20+Math.random()*45;spr(tmp.copy(P).setY(P.y+3),k%3?0xcfc8bc:0xe8e2d8,14,6+Math.random()*5,new THREE.Vector3(Math.cos(a)*sp,4+Math.random()*12,Math.sin(a)*sp),{grow:16,o:.75,drag:.5,fadeIn:.15,must:1})}
  spr(tmp.copy(P).setY(P.y+6),0xffd8a0,70,.5,null,{add:true,tex:glowTex,fog:false,grow:60,must:1});for(let k=0;k<6;k++)spr(P,0xffa050,10,.6,new THREE.Vector3(rnd(30),20+Math.random()*30,rnd(30)),{add:true,fog:false,must:1})}
@@ -1159,7 +1162,7 @@ function samRoar(d){if(!AC)return; if(holdCustom('sam',S.missile?S.missile.p:S.p
 function rwrLaunch(P,sal){if(!AC)return; if(useSnd('radar',P))return; sfxLog('rwrLaunch',{});const t=AC.currentTime;for(let k=0;k<8;k++){const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=k%2?520:400;g.gain.setValueAtTime(0,t+k*.09);g.gain.linearRampToValueAtTime(.028,t+k*.09+.03);g.gain.linearRampToValueAtTime(0,t+k*.09+.1);o.connect(g).connect(AC.tone);o.start(t+k*.09);o.stop(t+k*.09+.12)}
  try{if(false){const rx=P.x-S.pos.x,rz=P.z-S.pos.z;let a=Math.atan2(-rx,-rz)-S.yaw;let c=Math.round(((-a/(Math.PI*2))*12%12+12)%12)||12;const u=new SpeechSynthesisUtterance((sal?'Second missile, ':'Missile launch, ')+c+' o clock');u.rate=1.2;u.pitch=.75;u.volume=Math.min(1,VOL.fx+.2);speechSynthesis.cancel();speechSynthesis.speak(u)}}catch(e){}}
 function lockTone(){if(!AC)return;sfxLog('lockTone',{});const t=AC.currentTime;for(let k=0;k<4;k++){const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=k%2?680:540;g.gain.setValueAtTime(0,t+k*.16);g.gain.linearRampToValueAtTime(.045,t+k*.16+.02);g.gain.linearRampToValueAtTime(0,t+k*.16+.12);o.connect(g).connect(AC.tone);o.start(t+k*.16);o.stop(t+k*.16+.14)}}
-function updSites(dt){let anyTrk=false,anySrch=false;if(S.cine||S.phase==='done'){return {anyTrk,anySrch}}
+function updSites(dt){let anyTrk=false,anySrch=false;if(S.cine||S.safe||S.phase==='done'){return {anyTrk,anySrch}}
  SITES.forEach((st,i)=>{const s=S.sites[i],d=st.p.distanceTo(S.pos);
   if(s.dead){s.st='off';s.trk=0;s.warned=0;return}
   if(d>7500){if(s.st!=='off'&&s.trk>0)s.trk=0;s.st='off';s.warned=0;s.warnT=0;return}
@@ -1220,7 +1223,9 @@ function banditSpoiled(b){const dy=Math.abs(Math.atan2(Math.sin(S.yaw-b.warnYaw)
 function hitBandit(){const b=S.bandit; if(!b||b.dead)return; b.hp--; spr(b.p,0xffe2a8,14,.28,null,{add:true,tex:glowTex,fog:false,must:1});
  if(b.hp<=0){b.dead=1; b.timer=0; b.msl=null; fire(b.p,1.35); boomSfx(false,b.p); for(let i=0;i<10;i++){const m=new THREE.Mesh(debG,debM); const sz=.5+Math.random()*1.6; m.scale.setScalar(sz); m.position.copy(b.p); scene.add(m); debris.push({m,v:new THREE.Vector3(rnd(40),20+Math.random()*50,rnd(40)),r:new THREE.Vector3(Math.random()*4,Math.random()*4,0)})} radio('Splash one')}
  else msg('BANDIT HIT  '+b.hp)}
-function updBandit(rdt){if(!S||S.dead||S.phase!=='egress')return; if(!S.bandit){if(S.boomT>8&&!S.cine)spawnBandit(); return} const b=S.bandit;
+function threatBehind(p){if(!p||!S)return false; nose(); const dx=p.x-S.pos.x, dz=p.z-S.pos.z; return dx*fwd.x+dz*fwd.z<-30}
+function warnSix(kind){if(!S||S.dead)return; const now=S.t||0; if(S._sixAt!=null&&now-S._sixAt<1.4&&S._sixKind===kind)return; S._sixAt=now; S._sixKind=kind; S.six=kind; msg('SIX O\'CLOCK — '+kind); lockTone()}
+function updBandit(rdt){if(!S||S.dead||S.phase!=='egress')return; if(!S.bandit){if(S.boomT>8&&!S.cine&&!S.safe)spawnBandit(); return} const b=S.bandit;
  if(b.dead){b.timer+=rdt; b.pitch=Math.max(-1.15,(b.pitch||0)-rdt*.45); b.roll+=(b.roll>0?1:-1)*rdt*.35;
   _bf.set(-Math.sin(b.yaw)*Math.cos(b.pitch),Math.sin(b.pitch),-Math.cos(b.yaw)*Math.cos(b.pitch)); b.p.addScaledVector(_bf,70*rdt); b.p.y-=(30+b.timer*40)*rdt;
   const floor=H(b.p.x,b.p.z)+4; if(b.p.y<floor){b.p.y=floor; if(!b.impact){b.impact=1; fire(b.p,1.5); boomSfx(false,b.p)}}
@@ -1246,12 +1251,13 @@ function updBandit(rdt){if(!S||S.dead||S.phase!=='egress')return; if(!S.bandit){
  if(b.state==='slash'){ if(b.timer<=0){ b.passes=(b.passes||0)+1; if(b.passes%3===0){b.state='lock'; b.timer=1.55; b._called=0; radio('Missile, missile'); lockTone()} else {b.state='climb'; b.timer=1.7} } }
  else if(b.state==='climb'){ if(b.timer<=0){b.state='six'; b.timer=3.1; b.warnYaw=S.yaw; b.spoiled=0; b._called=0; radio('Bandit on your six')} }
  else if(b.state==='six'){ if(banditSpoiled(b)){b.spoiled=1; radio('Break '+b.breakSide.toLowerCase()); b.state='slash'; b.timer=3.4} else if(b.timer<=0){ if(behind){b.state='guns'; b.timer=1.15; b._called=0; radio('Break '+b.breakSide.toLowerCase()); blip(480,.16,.2)} else {b.state='slash'; b.timer=3.2} } }
- else if(b.state==='guns'){ if(banditSpoiled(b))b.spoiled=1; if(Math.random()<.7){const shot=S.pos.clone().addScaledVector(nose(),b.spoiled?240:24); const dir=shot.sub(b.p).normalize().multiplyScalar(1100); spr(b.p.clone(),0xffb060,2.2,.14,dir,{add:true,tex:glowTex,fog:false,must:1})}
-  if(b.timer<=0){ if(!b.spoiled&&dist<900&&behind){S.hp--; nightKick(.14); S.shake=Math.max(S.shake,.6); if(S.hp>0){fire(S.pos.clone().addScaledVector(nose(),-8),.32); msg('HIT — BANDIT GUNS')} else {fire(S.pos,.9); die('SHOT DOWN — BANDIT'); return}} else if(b.spoiled)msg('BREAK — GUNS MISS'); b.state='slash'; b.timer=3.6 } }
+ else if(b.state==='guns'){ if(banditSpoiled(b))b.spoiled=1; if(behind){b._sixT=(b._sixT||0)+rdt; if(!b._six){b._six=1; warnSix('BANDIT')}} else b._sixT=0; if(Math.random()<.7){const shot=S.pos.clone().addScaledVector(nose(),b.spoiled?240:24); const dir=shot.sub(b.p).normalize().multiplyScalar(1100); spr(b.p.clone(),0xffb060,2.2,.14,dir,{add:true,tex:glowTex,fog:false,must:1})}
+  if(b.timer<=0){ if(!b.spoiled&&dist<900&&behind&&!S.safe&&(b._sixT||0)>=1.5){S.hp--; nightKick(.14); S.shake=Math.max(S.shake,.6); if(S.hp>0){fire(S.pos.clone().addScaledVector(nose(),-8),.32); msg('HIT — BANDIT GUNS')} else {fire(S.pos,.9); die('BANDIT','SIX O\'CLOCK'); return}} else if(b.spoiled)msg('BREAK — GUNS MISS'); else if(behind)warnSix('BANDIT'); b.state='slash'; b.timer=3.6 } }
  else if(b.state==='lock'){ if(!b._called)b._called=1; if(b.timer<=0){ b.msl={p:b.p.clone(), v:_bf.clone().multiplyScalar(220), life:6.5, spoiled:0}; b.state='missile'; b.timer=5; msg('MISSILE, MISSILE') } }
  else if(b.state==='missile'){ if(b.timer<=0&&!b.msl){b.state='slash'; b.timer=3.2} }
  const ms=b.msl; if(ms){ ms.life-=rdt; const tp=S.pos.clone().sub(ms.p); const md=tp.length()||1; const wantV=tp.multiplyScalar(1/md).multiplyScalar(ms.spoiled?160:460); ms.v.lerp(wantV,clamp(rdt*2.4,0,1)); if(ms.spoiled)ms.v.y-=50*rdt; ms.p.addScaledVector(ms.v,rdt); spr(ms.p,0xffd090,2.4,.12,null,{add:true,tex:glowTex,fog:false,must:1}); if((S.flareT||0)>0||S.brk>0)ms.spoiled=1;
-  if(!ms.spoiled&&md<58){b.msl=null; S.hp--; nightKick(.16); S.shake=Math.max(S.shake,.7); if(S.hp>0){fire(S.pos,.4); msg('HIT — BANDIT MISSILE')} else {fire(S.pos,.9); die('SHOT DOWN — BANDIT MISSILE'); return}}
+  if(threatBehind(ms.p)){ms._sixT=(ms._sixT||0)+rdt; warnSix('BANDIT MISSILE')} else ms._sixT=0;
+  if(!ms.spoiled&&md<58){ if(S.safe||(ms._sixT||0)>0&&(ms._sixT||0)<1.5){ms.p.addScaledVector(fwd,-30)} else {b.msl=null; S.hp--; nightKick(.16); S.shake=Math.max(S.shake,.7); if(S.hp>0){fire(S.pos,.4); msg('HIT — BANDIT MISSILE')} else {fire(S.pos,.9); die('BANDIT MISSILE','SIX O\'CLOCK'); return}} }
   else if(ms.life<=0||ms.p.y<H(ms.p.x,ms.p.z)+6){b.msl=null; msg(ms.spoiled?'MISSILE — FLARES':'MISSILE — WIDE'); if(b.state==='missile'){b.state='slash'; b.timer=3.2}} }
  if(b.hp<=6&&Math.random()<.5)spr(b.p,0x2c2926,5,2.2,new THREE.Vector3(rnd(4),3,rnd(4)),{grow:10,o:.7,must:1});
  if(b.hp<=3&&Math.random()<.55)spr(b.p,0xff5a18,2.8,.28,null,{add:true,tex:glowTex,fog:false,must:1});
@@ -1263,11 +1269,12 @@ window.__banditReady=()=>!!(banditMesh&&banditMesh.userData.real);
 window.__mood=()=>({id:musicChoice('mood'),live:!!moodHandle,g:AC&&AC.moodG?+AC.moodG.gain.value.toFixed(4):0});
 window.__music=()=>({mood:musicChoice('mood'),moodOn:!!moodHandle,moodG:AC&&AC.moodG?+AC.moodG.gain.value.toFixed(3):0,amb:AC&&AC.amb?+AC.amb.gain.value.toFixed(3):0,mus:AC&&AC.mus?+AC.mus.gain.value.toFixed(3):0,introG:AC&&AC.introG?+AC.introG.gain.value.toFixed(3):0,wind:AC&&AC.wind?+AC.wind.g.gain.value.toFixed(3):0,deck:AC&&AC.deckJetG?+AC.deckJetG.gain.value.toFixed(3):0,bed:!!bedS||!!droneS,intro:!!introS||!!introHandle,ending:!!(typeof endHandle!=='undefined'&&endHandle)||!!winSrc,brief:!!briefSrc,riser:!!riserS,quiet:!!(S&&S.quiet),jet:AC&&AC.jet?+AC.jet.gain.value.toFixed(3):0});
 window.__sb=k=>SB[k]||null; window.__load=k=>SB.get(k); window.__end=win=>showEnd(!!win);
-window.__tanker=()=>S&&S.tanker;
+window.__tanker=()=>S&&S.tanker; window.__ground=(x,z)=>groundY(x,z); window.__kill=()=>S&&S.kill;
 window.__hug=()=>S&&({mult:+(S.mult||1).toFixed(2),score:Math.round(S.score||0),streak:S.streak||0,best:S.bestStreak||0,spike:+(S.spike||0).toFixed(1),arm:+(S.spikeArm||0).toFixed(2),agl:Math.round(S.agl||0),spd:Math.round(S.spd||0),msg:S.msg||'',missile:!!(S.missile&&!S.missile.lost),flash:+((S.missFlash||0).toFixed(2))});
 window.__tick=n=>{for(let i=0;i<(n||1);i++){ if(!S||S.dead||S.phase==='done')return; update(0.05) }};
 if(DS_MODE==='game')ensureBanditMesh();
-function die(why){if(S.dead)return;if(takingOff())return;valleyRespawn=true;S.dead=why;crashSfx();fire(S.pos,.9);jet.visible=false;releaseControls();clearTimeout(endTimer);endTimer=setTimeout(()=>{if(S&&S.dead)showEnd(false)},1800)}
+function die(why,detail){if(S.dead)return;if(takingOff())return;valleyRespawn=true;S.dead=why;S.kill={why,detail:detail||'',agl:+(S.agl||0).toFixed(1),ground:Math.round(S.ground||0),analytic:Math.round(S.hAnalytic||H(S.pos.x,S.pos.z)),y:Math.round(S.pos.y)};try{sfxLog('death',S.kill)}catch(e){}crashSfx();fire(S.pos,.9);jet.visible=false;releaseControls();clearTimeout(endTimer);endTimer=setTimeout(()=>{if(S&&S.dead)showEnd(false)},1800)}
+function killText(){const k=S.kill||{}, w=String(k.why||S.dead||''); let name='UNKNOWN'; if(/TERRAIN/i.test(w))name='TERRAIN'; else if(/SAM/i.test(w))name='SAM'; else if(/BANDIT MISSILE/i.test(w))name='BANDIT MISSILE'; else if(/BANDIT/i.test(w))name='BANDIT'; else if(/AO|AREA/i.test(w))name='LEFT THE AREA'; else if(/BLAST/i.test(w))name='OWN BLAST'; else if(w)name=w; const extra=k.detail||(/TERRAIN/i.test(name)?'AGL '+(k.agl!=null?k.agl:0)+' M · GROUND '+(k.ground||0):'AGL '+(k.agl!=null?k.agl:'—')+' M'); return name+(extra?' · '+extra:'')}
 function fire(at,sc){for(let i=0;i<14;i++)spr(tmp.copy(at).add(new THREE.Vector3(rnd(20*sc),rnd(10*sc),rnd(20*sc))),0xffb060,40*sc,1+Math.random()*.8,new THREE.Vector3(rnd(30*sc),20*sc+Math.random()*40*sc,rnd(30*sc)),{add:true,grow:60*sc,fog:false,c1:new THREE.Color(0x902800)});
  for(let i=0;i<10;i++)spr(at,0x1e1b19,40*sc,4+Math.random()*3,new THREE.Vector3(rnd(15*sc),15*sc+Math.random()*25*sc,rnd(15*sc)),{grow:40*sc,o:.85,fadeIn:.4})}
 // ---------- nuclear-style mushroom (persistent sprite rig) ----------
@@ -1324,6 +1331,7 @@ function nearWhoosh(){if(!AC)return; sfxLog('nearMiss',{}); const t=AC.currentTi
 function updHug(dt,rdt){
  if(S.score==null){S.score=0; S.mult=1; S.streak=0; S.bestStreak=0; S.spike=0; S.spikeArm=0; S.spikeCD=0; S.inBand=0; S.missFlash=0; S.missBonus=0; S.lastMiss=-20}
  if(takingOff()||S.cine||S.phase==='done'||S.dead){S.mult=lerp(S.mult||1,1,clamp(rdt*1.5,0,1)); return}
+ if(S.safe){S.spike=0; S.spikeArm=0; S.det=0; if(S.missile&&S.missile.spike)S.missile.lost=true}
  const agl=S.agl||0, spd=S.spd||0;
  const aglK=1-sstep(32,125,agl), spdK=sstep(150,235,spd);
  S.mult=lerp(S.mult||1, 1+4*aglK*spdK, clamp(rdt*1.4,0,1));
@@ -1335,10 +1343,10 @@ function updHug(dt,rdt){
  if(close&&!S.inBand){S.inBand=1; S.streak=(S.t-S.lastMiss<5)?(S.streak||0)+1:1; S.lastMiss=S.t; S.bestStreak=Math.max(S.bestStreak||0,S.streak); const bonus=Math.round(350*S.streak*S.mult); S.score+=bonus; S.missBonus=bonus; S.missFlash=1.5; S.shake=Math.max(S.shake||0,.16); nearWhoosh(); msg('NEAR MISS +'+bonus)}
  else if(!close)S.inBand=0;
  S.missFlash=Math.max(0,(S.missFlash||0)-rdt);
- if(agl>165){S.spike=Math.min(100,(S.spike||0)+(20+(agl-165)*.05)*dt); S.detT=(S.detT||0)+dt} else S.spike=Math.max(0,(S.spike||0)-(agl<95?48:16)*dt);
+ if(S.safe){S.spike=Math.max(0,(S.spike||0)-40*dt)} else if(agl>165){S.spike=Math.min(100,(S.spike||0)+(20+(agl-165)*.05)*dt); S.detT=(S.detT||0)+dt} else S.spike=Math.max(0,(S.spike||0)-(agl<95?48:16)*dt);
  S.det=S.spike; if((S.spikeCD||0)>0)S.spikeCD-=rdt;
  if(agl<95&&S.spikeArm>0){S.spikeArm=0; S.spike=Math.min(S.spike,28); S.det=S.spike; S._broke=1; if(S.missile&&S.missile.spike&&!S.missile.lost&&S.missile.p.distanceTo(S.pos)>650)S.missile.lost=true}
- if(S.spike>=100&&!(S.spikeArm>0)&&!S.missile&&(S.spikeCD||0)<=0){S.spikeArm=1.8; lockTone(); msg('SPIKED — SAM LOCK')}
+ if(!S.safe&&S.spike>=100&&!(S.spikeArm>0)&&!S.missile&&(S.spikeCD||0)<=0){S.spikeArm=1.8; lockTone(); msg('SPIKED — SAM LOCK')}
  if(S.spikeArm>0){S.spikeArm-=rdt; if(S.spikeArm<=0){launchSAM(); if(S.missile)S.missile.spike=1; S.spike=42; S.det=S.spike; S.spikeArm=0; S.spikeCD=6}}
  if(S.spike>40&&S.spike<100&&!(S.spikeArm>0)&&(!S._spk||S.t-S._spk>.7)){S._spk=S.t; blip(640,.06,.1)}
 }
@@ -1358,10 +1366,10 @@ function ensureTanker(){if(tankerMesh)return tankerMesh; const g=new THREE.Group
  for(const x of [-14,-6,6,14]){const pod=new THREE.Mesh(new THREE.CylinderGeometry(.7,.7,4.2,10),dark); pod.rotation.x=Math.PI/2; pod.position.set(x,-1.15,-2); g.add(pod)}
  const lamp=(x,y,z,color)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.28,8,8), new THREE.MeshBasicMaterial({color})); m.position.set(x,y,z); g.add(m)};
  lamp(-21,.3,-2,0xff4040); lamp(21,.3,-2,0x40ff68); lamp(0,4.2,20,0xfff2cc);
- scene.add(g); g.visible=false; return tankerMesh=g}
+ g.scale.setScalar(2.6); scene.add(g); g.visible=false; return tankerMesh=g}
 function failFuel(){if(!S||S.fuelFail||S.fuelDone)return; S.fuelFail=1; S.score=Math.max(0,(S.score||0)-1500); msg('LOW FUEL — PRESS ON'); if(tankerMesh)tankerMesh.visible=false}
 function updTanker(dt,rdt){if(!S||S.fuelDone||S.fuelFail||S.phase!=='ingress'||S.cine||takingOff())return;
- if(!S.tanker)S.tanker={z:-2200,fuel:0,fails:0,called:0,contact:0,t0:0,fast:0};
+ if(!S.tanker)S.tanker={z:-400,fuel:0,fails:0,called:0,contact:0,t0:0,fast:0,shout:-10};
  const tk=S.tanker; tk.z-=145*dt; const x=vx(tk.z), y=H(x,tk.z)+130;
  const yaw=Math.atan2(-(vx(tk.z-40)-x), 40);
  const fx=-Math.sin(yaw), fz=-Math.cos(yaw);
@@ -1373,7 +1381,8 @@ function updTanker(dt,rdt){if(!S||S.fuelDone||S.fuelFail||S.phase!=='ingress'||S
  const dx=S.pos.x-bx, dy=S.pos.y-by, dz=S.pos.z-bz, dist=Math.hypot(dx,dy,dz);
  const along=(S.pos.x-x)*fx+(S.pos.z-tk.z)*fz;
  const ship=Math.hypot(S.pos.x-x,S.pos.y-y,S.pos.z-tk.z);
- if(!tk.called&&ship<5200){tk.called=1; tk.t0=S.t; radio('Tanker, rendezvous')}
+ if(!tk.called){tk.called=1; tk.t0=S.t; tk.shout=S.t; radio('Tanker ahead, join up'); msg('TANKER AHEAD — JOIN UP')}
+ else if(!tk.contact&&ship>900&&S.t-(tk.shout||-10)>6){tk.shout=S.t; msg('TANKER AHEAD — JOIN UP  '+(ship/1000).toFixed(1)+' KM')}
  if(tk.called&&S.t-tk.t0>75&&tk.fuel<1){failFuel(); return}
  if(tk.called&&along>500){failFuel(); return}
  const closing=S.spd-145;
@@ -1384,13 +1393,16 @@ function updTanker(dt,rdt){if(!S||S.fuelDone||S.fuelFail||S.phase!=='ingress'||S
  else if(tk.contact&&dist>26){tk.contact=0; tk.fails++; msg('DISCONNECT'); if(tk.fails>=3)failFuel()}
  tk.dist=dist; tk.dy=dy; tk.closing=closing;
 }
-function drawTankerHud(cx,cy){if($('end')&&!$('end').classList.contains('hide'))return; const tk=S.tanker; if(!tk||S.fuelDone||S.fuelFail||S.phase!=='ingress'||!tk.basket)return; if((tk.dist||9999)>950)return;
+function drawTankerHud(cx,cy){if($('end')&&!$('end').classList.contains('hide'))return; const tk=S.tanker; if(!tk||!tk.basket||S.fuelDone||S.fuelFail||S.phase!=='ingress'||!tankerMesh||!tankerMesh.visible)return;
  const b=tk.basket, dx=b.x-S.pos.x, dy=b.y-S.pos.y, dz=b.z-S.pos.z;
  const fx=-Math.sin(S.yaw), fz=-Math.cos(S.yaw), rx=fz, rz=-fx;
  const ahead=dx*fx+dz*fz, right=dx*rx+dz*rz;
  const hot=tk.contact?'rgba(176,230,168,1)':'rgba(230,214,170,.96)';
- const y0=Hh*.72;
- txt(tk.contact?'CONTACT':'TANKER',cx,y0,14,'center',hot);
+ const ship=Math.hypot(S.pos.x-tankerMesh.position.x,S.pos.z-tankerMesh.position.z);
+ const y0=Hh*.62;
+ txt(tk.contact?'CONTACT':('TANKER AHEAD — JOIN UP  '+(ship/1000).toFixed(1)+' KM'),cx,y0,15,'center',hot);
+ V.copy(tankerMesh.position).applyMatrix4(cam.matrixWorldInverse); let adx=V.x,ady=-V.y; if(V.z>0){adx=V.x; ady=Math.abs(V.y)+Math.abs(V.x)*.2} const an=Math.hypot(adx,ady)||1; adx/=an; ady/=an; const ar=Hh*.28, axx=cx+adx*ar, ayy=cy+ady*ar;
+ hx.fillStyle=hot; hx.beginPath(); hx.moveTo(axx+adx*18,ayy+ady*18); hx.lineTo(axx-ady*9,ayy+adx*9); hx.lineTo(axx+ady*9,ayy-adx*9); hx.closePath(); hx.fill(); txt('TANKER',axx-adx*16,ayy-ady*16,11,'center',hot);
  let cue='HOLD';
  if(!tk.contact){ if(dy>7)cue='UP'; else if(dy<-7)cue='DOWN'; else if(right>8)cue='RIGHT'; else if(right<-8)cue='LEFT'; else if(ahead>22)cue='FORWARD'; else if(ahead<-6)cue='EASE OFF'; txt(cue,cx,y0+18,13,'center','rgba(255,214,150,.96)')}
  const bw=128,bx=cx-64,by=y0+26; hx.strokeStyle=hot; hx.strokeRect(bx,by,bw,8); hx.fillStyle=hot; hx.fillRect(bx+1,by+1,Math.max(0,(tk.fuel||0))*(bw-2),6); hx.strokeStyle=G;
@@ -1399,15 +1411,18 @@ function update(rdt){
  if(S.to&&S.to.fade>0){S.to.fade-=rdt;if(S.to.fade<=0){S.to.fade=0;const f=$('tofade');if(f)f.classList.remove('on')}}
  if(takingOff()){updateTakeoff(rdt);mixFlightAudio(rdt);return}
  let target=1;if(S.phase==='bombfall')target=.45;if(S.bomb&&S.bomb.tti<1.8)target=.25;if(S.phase==='penetrate')target=.5;if(S.boomT>=0&&S.boomT<1.5)target=.5;if(S.teachT>0)target=.55;
- S.cine=S.phase==='bombfall'||S.phase==='penetrate'||(S.boomT>=0&&S.boomT<8);S.ts=lerp(S.ts,target,clamp(rdt*6,0,1));const dt=rdt*S.ts;S.t+=rdt;
+ S.cine=S.phase==='bombfall'||S.phase==='penetrate'||(S.boomT>=0&&S.boomT<8); S.safe=!!(S.cine||(S.graceHold||0)>0); if(!S.cine&&(S.graceHold||0)>0)S.graceHold-=rdt; S.ts=lerp(S.ts,target,clamp(rdt*6,0,1));const dt=rdt*S.ts;S.t+=rdt;
  const tR=S.cine?0:S.brk>0?-S.brkDir*78*D2R:-inp.x*45*D2R,tP=S.cine?0:-inp.y*30*D2R;
  const released=!steer&&!(S.brk>0)&&!S.cine;
  const rk=released?50:8.5, pk=released?50:7.5;
  S.roll+=(tR-S.roll)*clamp(rdt*rk,0,1);S.pitch+=(tP-S.pitch)*clamp(rdt*pk,0,1);S.yaw+=S.roll*.75*dt;
  const spd=85+S.thr*195;fwd.set(-Math.sin(S.yaw)*Math.cos(S.pitch),Math.sin(S.pitch),-Math.cos(S.yaw)*Math.cos(S.pitch));S.pos.addScaledVector(fwd,spd*dt);S.pos.y=Math.min(S.pos.y,2500);
  S.gunCD=Math.max(0,S.gunCD-rdt);S.gunSnd=Math.max(0,S.gunSnd-rdt);if(gunDown&&!S.cine)fireCannon();
- if(window.__holdAgl!=null&&!S.dead){S.thr=1; S.pitch=0; S.roll=0; S.pos.y=H(S.pos.x,S.pos.z)+window.__holdAgl}
- if(S.cine)S.pos.y=Math.max(S.pos.y,H(S.pos.x,S.pos.z)+60);const agl=S.pos.y-H(S.pos.x,S.pos.z);S.agl=agl;S.spd=spd;if(agl<2)return die('TERRAIN IMPACT');
+ if(window.__holdAgl!=null&&!S.dead){S.thr=1; S.pitch=0; S.roll=0; S.pos.y=groundY(S.pos.x,S.pos.z)+window.__holdAgl}
+ {const gy=groundY(S.pos.x,S.pos.z), ny=groundY(S.pos.x+fwd.x*14,S.pos.z+fwd.z*14); const floor=Math.max(gy,ny); S.ground=floor; S.hAnalytic=H(S.pos.x,S.pos.z);
+  if(S.cine)S.pos.y=Math.max(S.pos.y,floor+70);
+  const agl=S.pos.y-floor; S.agl=agl; S.spd=spd;
+  if(agl<1.6){ if(S.safe){S.pos.y=floor+36; if(!S._pull||S.t-S._pull>2.5){S._pull=S.t; msg('PULL UP / EGRESS')}} else return die('TERRAIN','AGL '+Math.max(0,agl).toFixed(1)+' M · GROUND '+Math.round(floor)+' · HEIGHT FIELD '+Math.round(S.hAnalytic)) } }
  updHug(dt,rdt);
  if(S.phase==='release'){if(bDist()<350||!scr(BUNK)){S.locked=false;S.phase='ingress';msg('LOCK LOST — REATTACK')}}
  updIron(rdt);
@@ -1431,7 +1446,8 @@ function update(rdt){
   const gentle=S.samShots<=1,sp=Math.min(gentle?300:420,m.v.length()+160*dt),dir=m.v.clone().normalize(),want=tgt.clone().sub(m.p).normalize();dir.lerp(want,clamp(dt*(m.p.distanceTo(S.pos)<900?(gentle?2.4:3.4):(gentle?1.5:2)),0,1)).normalize();m.v.copy(dir).multiplyScalar(sp);const r0=m.p.clone().sub(S.pos);m.p.addScaledVector(m.v,dt);{const r1=m.p.clone().sub(S.pos),dd=r1.clone().sub(r0),L=dd.lengthSq();const t=L>0?clamp(-r0.dot(dd)/L,0,1):1;m.cpa=r0.addScaledVector(dd,t).length()}
   msl.position.copy(m.p);msl.lookAt(tmp.copy(m.p).add(m.v));m.tr=(m.tr||0)+dt;const boost=m.life>17;{const dj=m.p.distanceTo(S.pos);mslG.visible=true;mslG.position.copy(m.p);mslG.scale.setScalar((boost?72:48)*(1+.12*Math.sin(S.t*40))*Math.max(1,dj/1800));}if(m.tr>(MOB?.05:.035)){m.tr=0;spr(m.p,boost?0xf2eee6:0xe0dbd2,boost?11:8,boost?11:8,new THREE.Vector3(rnd(2),rnd(2),rnd(2)),{grow:boost?8:6,o:.75,drag:.3,must:1})}spr(m.p,0xffd090,boost?7:3,.12,null,{add:true,tex:glowTex,fog:false});
   mslAudioUpd(m,dt);{const dj=m.p.distanceTo(S.pos);if(!m.ws&&dj<260&&(m.decoy||m.lost)){m.ws=1; if(!useSnd('pass',m.p)){whoosh();passBy(m.p)} S.shake=Math.max(S.shake,.25)}}
-  if(!m.decoy&&!m.lost&&Math.min(m.cpa??1e9,m.p.distanceTo(S.pos))<75){mslAudioStop(m);S.missile=null;msl.visible=false;mslG.visible=false;S.sites[m.site].next=S.t+4;nightKick(.16);$('flash').style.transition='none';$('flash').style.background='#ffb070';$('flash').style.opacity=NIGHT_ON?.22:.85;setTimeout(()=>{$('flash').style.transition='opacity 1.4s';$('flash').style.opacity=0},NIGHT_ON?160:90);if(!useSnd('boom',S.pos)){src(SB.sub08,.8,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:sub08'});if(SB.hitsub)src(SB.hitsub,.85,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:hitsub'});if(AC){if(SB.impact)src(SB.impact,.9,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:impact'});else thud(AC.bigB,.9,55,22,1.6); }}S.shake=1;;S.hp--;if(S.hp>0){fire(tmp.copy(S.pos).addScaledVector(fwd,-30),.35);msg('HIT! AIRFRAME DAMAGED — ONE MORE HIT IS FATAL');S.dmgT=3;return}fire(S.pos,.9);return die('SHOT DOWN — SAM HIT')}
+  if(!m.decoy&&!m.lost&&threatBehind(m.p)){m._sixT=(m._sixT||0)+dt; warnSix('SAM')}
+  if(!m.decoy&&!m.lost&&Math.min(m.cpa??1e9,m.p.distanceTo(S.pos))<75){ if(S.safe){m.lost=true; msg('GRACE — SAM LOST')} else if(threatBehind(m.p)&&(m._sixT||0)<1.5){m.p.addScaledVector(fwd,-40)} else {mslAudioStop(m);S.missile=null;msl.visible=false;mslG.visible=false;S.sites[m.site].next=S.t+4;nightKick(.16);$('flash').style.transition='none';$('flash').style.background='#ffb070';$('flash').style.opacity=NIGHT_ON?.22:.85;setTimeout(()=>{$('flash').style.transition='opacity 1.4s';$('flash').style.opacity=0},NIGHT_ON?160:90);if(!useSnd('boom',S.pos)){src(SB.sub08,.8,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:sub08'});if(SB.hitsub)src(SB.hitsub,.85,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:hitsub'});if(AC){if(SB.impact)src(SB.impact,.9,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:impact'});else thud(AC.bigB,.9,55,22,1.6); }}S.shake=1;;S.hp--;if(S.hp>0){fire(tmp.copy(S.pos).addScaledVector(fwd,-30),.35);msg('HIT! AIRFRAME DAMAGED — ONE MORE HIT IS FATAL');S.dmgT=3;return}fire(S.pos,.9);return die('SAM', threatBehind(m.p)?'SIX O\'CLOCK':'')}}
   if(m.p.y<H(m.p.x,m.p.z)||m.life<=0||(m.decoy&&m.dt<=0)){const pd=m.p.distanceTo(S.pos);fire(m.p,m.decoy?.45:.25);if(m.decoy){spr(m.p,0xfff0d0,90,.35,null,{add:true,tex:glowTex,fog:false,grow:120,must:1});for(let k=0;k<30;k++)spr(m.p,0xffc080,3,1.4,new THREE.Vector3(rnd(160),rnd(160),rnd(160)),{add:true,tex:glowTex,g:20,fog:false,must:1});if(pd<1200){S.shake=Math.max(S.shake,.2+.5*(1-pd/1200));heavy('sub08',.45*(1-pd/1500),1.35)}}boomSfx(false,m.p);if(AC&&pd<4000){psrc('hitsub',.4,m.p,true,{ref:280,rate:.95,pri:1,fadeIn:.008,tag:'psrc:hitsub'});if(!psrc('impact',.4,m.p,true,{ref:250,rate:.9,pri:1,fadeIn:.008,tag:'psrc:impact'})){const pn=mkPan(true,150);setP0(pn,m.p);pn.connect(AC.out);thud(pn,.85,55,24,1.3);setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}},1800)}}mslAudioStop(m);S.sites[m.site].next=S.t+2.5;S.missile=null;msl.visible=false;mslG.visible=false;if(!S.dead&&!m.def){S.defeated++;msg(m.lost?'MISSILE LOST — TERRAIN MASK':'MISSILE DEFEATED')}}}
  updRounds(rdt);
  S.brk=Math.max(0,S.brk-rdt);S.brkCD=Math.max(0,S.brkCD-rdt);S.ecm=Math.max(0,S.ecm-rdt);S.ecmCD=Math.max(0,S.ecmCD-rdt);S.teachT=Math.max(0,S.teachT-rdt);S.dmgT=Math.max(0,(S.dmgT||0)-rdt);
@@ -1449,16 +1465,16 @@ function update(rdt){
 function release(){if(window.__ft)window.__ft.markRel();S.relHold=0;S._relT0=0;S.locked=false;S.phase='bombfall';
  const q=inBox();S.err=(1-q)*14+Math.random()*2;const a=Math.random()*6.28;
  S.bomb={p:S.pos.clone().add(new THREE.Vector3(0,-2,0)),v:fwd.clone().multiplyScalar(Math.max(120,S.spd)),s:Math.max(120,S.spd),aim:BUNK.clone().add(new THREE.Vector3(Math.cos(a)*S.err,0,Math.sin(a)*S.err)),tti:99,age:0};bomb.visible=true;jet.visible=true;
- S.quiet=1; stopMood(true); riser(false)}
+ S.quiet=1; S.graceHold=8; S.safe=1; stopMood(true); riser(false); msg('PULL UP / EGRESS')}
 function silenceScore(){stopMood(true); stopIntroMusic(); stopDeckAmbience(); try{stopBed()}catch(e){} stopWin(); riser(false); if(typeof endHandle!=='undefined'&&endHandle){try{endHandle.stop()}catch(e){} endHandle=null} if(!AC)return; const t=AC.currentTime; [AC.amb,AC.moodG,AC.mus,AC.introG,AC.wind&&AC.wind.g,AC.jet,AC.sub,AC.deckJetG,AC.deckRotorG].forEach(g=>{if(g&&g.gain){try{g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0,t)}catch(e){}}})}
 function showEnd(win){running=false;releaseControls();clearTimeout(endTimer);silenceScore();if(AC){const t=AC.currentTime;riser(false);AC.jet.gain.setTargetAtTime(0,t,.05);AC.amb.gain.setTargetAtTime(0,t,.05);try{stopBed()}catch(e){};eng.g.gain.setTargetAtTime(0,t,.05);warnG.gain.setTargetAtTime(0,t,.05);trkG.gain.setTargetAtTime(0,t,.05);AC.sub.gain.setTargetAtTime(0,t,.05);if(S.missile)mslAudioStop(S.missile);$('vig').style.opacity=0;$('teach').style.display='none';seekG.gain.setTargetAtTime(0,t,.05);
  }const prec=win?Math.round(clamp(100-S.err*5,0,100)):0,st=Math.round(clamp(100-S.detT/Math.max(1,S.t)*100-S.samShots*10,0,100)),tm=S.t;
- const stars=win?1+(prec>=80)+(st>=75&&tm<170):0;$('et').textContent=win?'MISSION COMPLETE // ESCAPED':'MISSION FAILED // '+S.dead;$('es').textContent='★'.repeat(stars)+'☆'.repeat(3-stars);
+ const stars=win?1+(prec>=80)+(st>=75&&tm<170):0;$('et').textContent=win?'MISSION COMPLETE // ESCAPED':'MISSION FAILED // KILLED BY: '+killText();$('es').textContent='★'.repeat(stars)+'☆'.repeat(3-stars);
  let hi=0,hs=0; try{hi=+localStorage.ds17e_hi||0; hs=+localStorage.ds17e_streak||0}catch(e){}
  const sc=Math.round(S.score||0), run=S.bestStreak||0; let fresh=false;
  if(sc>hi){hi=sc; fresh=true; try{localStorage.ds17e_hi=String(hi)}catch(e){}}
  if(run>hs){hs=run; try{localStorage.ds17e_streak=String(hs)}catch(e){}}
- $('etab').innerHTML=`<tr><td>PRECISION</td><td>${prec}%${win?` · CEP ${S.err.toFixed(1)} M`:''}</td></tr><tr><td>STEALTH</td><td>${st}%</td></tr><tr><td>TIME ON MISSION</td><td>${(tm/60|0)}:${String(tm%60|0).padStart(2,'0')}</td></tr><tr><td>SAMS DEFEATED</td><td>${S.defeated}</td></tr><tr><td>BANDIT</td><td>${S.bandit&&S.bandit.dead?'DESTROYED':S.bandit?'STILL UP':'—'} </td></tr><tr><td>SCORE</td><td>${sc}${fresh?' · HIGH':''}</td></tr><tr><td>BEST STREAK</td><td>${run} · RECORD ${hs}</td></tr><tr><td>HIGH SCORE</td><td>${hi}</td></tr><tr><td>FUEL</td><td>${S.fuelDone?'COMPLETE':S.fuelFail?'LOW':'—'}</td></tr>`;
+ $('etab').innerHTML=`<tr><td>PRECISION</td><td>${prec}%${win?` · CEP ${S.err.toFixed(1)} M`:''}</td></tr><tr><td>STEALTH</td><td>${st}%</td></tr><tr><td>TIME ON MISSION</td><td>${(tm/60|0)}:${String(tm%60|0).padStart(2,'0')}</td></tr><tr><td>SAMS DEFEATED</td><td>${S.defeated}</td></tr><tr><td>BANDIT</td><td>${S.bandit&&S.bandit.dead?'DESTROYED':S.bandit?'STILL UP':'—'} </td></tr><tr><td>SCORE</td><td>${sc}${fresh?' · HIGH':''}</td></tr><tr><td>BEST STREAK</td><td>${run} · RECORD ${hs}</td></tr><tr><td>HIGH SCORE</td><td>${hi}</td></tr><tr><td>FUEL</td><td>${S.fuelDone?'COMPLETE':S.fuelFail?'LOW':'—'}</td></tr>${win?'':`<tr><td>KILLED BY</td><td>${killText()}</td></tr>`}`;
  $('end').classList.remove('hide')}
 // ---------- render + HUD ----------
 const hud=$('hud'),hx=hud.getContext('2d');let W=0,Hh=0,dpr=1;
@@ -1505,7 +1521,7 @@ function drawTakeoffHUD(){const cx=W/2;hx.shadowColor='rgba(0,0,0,.85)';hx.shado
  hx.shadowBlur=0}
 function drawCine(){const cx=W/2;hx.fillStyle='rgba(0,0,0,.85)';hx.fillRect(0,0,W,Hh*.09);hx.fillRect(0,Hh*.91,W,Hh*.09);
  const t=S.phase==='bombfall'?((S.bomb&&(S.bomb.age||0)>.35)?'WPN CAM  //  GBU-PEN  TTI '+(S.bomb.tti.toFixed(1)):'RELEASED  //  TTI '+(S.bomb?S.bomb.tti.toFixed(1):'0.0')):S.phase==='penetrate'?'PENETRATING  '+Math.min(60,Math.round(S.penT*38))+' M  //  FUZE DELAY':'BDA  //  TARGET DESTROYED';
- txt(t,cx,Hh*.06,12,'center','rgba(220,225,215,.9)');txt('REC ●  '+S.t.toFixed(1),W-20-(innerWidth>0?0:0),Hh*.96,10,'right','rgba(255,120,100,.85)')}
+ txt(t,cx,Hh*.06,12,'center','rgba(220,225,215,.9)');txt('PULL UP / EGRESS',cx,Hh*.16,18,'center','rgba(255,214,150,.98)');txt('REC ●  '+S.t.toFixed(1),W-20-(innerWidth>0?0:0),Hh*.96,10,'right','rgba(255,120,100,.85)')}
 function line(a,b,c,d){hx.beginPath();hx.moveTo(a,b);hx.lineTo(c,d);hx.stroke()}
 function markTarget(cx,cy){const d=bDist(),pulse=.5+.5*Math.sin(performance.now()*.004),col=d<3000?'rgba(255,214,120,1)':'rgba(210,225,190,.95)';
  const s=scr(tmp.copy(BUNK).setY(BUNK.y+12));
@@ -1559,14 +1575,16 @@ function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!r
  let o='';const d=bDist();
  const bombWin=(S.phase==='ingress'||S.phase==='release')&&d<3000&&d>400;
  if(bombWin)o='IN RANGE — RELEASE';
+ else if(S.phase==='ingress'&&S.tanker&&!S.fuelDone&&!S.fuelFail&&tankerMesh&&tankerMesh.visible){const td=Math.hypot(S.pos.x-tankerMesh.position.x,S.pos.z-tankerMesh.position.z); o='TANKER AHEAD — JOIN UP  '+(td/1000).toFixed(1)+' KM'}
  else if(S.phase==='ingress')o=d<4500?'TGT '+(d/1000).toFixed(1)+' KM':'FLY TO BUNKER  '+(d/1000).toFixed(1)+' KM';
+ else if(S.safe&&S.phase==='egress')o='PULL UP / EGRESS';
  else if(S.phase==='release')o='CLOSE — '+((d<400)?'TOO CLOSE':((d-3000)/1000).toFixed(1)+' KM');
  else if(S.phase==='bombfall')o='WPN AWAY  TTI '+(S.bomb?S.bomb.tti.toFixed(1):'0.0');
  else if(S.phase==='penetrate')o='PENETRATING  '+Math.min(60,Math.round(S.penT*38))+' M';
  else if(S.phase==='egress')o=S.boomT<2?'TARGET DESTROYED':(S.bandit&&!S.bandit.dead?'BANDIT '+(S.pos.distanceTo(S.bandit.p)/1000).toFixed(1)+' KM — GUNS':(S.bandit&&S.bandit.dead?'BANDIT DOWN — EXFIL '+(S.pos.distanceTo(EXIT)/1000).toFixed(1)+' KM':'EGRESS  EXFIL '+(S.pos.distanceTo(EXIT)/1000).toFixed(1)+' KM'));
  txt(o,cx,70,14);
  const aiHud=aimSite(); if(aiHud>=0&&!bombWin)txt('TAP RELEASE — BOMB '+SITES[aiHud].n+'  ×'+S.iron,cx,90,12,'center','rgba(255,210,140,.95)');
- const thr=[];if(S.missile&&!S.missile.decoy&&!S.missile.lost)thr.push([S.missile.p,'MSL',1]);SITES.forEach((st,i)=>{if(S.sites[i].st==='track')thr.push([st.p,'SAM',0])});
+ const thr=[];if(S.missile&&!S.missile.decoy&&!S.missile.lost)thr.push([S.missile.p,threatBehind(S.missile.p)?'SIX':'MSL',1]);if(S.bandit&&!S.bandit.dead&&threatBehind(S.bandit.p))thr.push([S.bandit.p,'SIX',1]);SITES.forEach((st,i)=>{if(S.sites[i].st==='track')thr.push([st.p,'SAM',0])});
  for(const [P,lab,isM] of thr){V.copy(P).applyMatrix4(cam.matrixWorldInverse);let dx=V.x,dy=-V.y;if(V.z>0){dx=V.x;dy=Math.abs(V.y)+Math.abs(V.x)*.2}const n=Math.hypot(dx,dy)||1;dx/=n;dy/=n;const r=Hh*.3,ax=cx+dx*r,ay=cy+dy*r;
   const c=isM?((S.t*6|0)%2?'rgba(255,70,60,1)':'rgba(255,200,180,1)'):'rgba(255,140,90,.95)';hx.fillStyle=c;hx.beginPath();hx.moveTo(ax+dx*16,ay+dy*16);hx.lineTo(ax-dy*8,ay+dx*8);hx.lineTo(ax+dy*8,ay-dx*8);hx.closePath();hx.fill();txt(lab,ax-dx*14,ay-dy*14+4,9,'center',c)}
  const clk=P=>{const rx=P.x-S.pos.x,rz=P.z-S.pos.z;let a=Math.atan2(-rx,-rz)-S.yaw;a=-a;let h=Math.round(((a/D2R%360)+360)%360/30)%12;return (h||12)+" O'CLOCK"};
@@ -1621,9 +1639,12 @@ const TUT=[['1/3  FLIGHT CONTROL','Drag anywhere with one finger. Left/right ban
  ['3/3  WEAPONS + DEFENCE','Place the bunker in the HUD box, tap LOCK, hold RELEASE. A SAM that is locking shows a countdown: hold GUN with the pipper on the battery, or hold RELEASE to bomb it. Hold GUN on an inbound missile to splash it. FLARE, BREAK and ECM still work. You survive one hit.']];
 let tutI=0;function showTut(){$('tt').textContent=TUT[tutI][0];$('tp').textContent=TUT[tutI][1];$('tn').textContent='TAP TO CONTINUE'}
 $('brief').addEventListener('pointerdown',()=>{initAudio();briefMusic();$('snd').textContent='♪ SOUND ON'});
-function startSortie(skip){skipTakeoff=!!skip;goFS();initAudio();stopBrief();heavy('sub08',.28,.8);prewarmGfx();$('brief').classList.add('hide');if(localStorage.ds15_tut)begin();else{tutI=0;showTut();$('tut').classList.remove('hide')}}
+let practice='';
+function startSortie(skip,kind){practice=kind||'';skipTakeoff=!!skip||!!kind;goFS();initAudio();stopBrief();heavy('sub08',.28,.8);prewarmGfx();$('brief').classList.add('hide');if(kind){try{localStorage.ds15_tut='1'}catch(e){}begin();return}if(localStorage.ds15_tut)begin();else{tutI=0;showTut();$('tut').classList.remove('hide')}}
 $('go').addEventListener('pointerdown',e=>{e.stopPropagation();startSortie(false)});
 if($('skipTO'))$('skipTO').addEventListener('pointerdown',e=>{e.stopPropagation();startSortie(true)});
+if($('pracTank'))$('pracTank').addEventListener('pointerdown',e=>{e.stopPropagation();startSortie(true,'tanker')});
+if($('pracFight'))$('pracFight').addEventListener('pointerdown',e=>{e.stopPropagation();startSortie(true,'fight')});
 if($('launch'))$('launch').addEventListener('pointerdown',e=>{e.stopPropagation();launchCat()});
 if(DS_MODE==='game'){let tap=null;
  document.addEventListener('pointerdown',e=>{if(!S||S.phase!=='deck'||!S.to||!S.to.armed||steerBlocked(e.target)){tap=null;return}tap={x:e.clientX,y:e.clientY,t:performance.now(),id:e.pointerId}},{capture:true});
@@ -1635,7 +1656,7 @@ $('retry').addEventListener('pointerdown',e=>{e.stopPropagation();requestBegin()
 function goFS(){const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(f&&!document.fullscreenElement&&!document.webkitFullscreenElement){try{const p=f.call(d,{navigationUI:'hide'});p&&p.catch&&p.catch(()=>{})}catch(e){}}try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}
 if(DS_MODE==='game')addEventListener('pointerdown',goFS,{once:true});
 if(DS_MODE==='game'){document.addEventListener('touchmove',e=>{if(e.target&&e.target.closest&&e.target.closest('#brief,#tut,#end,#go,#retry,#setp,#pauseOv,#pauseCard,input,select,textarea,a,button.label'))return;e.preventDefault()},{passive:false});document.addEventListener('gesturestart',e=>e.preventDefault())}if(DS_MODE==='game')addEventListener('resize',()=>scrollTo(0,0));
-async function begin(){reset();jet.visible=true;const keep=musicRoll.prev; musicRoll={prev:keep}; const musicId=takingOff()?resolveMusic('intro'):resolveMusic('mood'); const musicKeys=(MUSIC_LAY[musicId]||[]).map(l=>l.k); const bunk=(sndChoice('bunker').layers||[]).map(l=>l.k); const nbK=nbKeys(); const sndK=[]; for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)sndK.push(c.key)} if(AC){AC.resume(); const deckKeys=['deck_jet','deck_rotor','deck_clank','deck_steam','deck_call']; if(INTRO_TRACK)deckKeys.push(INTRO_TRACK); await Promise.all(['jet8','jet','ambient','aaaw','sub08',...deckKeys,...musicKeys,...bunk,...nbK,...sndK].map(k=>SB.get(k).catch(()=>null))); try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3);}catch(e){} const fk=flareChoice().key; if(fk)SB.get(fk).catch(()=>{}); try{for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)SB.get(c.key).catch(()=>{})}}catch(e){} prewarmAudio(); } prewarmGfx(); if(takingOff()){startDeckAmbience(); startIntroMusic()} else startMood(); running=true;last=performance.now()}
+async function begin(){reset();jet.visible=true; if(practice==='tanker'){const z=-200; S.phase='ingress'; S.pos.set(vx(z),groundY(vx(z),z)+140,z); S.yaw=0; S.pitch=0; S.thr=.5; S.spd=160} else if(practice==='fight'){const z=BZ+900; S.phase='egress'; S.boomT=12; S.cine=false; S.safe=false; S.graceHold=0; S.pos.set(vx(z),groundY(vx(z),z)+140,z); S.yaw=0; S.pitch=0; S.thr=.7; S.spd=220; bunker.visible=false} const keep=musicRoll.prev; musicRoll={prev:keep}; const musicId=takingOff()?resolveMusic('intro'):resolveMusic('mood'); const musicKeys=(MUSIC_LAY[musicId]||[]).map(l=>l.k); const bunk=(sndChoice('bunker').layers||[]).map(l=>l.k); const nbK=nbKeys(); const sndK=[]; for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)sndK.push(c.key)} if(AC){AC.resume(); const deckKeys=['deck_jet','deck_rotor','deck_clank','deck_steam','deck_call']; if(INTRO_TRACK)deckKeys.push(INTRO_TRACK); await Promise.all(['jet8','jet','ambient','aaaw','sub08',...deckKeys,...musicKeys,...bunk,...nbK,...sndK].map(k=>SB.get(k).catch(()=>null))); try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3);}catch(e){} const fk=flareChoice().key; if(fk)SB.get(fk).catch(()=>{}); try{for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)SB.get(c.key).catch(()=>{})}}catch(e){} prewarmAudio(); } prewarmGfx(); if(takingOff()){startDeckAmbience(); startIntroMusic()} else startMood(); running=true;last=performance.now(); if(practice==='fight')spawnBandit()}
 reset();
 if(DS_MODE==='game'){clock();drawMap();chat();addEventListener('resize',()=>{if(!$('brief').classList.contains('hide'))drawMap()});requestAnimationFrame(step)}
 
