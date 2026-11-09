@@ -11,3 +11,5 @@ All of these are original Innerscene models released CC0. No attribution is requ
 Meshopt decoder: meshoptimizer, MIT, vendored from three.js r170 examples.
 
 The player's own jet remains the F-35 already credited in `CREDITS.txt` (Sketchfab, non-commercial). It is not one of the new deck models.
+
+The escape fighter in s17 · 17d is the same CC0 F-15, `models/deck/f15.glb`, with the gear hidden. No second model was added.

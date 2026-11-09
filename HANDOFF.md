@@ -5,6 +5,14 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17d — mood off, and a real fighter
+
+Mood has an Off. It silences the valley synth, and that choice stays in the pick code, so a refresh, a retry, and a Home Screen launch that can read the code keep it off. The baked gun, bunker, flare, pass, impact, AAA, engine, and deck picks are unchanged. SAM and crash stay Current.
+
+The escape fighter is the CC0 F-15 already on the deck, gear up, with afterburner, heat haze, and wingtip trails. It slashes, climbs, and tries for the six. It warns before guns and before a missile. Flares spoil a shot when the player is tracking it. Ten hits bring smoke, then fire, then a falling wreck. The chase camera is unchanged and the gun still fires only while it is held.
+
+Stamp `s17 · 17d`.
+
 ## s17 · 17c — picks in the build, fighter in front
 
 The sound bank picks are the build defaults: Deep Report, Oil Rise, Pressure Hiss, Shells Overhead, Violent Hit, Fifty Cal, F-105 Whine, and Pier Bed. SAM launch and the crash stay on the sound-tester choice. Current on a row keeps that saved sound. Apply writes a pick code into the page, a cookie, and the address. The brief can paste a code, because an iPhone Home Screen icon does not share the sound page's storage. Empty storage still plays the baked picks.
@@ -121,4 +129,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17c. Shahbaz's sound picks are baked into the build, Oil Rise is the bunker detonation, and the fighter appears in front after the strike. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. No further combat stages.
+Current project checkpoint: DEEP STRIKE s17 · 17d. Mood Off silences the synth and persists. The escape fighter is the CC0 F-15. Baked sound picks are unchanged. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. Terrain multiplier, refuelling, fuel, and varied sorties wait until Shahbaz says Next.

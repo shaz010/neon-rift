@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17c'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17d'])[1];
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -564,7 +564,7 @@ function mixFlightAudio(rdt){if(!AC||!eng)return; const tt=AC.currentTime;
  const tense=S.th&&(S.th.anyTrk||S.th.anySrch);AC.mus.gain.setTargetAtTime(warnA?.45:1,tt,.15);
  const bedOn=!takingOff()&&BED!=='off';AC.amb.gain.setTargetAtTime(bedOn?(S.cine?.1:(warnA?.22:tense?.48:.4)):0,tt,takingOff()?.3:1.2);
  if(AC.deckJetG){const hold=takingOff()&&(S.phase==='deck'||S.phase==='signal'||S.phase==='cat'); const fade=takingOff()&&!hold; AC.deckJetG.gain.setTargetAtTime(hold?.1:fade?.03:0,tt,.35); AC.deckRotorG.gain.setTargetAtTime(hold?.15:fade?.04:0,tt,.35); if(CVN.heli&&AC.rotorPan){CVN.heli.updateWorldMatrix(true,false); const e=CVN.heli.matrixWorld.elements; setP(AC.rotorPan,{x:e[12],y:e[13],z:e[14]})} if(CVN.taxi&&AC.jetIdlePan){CVN.taxi.updateWorldMatrix(true,false); const e=CVN.taxi.matrixWorld.elements; setP(AC.jetIdlePan,{x:e[12],y:e[13],z:e[14]})}}
- const moodOn=musicChoice('mood')!=='current'&&!takingOff(); if(moodOn)AC.amb.gain.setTargetAtTime(0,tt,.4);
+ const moodId=musicChoice('mood'); const moodOn=moodId!=='current'&&moodId!=='off'&&!takingOff(); if(moodOn)AC.amb.gain.setTargetAtTime(0,tt,.4); if(moodId==='off'&&moodHandle)stopMood(true);
  const warn=S.missile&&!S.missile.decoy&&!S.missile.lost;trkG.gain.setTargetAtTime(!warn&&S.th&&S.th.anyTrk?.022:0,tt,.03);S.srchT-=rdt;if(S.th&&S.th.anySrch&&!S.th.anyTrk&&S.srchT<=0){S.srchT=1.3;blip(380,.09,.03,'sine')}
  {const md=warn?S.missile.p.distanceTo(S.pos):9e3,rate=warn?4+18*clamp(1-md/6000,0,1):8;S.wph=(S.wph||0)+rdt*rate;warnG.gain.setTargetAtTime(warn?((S.wph|0)%2?1:0):0,tt,.008);tone.frequency.setTargetAtTime(warn?((S.wph|0)%2?620:760+180*clamp(1-md/4000,0,1)):760,tt,.01)}
  const seek=S.phase==='ingress'&&bDist()<4500&&inBox()>0;seekG.gain.setTargetAtTime(seek?((S.t*5|0)%2?.022:0):S.phase==='release'?.016:0,tt,.015);seekG.o.frequency.setTargetAtTime(S.phase==='release'?700:520,tt,.02)}
@@ -811,7 +811,7 @@ const MUSIC_LV={intro:70,ending:75,mood:55};
 const MUSIC_PRE={
  intro:[['current','Deck only','No added music. Deck sounds stay.'],['i1','Kick Riser','Floating Frequency Kick Space Riser.'],['i2','Synth Riser','80s Synth FX Riser.'],['i3','Layers Under','Dream Space Layers with a quiet sub.'],['i4','Jet Arrival','Jet pass, then the kick riser.'],['random','Random','A different intro each sortie.']],
  ending:[['current','Space Dub','The mission-complete dub already in the game.'],['e1','Dub Lift','Deep Space Dub 02.'],['e2','Low Landing','Dub with Subsonic Boom 01 under it.'],['e3','Sun Down','Sun Up Impact, left long.'],['e4','Pound Close','Pound Down Impact.'],['e5','Back at It','Back at It Bass Impact, played once.'],['random','Random','A different ending each sortie.']],
- mood:[['current','Iron Veil','The valley bed already in the game.'],['m1','Dream Layers','Layers, then a Titan phrase that enters and leaves.'],['m2','Dub Bed','Dub, with a sub that rises and falls.'],['m3','Drift','Layers, then a slow sub that fades away.'],['m4','Rotation','In Rotation from its body, a tom hit, then the phrase returns.'],['m5','Hollow','A low sub, then a hollow boom.'],['m6','Aftershock','The pound hits, then the layers.'],['m7','Sun Under','Sun impact from its body, with a sub under it.'],['m8','Wide Pass','A jet pass, a low bed, then a second pass.'],['m9','Boomer Bed','A boomer swell, then the dub.'],['m10','Kick Space','A kick hit, then the riser underneath.'],['random','Random','A different bed each sortie.']]
+ mood:[['off','Off','No mood music. The synth layer stays silent. The valley bed is the separate bed switch.'],['current','Iron Veil','The valley bed already in the game. No added synth.'],['m1','Dream Layers','Layers, then a Titan phrase that enters and leaves.'],['m2','Dub Bed','Dub, with a sub that rises and falls.'],['m3','Drift','Layers, then a slow sub that fades away.'],['m4','Rotation','In Rotation from its body, a tom hit, then the phrase returns.'],['m5','Hollow','A low sub, then a hollow boom.'],['m6','Aftershock','The pound hits, then the layers.'],['m7','Sun Under','Sun impact from its body, with a sub under it.'],['m8','Wide Pass','A jet pass, a low bed, then a second pass.'],['m9','Boomer Bed','A boomer swell, then the dub.'],['m10','Kick Space','A kick hit, then the riser underneath.'],['random','Random','A different bed each sortie.']]
 };
 const MUSIC_LAY={
  i1:[{k:'lx_riser',v:.62,fade:1.2}], i2:[{k:'lx_80s',v:.55,fade:1}], i3:[{k:'lx_layers',v:.42,loop:1,fade:1.6},{k:'lx_sub08',v:.16,loop:1,fade:2.4}], i4:[{k:'lx_jet1',v:.4,fade:.2},{k:'lx_riser',v:.38,d:.3,fade:1.2}],
@@ -830,7 +830,8 @@ const MUSIC_LAY={
 const MUSIC_SPAN={m1:34,m2:26,m3:32,m4:26,m5:12,m6:16,m7:14,m8:8,m9:14,m10:12};
 function musicChoice(cat){let id=MUSIC_DEF[cat]; try{const s=localStorage['ds16_'+cat]; if(s)id=s}catch(e){} return MUSIC_PRE[cat].some(x=>x[0]===id)?id:MUSIC_DEF[cat]}
 function musicLevel(cat){let v=MUSIC_LV[cat]; try{const s=localStorage['ds16_lv_'+cat]; if(s!=null&&s!=='')v=+s}catch(e){} return Math.min(100,Math.max(0,v))/100}
-function resolveMusic(cat){const id=musicChoice(cat); if(id!=='random')return id; if(musicRoll[cat])return musicRoll[cat]; const opts=MUSIC_PRE[cat].map(x=>x[0]).filter(x=>x!=='current'&&x!=='random'); let i=Math.floor(Math.random()*opts.length); if(opts[i]===musicRoll.prev)i=(i+1)%opts.length; musicRoll[cat]=opts[i]; musicRoll.prev=opts[i]; return opts[i]}
+function rememberMusic(cat,id){try{localStorage['ds16_'+cat]=id}catch(e){} musicRoll[cat]=null; try{writePickStores(pickCode())}catch(e){}}
+function resolveMusic(cat){const id=musicChoice(cat); if(id!=='random')return id; if(musicRoll[cat])return musicRoll[cat]; const opts=MUSIC_PRE[cat].map(x=>x[0]).filter(x=>x!=='current'&&x!=='random'&&x!=='off'); let i=Math.floor(Math.random()*opts.length); if(opts[i]===musicRoll.prev)i=(i+1)%opts.length; musicRoll[cat]=opts[i]; musicRoll.prev=opts[i]; return opts[i]}
 function spawnLayers(spec, dest, level){const nodes=[]; const t0=AC.currentTime;
  for(const layer of spec){const buf=SB[layer.k]; if(!buf){SB.get(layer.k); continue} const s=AC.createBufferSource(); s.buffer=buf; s.loop=!!layer.loop; const off=Math.min(layer.off||0, Math.max(0,buf.duration-.05)); if(layer.loop&&off>0){s.loopStart=off; s.loopEnd=Math.max(off+.25, buf.duration-.03)} const g=AC.createGain(); const t=t0+(layer.d||0); const peak=Math.max(.0008,(layer.v||.4)*level); const fade=Math.max(.04,layer.fade!=null?layer.fade:.8); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+fade); const hold=layer.hold||0, decay=layer.decay||0; if(hold||decay){ if(hold)g.gain.setValueAtTime(peak,t+fade+hold); if(decay)g.gain.exponentialRampToValueAtTime(.0008,t+fade+hold+decay); if(!layer.loop){try{s.stop(t+fade+hold+decay+.06)}catch(e){}} } s.connect(g).connect(dest); try{s.start(t, off)}catch(e){} nodes.push({s,g}); sfxLog('music',{k:layer.k,d:layer.d||0,off,fade:+fade.toFixed(2),v:+peak.toFixed(3)})}
  if(!nodes.length)return null;
@@ -843,9 +844,9 @@ function playLayers(id, dest, level){return playMusic(id, dest, level)}
 function startIntroMusic(){if(!AC||!takingOff())return; if(INTRO_TRACK){if(introS)return; const token=++introTok; const arm=buf=>{if(token!==introTok||!buf||introS||!takingOff())return; introS=plainLoop(buf,.18*musicLevel('intro'),AC.introG,{tag:'intro'})}; if(SB[INTRO_TRACK])arm(SB[INTRO_TRACK]); else SB.get(INTRO_TRACK).then(arm); return}
  const id=resolveMusic('intro'); if(id==='current')return; if(introHandle)return; const go=()=>{if(introHandle||!takingOff())return; introHandle=playMusic(id,AC.introG,musicLevel('intro'))}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
 function stopIntroMusic(){introTok++; if(introS){try{introS.stop()}catch(e){} introS=null} if(introHandle){try{introHandle.stop()}catch(e){} introHandle=null}}
-function startMood(){if(!AC||takingOff())return; const id=resolveMusic('mood'); if(id==='current'){if(moodHandle){moodHandle.stop(); moodHandle=null} if(AC.moodG)AC.moodG.gain.setTargetAtTime(0,AC.currentTime,.2); return}
- if(moodHandle)return; const go=()=>{if(moodHandle||takingOff())return; if(AC.moodG)AC.moodG.gain.setTargetAtTime(1,AC.currentTime,.3); moodHandle=playMusic(id,AC.moodG,musicLevel('mood'))}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
-function stopMood(){if(moodHandle){try{moodHandle.stop()}catch(e){} moodHandle=null} if(AC&&AC.moodG)AC.moodG.gain.setTargetAtTime(0,AC.currentTime,.2)}
+function startMood(){if(!AC||takingOff())return; const id=resolveMusic('mood'); if(id==='off'||id==='current'||musicLevel('mood')<=0.001){stopMood(true); return}
+ if(moodHandle&&moodHandle.id===id)return; stopMood(false); const go=()=>{if(takingOff())return; const now=musicChoice('mood'); if(now==='off'||now==='current'||musicLevel('mood')<=0.001){stopMood(true); return} if(AC.moodG)AC.moodG.gain.setTargetAtTime(1,AC.currentTime,.3); moodHandle=playMusic(id,AC.moodG,musicLevel('mood')); if(moodHandle)moodHandle.id=id; sfxLog('mood',{id})}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
+function stopMood(fast){if(moodHandle){try{moodHandle.stop(fast?0.08:1.2)}catch(e){} moodHandle=null} if(AC&&AC.moodG){const t=AC.currentTime; AC.moodG.gain.cancelScheduledValues(t); if(fast)AC.moodG.gain.setValueAtTime(0,t); else AC.moodG.gain.setTargetAtTime(0,t,.2)}}
 function playEnding(){if(!AC)return; const id=resolveMusic('ending'); if(id==='current'){SB.get(BRIEF_TRACK).then(b=>{if(!b||running)return; stopWin(); winSrc=src(b,0,AC.musB,{loop:true}); winSrc.g.gain.setValueAtTime(0,AC.currentTime); winSrc.g.gain.linearRampToValueAtTime(.5*musicLevel('ending')/.75,AC.currentTime+1.2)}); return}
  const go=()=>{if(running)return; if(endHandle)endHandle.stop(); endHandle=playMusic(id,AC.musB,musicLevel('ending'))}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
 let deckJet=null, deckRotor=null;
@@ -1004,7 +1005,7 @@ function doBreak(){if(S.dead||S.cine||S.brkCD>0||S.phase==='done')return;S.brkCD
  if(m&&!m.decoy&&!m.lost){const d=m.p.distanceTo(S.pos),w=S.samShots<=1?1500:1100;if(d<w&&d>220){m.lost=true;m.over=1;defeat(m,'BREAK! MISSILE OVERSHOOT')}else msg(d>=w?'BREAK TOO EARLY — WAIT <'+(w/1000).toFixed(1)+' KM':'TOO LATE')}}
 function doECM(){if(S.dead||S.ecmCD>0||S.ecmN<=0||S.phase==='done')return;S.ecmN--;S.ecmCD=12;S.ecm=4;if(AC){for(let k=0;k<6;k++)blip(k%2?340:300,.12,.05);nburst(AC.out,.08,900,1.2)}
  const m=S.missile;if(m&&!m.decoy&&!m.lost){const d=m.p.distanceTo(S.pos);if(d>1600){m.lost=true;defeat(m,'ECM — MISSILE SEEKER JAMMED')}else msg('ECM ON — TOO CLOSE TO JAM, FLARE/BREAK')}else msg('ECM JAMMING — RADARS BLINDED 4 S')}
-function fireFlares(){if(S.flares<=0||S.flareCD>0||S.dead||S.phase==='done')return;S.flares--;S.flareCD=1;
+function fireFlares(){if(S.flares<=0||S.flareCD>0||S.dead||S.phase==='done')return;S.flares--;S.flareCD=1;S.flareT=2.4;
  for(let i=0;i<8;i++){const v=new THREE.Vector3(rnd(22),-8-Math.random()*18,rnd(22)).add(fwd.clone().multiplyScalar(-42));spr(S.pos,0xffe8b0,6,3.4,v,{g:7,fog:false,add:true,tex:glowTex,must:1,grow:4});spr(S.pos,0xc8c4bc,4,5.5,v.clone().multiplyScalar(.55),{grow:14,o:.55,drag:.25,must:1,fadeIn:.08,c1:new THREE.Color(0x6a6660)});spr(S.pos,0x9a968e,3,7,v.clone().multiplyScalar(.35),{grow:18,o:.4,drag:.35,must:1,fadeIn:.15})}
  flareSfx();
  const m=S.missile;if(m&&!m.decoy){const d=m.p.distanceTo(S.pos);if(d<flrWin()){m.decoy=S.pos.clone();m.decoyV=fwd.clone().multiplyScalar(-30);m.dt=1.3;defeat(m,'MISSILE DECOYED')}else msg('FLARE EARLY — WAIT FOR <'+(flrWin()/1000).toFixed(1)+' KM')}}
@@ -1185,7 +1186,7 @@ function killSite(i){const s=S.sites[i];if(!s||s.dead)return;s.dead=1;s.st='off'
 function updRounds(rdt){for(let i=rounds.length-1;i>=0;i--){const r=rounds[i];r.px=r.p.x;r.py=r.p.y;r.pz=r.p.z;r.p.addScaledVector(r.v,rdt);r.life-=rdt;if(r.m){r.m.visible=true;r.m.position.copy(r.p)}
   let hit=false;const m=S.missile;if(m&&segNear(r.px,r.py,r.pz,r.p.x,r.p.y,r.p.z,m.p.x,m.p.y,m.p.z)<MSL_HIT){splashMissile(m);hit=true}
   if(!hit){for(let k=0;k<SITES.length;k++){if(S.sites[k].dead)continue;const P=SITES[k].p;if(segNear(r.px,r.py,r.pz,r.p.x,r.p.y,r.p.z,P.x,P.y+5,P.z)<SITE_HIT){killSite(k);hit=true;break}}}
-  if(!hit&&S.bandit&&!S.bandit.dead&&segNear(r.px,r.py,r.pz,r.p.x,r.p.y,r.p.z,S.bandit.p.x,S.bandit.p.y,S.bandit.p.z)<48){hitBandit();hit=true}
+  if(!hit&&S.bandit&&!S.bandit.dead&&!(S.bandit.flare>0)&&segNear(r.px,r.py,r.pz,r.p.x,r.p.y,r.p.z,S.bandit.p.x,S.bandit.p.y,S.bandit.p.z)<40){hitBandit();hit=true}
   if(hit||r.life<=0||r.p.y<H(r.p.x,r.p.z)){if(r.m)r.m.visible=false;rounds.splice(i,1)}}}
 function siteInBox(p){const s=scr(p);if(!s)return 0;const bw=innerWidth*.16,bh=innerHeight*.2,cx=innerWidth/2,cy=innerHeight*.5;const dx=Math.abs(s.x-cx)/bw,dy=Math.abs(s.y-cy)/bh;return dx<1&&dy<1?1-Math.max(dx,dy):0}
 function aimSite(){if(!S||S.iron<=0||S.phase!=='ingress'||S.cine||S.ironBomb)return -1;let best=-1,sc=0;for(let i=0;i<SITES.length;i++){if(S.sites[i].dead)continue;const d=S.pos.distanceTo(SITES[i].p);if(d<700||d>4200)continue;const q=siteInBox(SITES[i].p);if(q>sc){sc=q;best=i}}return best}
@@ -1196,41 +1197,68 @@ function lockSite(){let best=-1,t=-1;for(let i=0;i<SITES.length;i++){const s=S.s
 let endTimer=0;
 let banditMesh=null;
 const _bd=new THREE.Vector3(), _bf=new THREE.Vector3(), _lead=new THREE.Vector3();
-function ensureBanditMesh(){if(banditMesh)return banditMesh; const g=new THREE.Group(); const mat=new THREE.MeshStandardMaterial({color:0xd5dee8,metalness:.2,roughness:.48,emissive:0x243040,emissiveIntensity:.7,fog:false});
- const fuse=new THREE.Mesh(new THREE.BoxGeometry(1.7,1.15,9.5),mat);
- const wing=new THREE.Mesh(new THREE.BoxGeometry(11.5,.22,2.4),mat); wing.position.z=.2;
- const tail=new THREE.Mesh(new THREE.BoxGeometry(4.4,.18,1.3),mat); tail.position.set(0,.15,3.6);
- const fin=new THREE.Mesh(new THREE.BoxGeometry(.18,2.2,1.5),mat); fin.position.set(0,1.2,3.8);
- const noseC=new THREE.Mesh(new THREE.ConeGeometry(.62,2.4,8),mat); noseC.rotation.x=Math.PI/2; noseC.position.z=-5.6;
- const canopy=new THREE.Mesh(new THREE.BoxGeometry(.72,.42,1.7), new THREE.MeshStandardMaterial({color:0xb9dcff,emissive:0x2a4a66,emissiveIntensity:.9,roughness:.15,metalness:.05,fog:false})); canopy.position.set(0,.72,-1.1);
- const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xff9944,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})); glow.scale.set(2.6,2.6,1); glow.position.z=5.2;
- g.add(fuse,wing,tail,fin,noseC,canopy,glow); g.scale.setScalar(4.6); g.visible=false; scene.add(g); return banditMesh=g}
+function radio(line){msg(line); sfxLog('radio',{line}); if(AC){const t=AC.currentTime,n=AC.createBufferSource(); n.buffer=noiseBuf(.1); const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1500; f.Q.value=1.2; const g=AC.createGain(); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(.035,t+.012); g.gain.exponentialRampToValueAtTime(.0008,t+.08); n.connect(f).connect(g).connect(AC.tone||AC.out); try{n.start(t); n.stop(t+.09)}catch(e){}} try{ if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(line); u.rate=1.02; u.pitch=.8; u.volume=.85; speechSynthesis.cancel(); speechSynthesis.speak(u)} }catch(e){}}
+function ensureBanditMesh(){if(banditMesh)return banditMesh; const g=new THREE.Group(); g.name='bandit'; g.visible=false; g.scale.setScalar(2.4); scene.add(g); banditMesh=g;
+ import('./vendor/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>{ const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+  loader.load('models/deck/f15.glb', gl=>{ const m=gl.scene; m.rotation.y=Math.PI; m.traverse(o=>{ if(!o.isMesh)return; const n=o.name||''; if(/Landing_Gear|Tires/i.test(n)){o.visible=false; return} o.castShadow=true; o.receiveShadow=true; const mats=[].concat(o.material||[]); mats.forEach(mt=>{ if(mt&&mt.isMeshStandardMaterial){mt.envMapIntensity=Math.max(mt.envMapIntensity||1,1.35); mt.roughness=Math.min(mt.roughness??.45,.48); mt.emissive=mt.emissive||new THREE.Color(); mt.emissive.setHex(0x2a3138); mt.emissiveIntensity=.45} }); }); g.add(m);
+   const glowMat=c=>new THREE.SpriteMaterial({map:glowTex,color:c,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false});
+   const abL=new THREE.Sprite(glowMat(0xff6a1a)); abL.position.set(1.15,1.95,-9.3); abL.scale.set(3.2,1.4,1); const abR=new THREE.Sprite(glowMat(0xff6a1a)); abR.position.set(-1.15,1.95,-9.3); abR.scale.set(3.2,1.4,1); m.add(abL,abR);
+   const hot=new THREE.PointLight(0xff6a22,6,36,2); hot.position.set(0,1.9,-10.4); m.add(hot);
+   const shimMat=()=>new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,uniforms:{t:{value:0}},vertexShader:'varying vec2 u;void main(){u=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform float t;varying vec2 u;void main(){vec2 p=u-.5;float r=length(p);float n=sin(p.x*28.+t*16.)*sin(p.y*24.-t*12.);float a=smoothstep(.5,.04,r)*(.07+.05*n);gl_FragColor=vec4(1.,.5,.2,a);}'});
+   const s1=new THREE.Mesh(new THREE.PlaneGeometry(2.2,2.2),shimMat()); s1.position.set(1.15,1.95,-10.6); const s2=new THREE.Mesh(new THREE.PlaneGeometry(2.2,2.2),shimMat()); s2.position.set(-1.15,1.95,-10.6); m.add(s1,s2);
+   g.userData.model=m; g.userData.ab=[abL,abR]; g.userData.hot=hot; g.userData.shim=[s1,s2]; g.userData.real=1;
+  }, undefined, e=>console.warn('bandit',e));
+ }); return g}
 function spawnBandit(){ensureBanditMesh(); nose(); const side=new THREE.Vector3(fwd.z,0,-fwd.x); if(side.lengthSq()<1e-4)side.set(1,0,0); side.normalize();
- const p=S.pos.clone().addScaledVector(fwd,460).addScaledVector(side,70); p.y=Math.max(H(p.x,p.z)+80,S.pos.y+38);
- S.bandit={p,yaw:S.yaw,pitch:0,roll:0,hp:6,state:'front',timer:7.5,warnYaw:S.yaw,spoiled:0,dead:0,weave:0,spd:270};
- banditMesh.visible=true; msg('BANDIT — ON THE NOSE')}
-function banditSpoiled(b){const dy=Math.abs(Math.atan2(Math.sin(S.yaw-b.warnYaw),Math.cos(S.yaw-b.warnYaw))); return S.brk>0||dy>.34||Math.abs(S.pitch)>.28}
-function hitBandit(){const b=S.bandit; if(!b||b.dead)return; b.hp--; spr(b.p,0xffe2a8,10,.22,null,{add:true,tex:glowTex,fog:false,must:1});
- if(b.hp<=0){b.dead=1;b.timer=0;fire(b.p,1.15);boomSfx(false,b.p);if(banditMesh)banditMesh.visible=false;msg('BANDIT DESTROYED — EGRESS')}
+ const p=S.pos.clone().addScaledVector(fwd,190).addScaledVector(side,110); p.y=Math.max(H(p.x,p.z)+70,S.pos.y+42);
+ S.bandit={p,yaw:S.yaw+1.15,pitch:.05,roll:.35,hp:10,state:'slash',timer:2.4,warnYaw:S.yaw,spoiled:0,dead:0,weave:0,spd:240,flare:0,flareCD:2,aimT:0,passes:0,msl:null,breakSide:'LEFT',trailT:0};
+ banditMesh.visible=true; radio('Bandit, twelve o\'clock')}
+function banditSpoiled(b){const dy=Math.abs(Math.atan2(Math.sin(S.yaw-b.warnYaw),Math.cos(S.yaw-b.warnYaw))); return S.brk>0||(S.flareT||0)>0||dy>.7}
+function hitBandit(){const b=S.bandit; if(!b||b.dead)return; b.hp--; spr(b.p,0xffe2a8,14,.28,null,{add:true,tex:glowTex,fog:false,must:1});
+ if(b.hp<=0){b.dead=1; b.timer=0; b.msl=null; fire(b.p,1.35); boomSfx(false,b.p); for(let i=0;i<10;i++){const m=new THREE.Mesh(debG,debM); const sz=.5+Math.random()*1.6; m.scale.setScalar(sz); m.position.copy(b.p); scene.add(m); debris.push({m,v:new THREE.Vector3(rnd(40),20+Math.random()*50,rnd(40)),r:new THREE.Vector3(Math.random()*4,Math.random()*4,0)})} radio('Splash one')}
  else msg('BANDIT HIT  '+b.hp)}
 function updBandit(rdt){if(!S||S.dead||S.phase!=='egress')return; if(!S.bandit){if(S.boomT>8&&!S.cine)spawnBandit(); return} const b=S.bandit;
- if(b.dead){b.timer+=rdt; return}
+ if(b.dead){b.timer+=rdt; b.pitch=Math.max(-1.15,(b.pitch||0)-rdt*.45); b.roll+=(b.roll>0?1:-1)*rdt*.35;
+  _bf.set(-Math.sin(b.yaw)*Math.cos(b.pitch),Math.sin(b.pitch),-Math.cos(b.yaw)*Math.cos(b.pitch)); b.p.addScaledVector(_bf,70*rdt); b.p.y-=(30+b.timer*40)*rdt;
+  const floor=H(b.p.x,b.p.z)+4; if(b.p.y<floor){b.p.y=floor; if(!b.impact){b.impact=1; fire(b.p,1.5); boomSfx(false,b.p)}}
+  if(Math.random()<.65)spr(b.p,0x2a2622,6,2.4,new THREE.Vector3(rnd(6),8,rnd(6)),{grow:14,o:.8,must:1}); if(Math.random()<.45)spr(b.p,0xff6a20,3.2,.3,null,{add:true,tex:glowTex,fog:false});
+  if(banditMesh){banditMesh.visible=b.timer<9; banditMesh.position.copy(b.p); banditMesh.lookAt(_bd.copy(b.p).add(_bf)); banditMesh.rotateZ(b.roll)} return}
  nose(); const side=new THREE.Vector3(fwd.z,0,-fwd.x); if(side.lengthSq()<1e-4)side.set(1,0,0); side.normalize();
- b.weave=(b.weave||0)+rdt; const slide=Math.sin(b.weave*.85)*(b.state==='burst'?40:150);
- const aim=S.pos.clone().addScaledVector(fwd,b.state==='burst'?280:500).addScaledVector(side,slide); aim.y=Math.max(H(aim.x,aim.z)+70,S.pos.y+(b.state==='burst'?18:36));
+ b.weave=(b.weave||0)+rdt; b.flare=Math.max(0,(b.flare||0)-rdt); b.flareCD=Math.max(0,(b.flareCD||0)-rdt);
+ const rel0=_bd.copy(b.p).sub(S.pos); const dist0=rel0.length()||1; const aimDot=(fwd.x*rel0.x+fwd.y*rel0.y+fwd.z*rel0.z)/dist0;
+ if(aimDot>.975&&dist0<850)b.aimT=(b.aimT||0)+rdt; else b.aimT=Math.max(0,(b.aimT||0)-rdt);
+ if(b.aimT>.55&&b.flareCD<=0){b.flare=.8; b.flareCD=6; b.aimT=0; msg('BANDIT FLARES'); for(let i=0;i<6;i++)spr(b.p.clone().addScaledVector(_bf.set(-Math.sin(b.yaw),0,-Math.cos(b.yaw)),-8),0xffe6b0,4,2.2,new THREE.Vector3(rnd(18),-4,rnd(18)),{add:true,tex:glowTex,fog:false,grow:10,must:1})}
+ let aim, spd=280, turn=1.6;
+ if(b.state==='slash'){aim=S.pos.clone().addScaledVector(fwd,210).addScaledVector(side,Math.sin(b.weave*.85)*240); aim.y=Math.max(H(aim.x,aim.z)+60,S.pos.y+32); spd=240}
+ else if(b.state==='climb'){const up=b.passes%2?120:-70; aim=S.pos.clone().addScaledVector(fwd,160).addScaledVector(side,70); aim.y=Math.max(H(aim.x,aim.z)+80,S.pos.y+up); spd=250; turn=1.9}
+ else if(b.state==='six'){aim=S.pos.clone().addScaledVector(fwd,-150); aim.y=S.pos.y+16; spd=340; turn=2.15}
+ else if(b.state==='guns'){aim=S.pos.clone().addScaledVector(fwd,-70); aim.y=S.pos.y+8; spd=300; turn=1.7}
+ else {aim=S.pos.clone().addScaledVector(fwd,220).addScaledVector(side,Math.sin(b.weave)*90); aim.y=S.pos.y+36; spd=270}
  const to=_bd.copy(aim).sub(b.p), distAim=to.length()||1; const want=Math.atan2(-to.x,-to.z); let dyaw=Math.atan2(Math.sin(want-b.yaw),Math.cos(want-b.yaw));
- const turn=1.45; b.yaw+=clamp(dyaw,-turn*rdt,turn*rdt); const wantP=clamp(to.y/distAim,-.22,.4); b.pitch+=(wantP-b.pitch)*clamp(rdt*1.7,0,1); b.roll=clamp(-dyaw*1.15,-.6,.6);
- const spd=b.state==='burst'?250:270; b.spd=spd;
+ b.yaw+=clamp(dyaw,-turn*rdt,turn*rdt); const wantP=clamp(to.y/distAim,-.45,.55); b.pitch+=(wantP-b.pitch)*clamp(rdt*1.8,0,1); b.roll=clamp(-dyaw*1.3,-.9,.9); b.spd=spd;
  _bf.set(-Math.sin(b.yaw)*Math.cos(b.pitch),Math.sin(b.pitch),-Math.cos(b.yaw)*Math.cos(b.pitch));
- b.p.addScaledVector(_bf,spd*rdt); const floor=H(b.p.x,b.p.z)+55; if(b.p.y<floor)b.p.y=floor;
- b.timer-=rdt; const rel=_bd.copy(b.p).sub(S.pos); const ahead=fwd.x*rel.x+fwd.z*rel.z; const dist=rel.length()||1;
- if(b.state==='front'){ if(b.timer<=0){b.state='setup';b.timer=1.45;b.warnYaw=S.yaw;b.spoiled=0;msg('BANDIT GUNS — BREAK');blip(480,.16,.18)} }
- else if(b.state==='setup'){ if(banditSpoiled(b))b.spoiled=1; if(b.timer<=0){b.state='burst';b.timer=.75; if(!b.spoiled)aaaBurst(b.p.clone())} }
- else if(b.state==='burst'){ if(banditSpoiled(b))b.spoiled=1;
-  if(Math.random()<.65){const shot=S.pos.clone().addScaledVector(nose(),b.spoiled?220:40); const dir=shot.sub(b.p).normalize().multiplyScalar(980); spr(b.p.clone(),0xffb060,2.4,.16,dir,{add:true,tex:glowTex,fog:false,must:1})}
-  if(b.timer<=0){ if(!b.spoiled&&dist<1100&&ahead>-160){S.hp--;nightKick(.12);S.shake=Math.max(S.shake,.55); if(S.hp>0){fire(S.pos.clone().addScaledVector(nose(),-8),.28);msg('HIT — BANDIT GUNS')} else {fire(S.pos,.85);die('SHOT DOWN — BANDIT');return}} else if(b.spoiled)msg('BREAK — GUNS MISS'); b.state='front'; b.timer=6.2 } }
- if(banditMesh){banditMesh.visible=true; banditMesh.position.copy(b.p); _bf.set(-Math.sin(b.yaw)*Math.cos(b.pitch),Math.sin(b.pitch),-Math.cos(b.yaw)*Math.cos(b.pitch)); banditMesh.lookAt(_bd.copy(b.p).add(_bf)); banditMesh.rotateZ(b.roll)}}
+ b.p.addScaledVector(_bf,spd*rdt); const floor=H(b.p.x,b.p.z)+48; if(b.p.y<floor)b.p.y=floor; if(b.p.y>S.pos.y+420)b.p.y=S.pos.y+420;
+ b.timer-=rdt; const rel=_bd.copy(b.p).sub(S.pos); const ahead=fwd.x*rel.x+fwd.z*rel.z; const dist=rel.length()||1; const behind=ahead<-30;
+ b.breakSide=(side.x*rel.x+side.z*rel.z)>0?'LEFT':'RIGHT';
+ if(b.state==='slash'){ if(b.timer<=0){ b.passes=(b.passes||0)+1; if(b.passes%3===0){b.state='lock'; b.timer=1.55; b._called=0; radio('Missile, missile'); lockTone()} else {b.state='climb'; b.timer=1.7} } }
+ else if(b.state==='climb'){ if(b.timer<=0){b.state='six'; b.timer=3.1; b.warnYaw=S.yaw; b.spoiled=0; b._called=0; radio('Bandit on your six')} }
+ else if(b.state==='six'){ if(banditSpoiled(b)){b.spoiled=1; radio('Break '+b.breakSide.toLowerCase()); b.state='slash'; b.timer=3.4} else if(b.timer<=0){ if(behind){b.state='guns'; b.timer=1.15; b._called=0; radio('Break '+b.breakSide.toLowerCase()); blip(480,.16,.2)} else {b.state='slash'; b.timer=3.2} } }
+ else if(b.state==='guns'){ if(banditSpoiled(b))b.spoiled=1; if(Math.random()<.7){const shot=S.pos.clone().addScaledVector(nose(),b.spoiled?240:24); const dir=shot.sub(b.p).normalize().multiplyScalar(1100); spr(b.p.clone(),0xffb060,2.2,.14,dir,{add:true,tex:glowTex,fog:false,must:1})}
+  if(b.timer<=0){ if(!b.spoiled&&dist<900&&behind){S.hp--; nightKick(.14); S.shake=Math.max(S.shake,.6); if(S.hp>0){fire(S.pos.clone().addScaledVector(nose(),-8),.32); msg('HIT — BANDIT GUNS')} else {fire(S.pos,.9); die('SHOT DOWN — BANDIT'); return}} else if(b.spoiled)msg('BREAK — GUNS MISS'); b.state='slash'; b.timer=3.6 } }
+ else if(b.state==='lock'){ if(!b._called)b._called=1; if(b.timer<=0){ b.msl={p:b.p.clone(), v:_bf.clone().multiplyScalar(220), life:6.5, spoiled:0}; b.state='missile'; b.timer=5; msg('MISSILE, MISSILE') } }
+ else if(b.state==='missile'){ if(b.timer<=0&&!b.msl){b.state='slash'; b.timer=3.2} }
+ const ms=b.msl; if(ms){ ms.life-=rdt; const tp=S.pos.clone().sub(ms.p); const md=tp.length()||1; const wantV=tp.multiplyScalar(1/md).multiplyScalar(ms.spoiled?160:460); ms.v.lerp(wantV,clamp(rdt*2.4,0,1)); if(ms.spoiled)ms.v.y-=50*rdt; ms.p.addScaledVector(ms.v,rdt); spr(ms.p,0xffd090,2.4,.12,null,{add:true,tex:glowTex,fog:false,must:1}); if((S.flareT||0)>0||S.brk>0)ms.spoiled=1;
+  if(!ms.spoiled&&md<58){b.msl=null; S.hp--; nightKick(.16); S.shake=Math.max(S.shake,.7); if(S.hp>0){fire(S.pos,.4); msg('HIT — BANDIT MISSILE')} else {fire(S.pos,.9); die('SHOT DOWN — BANDIT MISSILE'); return}}
+  else if(ms.life<=0||ms.p.y<H(ms.p.x,ms.p.z)+6){b.msl=null; msg(ms.spoiled?'MISSILE — FLARES':'MISSILE — WIDE'); if(b.state==='missile'){b.state='slash'; b.timer=3.2}} }
+ if(b.hp<=6&&Math.random()<.5)spr(b.p,0x2c2926,5,2.2,new THREE.Vector3(rnd(4),3,rnd(4)),{grow:10,o:.7,must:1});
+ if(b.hp<=3&&Math.random()<.55)spr(b.p,0xff5a18,2.8,.28,null,{add:true,tex:glowTex,fog:false,must:1});
+ if(banditMesh){banditMesh.visible=true; banditMesh.position.copy(b.p); _bf.set(-Math.sin(b.yaw)*Math.cos(b.pitch),Math.sin(b.pitch),-Math.cos(b.yaw)*Math.cos(b.pitch)); banditMesh.lookAt(_bd.copy(b.p).add(_bf)); banditMesh.rotateZ(b.roll);
+  const ab=banditMesh.userData.ab, boost=b.state==='six'||b.state==='climb'||b.state==='slash'; if(ab)ab.forEach(s=>s.scale.set(boost?4.2:2.2,boost?1.7:1,1)); if(banditMesh.userData.hot)banditMesh.userData.hot.intensity=boost?14:4; const sh=banditMesh.userData.shim; if(sh){const tt=performance.now()*.001; sh.forEach(s=>{if(s.material.uniforms)s.material.uniforms.t.value=tt})}
+  b.trailT-=rdt; if(b.trailT<=0&&banditMesh.userData.model){b.trailT=.08; for(const sx of[-6.4,6.4]){const w=_lead.set(sx,1.4,-.6); banditMesh.userData.model.localToWorld(w); spr(w.clone(),0xdfe6ee,1.5,1.6,new THREE.Vector3(0,.3,0),{grow:7,o:.28,drag:.15,must:1})}} }}
 window.__bandit=()=>S&&S.bandit;
+window.__banditReady=()=>!!(banditMesh&&banditMesh.userData.real);
+window.__mood=()=>({id:musicChoice('mood'),live:!!moodHandle,g:AC&&AC.moodG?+AC.moodG.gain.value.toFixed(4):0});
+if(DS_MODE==='game')ensureBanditMesh();
 function die(why){if(S.dead)return;if(takingOff())return;valleyRespawn=true;S.dead=why;crashSfx();fire(S.pos,.9);jet.visible=false;releaseControls();clearTimeout(endTimer);endTimer=setTimeout(()=>{if(S&&S.dead)showEnd(false)},1800)}
 function fire(at,sc){for(let i=0;i<14;i++)spr(tmp.copy(at).add(new THREE.Vector3(rnd(20*sc),rnd(10*sc),rnd(20*sc))),0xffb060,40*sc,1+Math.random()*.8,new THREE.Vector3(rnd(30*sc),20*sc+Math.random()*40*sc,rnd(30*sc)),{add:true,grow:60*sc,fog:false,c1:new THREE.Color(0x902800)});
  for(let i=0;i<10;i++)spr(at,0x1e1b19,40*sc,4+Math.random()*3,new THREE.Vector3(rnd(15*sc),15*sc+Math.random()*25*sc,rnd(15*sc)),{grow:40*sc,o:.85,fadeIn:.4})}
@@ -1328,7 +1356,7 @@ function update(rdt){
  if(!S.cine&&bunker.visible&&bDist()<6500){S.aaaS-=rdt;if(S.aaaS<=0){S.aaaS=.7+Math.random()*.6;aaaBurst(tmp.copy(BUNK).add(new THREE.Vector3(Math.random()<.5?-60:55,4,0)).clone())}
   if(bDist()<4500){S.flakT-=rdt;if(S.flakT<=0){S.flakT=(MOB?1.6:1.2)+Math.random();const P=S.pos.clone().addScaledVector(fwd,150+Math.random()*350).add(new THREE.Vector3(rnd(220),40+Math.random()*160,rnd(220)));
    spr(P,0xfff0c0,30,.2,null,{add:true,tex:glowTex,fog:false,grow:80,must:1});for(let k=0;k<(MOB?4:7);k++)spr(P,0x1c1a18,14,3+Math.random()*2,new THREE.Vector3(rnd(14),rnd(10),rnd(14)),{grow:12,o:.85,drag:.6,must:1});flakBoom(P);const fd=P.distanceTo(S.pos);if(fd<260)S.shake=Math.max(S.shake,.5*(1-fd/260))}}}
- updParts(dt);S.flareCD=Math.max(0,S.flareCD-rdt);if(S.msgT>0)S.msgT-=rdt;S.shake=Math.max(0,S.shake-rdt);radDish.rotation.y+=dt*.8;
+ updParts(dt);S.flareCD=Math.max(0,S.flareCD-rdt);S.flareT=Math.max(0,(S.flareT||0)-rdt);if(S.msgT>0)S.msgT-=rdt;S.shake=Math.max(0,S.shake-rdt);radDish.rotation.y+=dt*.8;
  updBandit(rdt);
  if(S.phase==='egress'&&S.boomT>2&&S.pos.distanceTo(EXIT)<700){if(S.bandit&&!S.bandit.dead){if(!S._exHold){S._exHold=1;msg('BANDIT STILL UP — CANNOT EXFIL')}}else{S.phase='done';showEnd(true)}}
  if(S.pos.z<EXZ-900&&S.phase!=='egress'&&S.phase!=='done')die('LEFT THE AO');
@@ -1405,7 +1433,8 @@ function tagBox(p,label,c,sz=14){const s=scr(p);if(!s||s.x<0||s.x>W||s.y<0||s.y>
 function drawBanditHud(cx){const b=S.bandit; if(!b||b.dead)return; const bp=b.p, bs=scr(bp), bon=bs&&bs.x>8&&bs.x<W-8&&bs.y>8&&bs.y<Hh-8;
  if(bon){tagBox(bp,'BANDIT','rgba(255,170,120,1)',30); const tof=Math.max(.08,S.pos.distanceTo(bp)/1800); _lead.set(-Math.sin(b.yaw)*Math.cos(b.pitch||0),Math.sin(b.pitch||0),-Math.cos(b.yaw)*Math.cos(b.pitch||0)).multiplyScalar((b.spd||250)*tof).add(bp); const ls=scr(_lead); if(ls&&ls.x>4&&ls.x<W-4&&ls.y>4&&ls.y<Hh-4){hx.strokeStyle='rgba(255,230,170,1)'; hx.lineWidth=2; hx.strokeRect(ls.x-8,ls.y-8,16,16); hx.beginPath(); hx.moveTo(ls.x-16,ls.y); hx.lineTo(ls.x-8,ls.y); hx.moveTo(ls.x+8,ls.y); hx.lineTo(ls.x+16,ls.y); hx.moveTo(ls.x,ls.y-16); hx.lineTo(ls.x,ls.y-8); hx.stroke(); txt('LEAD',ls.x,ls.y-18,10,'center','rgba(255,230,170,1)'); hx.lineWidth=1; hx.strokeStyle=G}}
  else {V.copy(bp).applyMatrix4(cam.matrixWorldInverse); let dx=V.x,dy=-V.y; if(V.z>0){dx=V.x; dy=Math.abs(V.y)+Math.abs(V.x)*.2} const n=Math.hypot(dx,dy)||1; dx/=n; dy/=n; const k=Math.min((W/2-36)/Math.abs(dx||1e-3),(Hh/2-36)/Math.abs(dy||1e-3)), ax=cx+dx*k, ay=Hh/2+dy*k; hx.fillStyle='rgba(255,140,90,1)'; hx.beginPath(); hx.moveTo(ax+dx*22,ay+dy*22); hx.lineTo(ax-dy*11,ay+dx*11); hx.lineTo(ax+dy*11,ay-dx*11); hx.closePath(); hx.fill(); txt('BANDIT '+(S.pos.distanceTo(bp)/1000).toFixed(1),ax-dx*20,ay-dy*16,12,'center','rgba(255,186,140,1)')}
- if(b.state==='setup'||b.state==='burst')txt('BANDIT GUNS — BREAK',cx,108,16,'center','rgba(255,176,120,.98)')}
+ if(b.state==='guns'||b.state==='setup'||b.state==='burst')txt('BANDIT GUNS — BREAK '+(b.breakSide||'LEFT'),cx,108,16,'center','rgba(255,176,120,.98)');
+ if(b.state==='lock'||b.state==='missile')txt('MISSILE, MISSILE',cx,108,18,'center',(S.t*6|0)%2?'rgba(255,70,60,1)':'rgba(255,210,180,.95)')}
 function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!running&&!S.dead)return;if(takingOff()){drawTakeoffHUD();return}if(S.cine){drawCine();return}const cx=W/2,cy=Hh*.5;hx.strokeStyle=G;hx.lineWidth=1;hx.shadowColor='rgba(0,0,0,.9)';hx.shadowBlur=3;
  const fp=scr(tmp.copy(S.pos).addScaledVector(fwd,1500))||{x:cx,y:cy};
  hx.beginPath();hx.arc(fp.x,fp.y,6,0,7);hx.stroke();line(fp.x-17,fp.y,fp.x-6,fp.y);line(fp.x+6,fp.y,fp.x+17,fp.y);line(fp.x,fp.y-6,fp.x,fp.y-12);
@@ -1661,7 +1690,7 @@ function buildCompactPicker(){
   }
   for(const cat of ['intro','ending','mood']){
     const opts=MUSIC_PRE[cat].map(x=>({id:x[0],name:x[1]}));
-    const el=pickRow(PICK_LABEL[cat], cat, opts, ()=>musicChoice(cat), v=>{try{localStorage['ds16_'+cat]=v}catch(e){} musicRoll[cat]=null});
+    const el=pickRow(PICK_LABEL[cat], cat, opts, ()=>musicChoice(cat), v=>rememberMusic(cat,v));
     const lvl=document.createElement('div'); lvl.className='lvl';
     const range=document.createElement('input'); range.type='range'; range.min='0'; range.max='100'; range.value=String(Math.round(musicLevel(cat)*100)); range.id='ml_'+cat;
     const b=document.createElement('b'); b.textContent=range.value;
@@ -1994,7 +2023,7 @@ function paintMusic(cat){const id=musicChoice(cat); document.querySelectorAll('#
 function applySurr(){const mode=SURR.on?'HRTF':'equalpower'; if(!AC)return; if(AC.rotorPan)AC.rotorPan.panningModel=mode; if(AC.jetIdlePan)AC.jetIdlePan.panningModel=mode}
 function bindGameMusic(){
  for(const cat of ['intro','ending','mood']){
-  const sel=$('s_'+cat); if(sel&&!sel.dataset.filled){sel.dataset.filled='1'; sel.innerHTML=MUSIC_PRE[cat].map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join(''); sel.addEventListener('change',()=>{try{localStorage['ds16_'+cat]=sel.value}catch(e){} musicRoll[cat]=null; if(cat==='mood'&&S&&!takingOff()){stopMood(); startMood()} if(cat==='intro'&&S&&takingOff()){stopIntroMusic(); startIntroMusic()}})}
+  const sel=$('s_'+cat); if(sel&&!sel.dataset.filled){sel.dataset.filled='1'; sel.innerHTML=MUSIC_PRE[cat].map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join(''); sel.addEventListener('change',()=>{rememberMusic(cat,sel.value); if(cat==='mood'&&S&&!takingOff()){stopMood(true); startMood()} if(cat==='intro'&&S&&takingOff()){stopIntroMusic(); startIntroMusic()}})}
   if(sel)sel.value=musicChoice(cat);
   const lv=$('s_lv_'+cat); const lab=$('v_lv_'+cat); if(lv){lv.value=Math.round(musicLevel(cat)*100); if(lab)lab.textContent=lv.value; if(!lv.dataset.bound){lv.dataset.bound='1'; lv.addEventListener('input',()=>{try{localStorage['ds16_lv_'+cat]=lv.value}catch(e){} if(lab)lab.textContent=lv.value})}}
  }
@@ -2015,9 +2044,9 @@ function buildMusicPicker(){const host=$('musicBox'); if(!host){bindGameMusic();
    el.innerHTML='<div class="meta"><div class="name"></div><div class="desc"></div></div><div class="acts"><button type="button" class="play" data-act="play">▶ PLAY</button><button type="button" class="stop" data-act="stop">■ STOP</button><button type="button" class="choose" data-act="choose">✓ Choose</button></div>';
    el.querySelector('.name').textContent=name; el.querySelector('.desc').textContent=desc;
    el.querySelectorAll('button').forEach(btn=>btn.addEventListener('pointerdown',e=>{e.preventDefault(); e.stopPropagation(); ensureAudioSync();
-    if(btn.dataset.act==='play'){if(musicPreview){musicPreview.stop(); musicPreview=null} const pid=id==='random'?resolveMusic(cat):id; const go=()=>{if(pid==='current'||!MUSIC_LAY[pid])return; musicPreview=playLayers(pid,AC.out,musicLevel(cat))}; const need=(MUSIC_LAY[pid]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go); sec.querySelectorAll('.frow').forEach(x=>x.classList.remove('playing')); el.classList.add('playing')}
+    if(btn.dataset.act==='play'){if(musicPreview){musicPreview.stop(); musicPreview=null} const pid=id==='random'?resolveMusic(cat):id; const go=()=>{if(pid==='current'||pid==='off'||!MUSIC_LAY[pid])return; musicPreview=playLayers(pid,AC.out,musicLevel(cat))}; const need=(MUSIC_LAY[pid]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go); sec.querySelectorAll('.frow').forEach(x=>x.classList.remove('playing')); el.classList.add('playing')}
     else if(btn.dataset.act==='stop'){if(musicPreview){musicPreview.stop(); musicPreview=null} el.classList.remove('playing')}
-    else{try{localStorage['ds16_'+cat]=id}catch(err){} musicRoll[cat]=null; paintMusic(cat)}
+    else{rememberMusic(cat,id); paintMusic(cat); if(cat==='mood'){stopMood(true); if(id!=='off'&&id!=='current')startMood()}}
    }));
    sec.appendChild(el);
   }
