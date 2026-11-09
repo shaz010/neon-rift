@@ -5,6 +5,10 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17b — separate sound bank
+
+A new page, `sound-bank.html`, offers a short list of CC0 field recordings. Current keeps the sound-tester choice. Apply sends only the new overrides together with the choices already saved. Each row is wired to the sortie event it names. Sirens were not shipped. Stamp `s17 · 17b`.
+
 ## s17 · 17a — escape dogfight
 
 After the bunker, a fighter intercepts. The player turns, breaks, and fires the gun. Exfil stays closed until that fighter is destroyed. The chase camera does not swoop. The bunker blast at detonation is the blast chosen in the sound tester, including Rising Cluster. Stamp `s17 · 17a`.
