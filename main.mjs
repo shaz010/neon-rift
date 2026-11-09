@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17e'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17f'])[1];
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -564,7 +564,9 @@ function mixFlightAudio(rdt){if(!AC||!eng)return; const tt=AC.currentTime;
  const tense=S.th&&(S.th.anyTrk||S.th.anySrch);AC.mus.gain.setTargetAtTime(warnA?.45:1,tt,.15);
  const bedOn=!takingOff()&&BED!=='off';AC.amb.gain.setTargetAtTime(bedOn?(S.cine?.1:(warnA?.22:tense?.48:.4)):0,tt,takingOff()?.3:1.2);
  if(AC.deckJetG){const hold=takingOff()&&(S.phase==='deck'||S.phase==='signal'||S.phase==='cat'); const fade=takingOff()&&!hold; AC.deckJetG.gain.setTargetAtTime(hold?.1:fade?.03:0,tt,.35); AC.deckRotorG.gain.setTargetAtTime(hold?.15:fade?.04:0,tt,.35); if(CVN.heli&&AC.rotorPan){CVN.heli.updateWorldMatrix(true,false); const e=CVN.heli.matrixWorld.elements; setP(AC.rotorPan,{x:e[12],y:e[13],z:e[14]})} if(CVN.taxi&&AC.jetIdlePan){CVN.taxi.updateWorldMatrix(true,false); const e=CVN.taxi.matrixWorld.elements; setP(AC.jetIdlePan,{x:e[12],y:e[13],z:e[14]})}}
- const moodId=musicChoice('mood'); const moodOn=moodId!=='current'&&moodId!=='off'&&!takingOff(); if(moodOn)AC.amb.gain.setTargetAtTime(0,tt,.4); if(moodId==='off'&&moodHandle)stopMood(true);
+ const moodId=musicChoice('mood'); const moodOn=moodId!=='current'&&moodId!=='off'&&!takingOff()&&!(S&&S.quiet); if(moodOn)AC.amb.gain.setTargetAtTime(0,tt,.4); if((moodId==='off'||(S&&S.quiet))&&moodHandle)stopMood(true);
+ if(S&&S.quiet){if(!S._bedHeld){try{stopBed()}catch(e){} S._bedHeld=1} stopMood(true); AC.amb.gain.cancelScheduledValues(tt); AC.amb.gain.value=0; if(AC.moodG){AC.moodG.gain.cancelScheduledValues(tt); AC.moodG.gain.value=0} AC.wind.g.gain.cancelScheduledValues(tt); AC.wind.g.gain.value=.005; const eg=JET&&JET.plain&&JET.g?JET.g:AC.jet; if(eg){eg.gain.cancelScheduledValues(tt); eg.gain.value=.04} AC.sub.gain.cancelScheduledValues(tt); AC.sub.gain.value=.01}
+ else if(S&&S._bedHeld){S._bedHeld=0; if(!takingOff()&&BED!=='off')startBed()}
  const warn=S.missile&&!S.missile.decoy&&!S.missile.lost;trkG.gain.setTargetAtTime(!warn&&S.th&&S.th.anyTrk?.022:0,tt,.03);S.srchT-=rdt;if(S.th&&S.th.anySrch&&!S.th.anyTrk&&S.srchT<=0){S.srchT=1.3;blip(380,.09,.03,'sine')}
  {const md=warn?S.missile.p.distanceTo(S.pos):9e3,rate=warn?4+18*clamp(1-md/6000,0,1):8;S.wph=(S.wph||0)+rdt*rate;warnG.gain.setTargetAtTime(warn?((S.wph|0)%2?1:0):0,tt,.008);tone.frequency.setTargetAtTime(warn?((S.wph|0)%2?620:760+180*clamp(1-md/4000,0,1)):760,tt,.01)}
  const seek=S.phase==='ingress'&&bDist()<4500&&inBox()>0;seekG.gain.setTargetAtTime(seek?((S.t*5|0)%2?.022:0):S.phase==='release'?.016:0,tt,.015);seekG.o.frequency.setTargetAtTime(S.phase==='release'?700:520,tt,.02)}
@@ -617,7 +619,7 @@ function startSmoothLoop(buf,vol,dest,opt={}){if(!AC||!buf)return null; buf=mkSe
 }
 function initAudio(){if(AC){AC.resume();return}const ACC=window.AudioContext||window.webkitAudioContext;try{AC=new ACC({latencyHint:'playback'})}catch(e){AC=new ACC()}AC.voices=0;
  const mg=AC.createGain();mg.gain.value=.8;mg.connect(AC.destination);AC.mg=mg;const out=AC.createDynamicsCompressor();out.threshold.value=-3;out.knee.value=6;out.ratio.value=2.5;out.attack.value=.01;out.release.value=.25;out.connect(mg); // gentle safety limiter only
- AC.bigB=AC.createGain();const bl=AC.createDynamicsCompressor();bl.threshold.value=-2;bl.knee.value=4;bl.ratio.value=3;bl.attack.value=.008;bl.release.value=.2;const bg=AC.createGain();bg.gain.value=.85;AC.bigB.connect(bl).connect(bg).connect(AC.destination);
+ AC.bigB=AC.createGain();const bl=AC.createDynamicsCompressor();bl.threshold.value=-2;bl.knee.value=4;bl.ratio.value=3;bl.attack.value=.008;bl.release.value=.2;const bg=AC.createGain();bg.gain.value=.85;AC.bigB.connect(bl).connect(bg).connect(AC.destination);AC.bigOut=bg;
  AC.tone=AC.createBiquadFilter();AC.tone.type='lowpass';AC.tone.frequency.value=1400;AC.tone.Q.value=.5;{const pk=AC.createBiquadFilter();pk.type='peaking';pk.frequency.value=3200;pk.Q.value=.7;pk.gain.value=-15;AC.tone.connect(pk).connect(out)}
  AC.fxB=AC.createGain();AC.fxB.connect(out);AC.out=AC.fxB;AC.engB=AC.createGain();AC.musB=AC.createGain();AC.bedB=AC.createGain();AC.bedB.gain.value=1;
  // Bed bus: independent of engine slider and duck bus — goes to master compressor only via out path? No: direct to destination after light makeup so AAA duck / engine don't bury it.
@@ -806,7 +808,7 @@ function startBed(){if(!AC)return;stopBed();
 }
 function setBed(id){if(!BED_OPTS.includes(id))return;BED=id;localStorage.ds15_bed=id;const sel=$('s_bed');if(sel)sel.value=id;if(JET||ambS)startBed()}
 let introS=null, introTok=0, introHandle=null, moodHandle=null, endHandle=null, musicRoll={};
-const MUSIC_DEF={intro:'i1',ending:'e1',mood:'m1'};
+const MUSIC_DEF={intro:'i1',ending:'e1',mood:'off'};
 const MUSIC_LV={intro:70,ending:75,mood:55};
 const MUSIC_PRE={
  intro:[['current','Deck only','No added music. Deck sounds stay.'],['i1','Kick Riser','Floating Frequency Kick Space Riser.'],['i2','Synth Riser','80s Synth FX Riser.'],['i3','Layers Under','Dream Space Layers with a quiet sub.'],['i4','Jet Arrival','Jet pass, then the kick riser.'],['random','Random','A different intro each sortie.']],
@@ -828,9 +830,9 @@ const MUSIC_LAY={
  m10:[{k:'lx_kick',v:1.05,off:10.8,d:0,fade:.04,hold:1.6,decay:1.2},{k:'lx_riser',v:.48,d:.35,fade:.4,hold:8,decay:3}]
 };
 const MUSIC_SPAN={m1:34,m2:26,m3:32,m4:26,m5:12,m6:16,m7:14,m8:8,m9:14,m10:12};
-function musicChoice(cat){let id=MUSIC_DEF[cat]; try{const s=localStorage['ds16_'+cat]; if(s)id=s}catch(e){} return MUSIC_PRE[cat].some(x=>x[0]===id)?id:MUSIC_DEF[cat]}
+function musicChoice(cat){let id=MUSIC_DEF[cat]; try{const s=localStorage['ds16_'+cat]; if(s)id=s}catch(e){} if(cat==='mood'&&id!=='off'){let allow=''; try{allow=localStorage.ds17f_mood||''}catch(e){} if(allow!==id)id='off'} return MUSIC_PRE[cat].some(x=>x[0]===id)?id:MUSIC_DEF[cat]}
 function musicLevel(cat){let v=MUSIC_LV[cat]; try{const s=localStorage['ds16_lv_'+cat]; if(s!=null&&s!=='')v=+s}catch(e){} return Math.min(100,Math.max(0,v))/100}
-function rememberMusic(cat,id){try{localStorage['ds16_'+cat]=id}catch(e){} musicRoll[cat]=null; try{writePickStores(pickCode())}catch(e){}}
+function rememberMusic(cat,id){try{localStorage['ds16_'+cat]=id; if(cat==='mood')localStorage.ds17f_mood=id}catch(e){} musicRoll[cat]=null; try{writePickStores(pickCode())}catch(e){}}
 function resolveMusic(cat){const id=musicChoice(cat); if(id!=='random')return id; if(musicRoll[cat])return musicRoll[cat]; const opts=MUSIC_PRE[cat].map(x=>x[0]).filter(x=>x!=='current'&&x!=='random'&&x!=='off'); let i=Math.floor(Math.random()*opts.length); if(opts[i]===musicRoll.prev)i=(i+1)%opts.length; musicRoll[cat]=opts[i]; musicRoll.prev=opts[i]; return opts[i]}
 function spawnLayers(spec, dest, level){const nodes=[]; const t0=AC.currentTime;
  for(const layer of spec){const buf=SB[layer.k]; if(!buf){SB.get(layer.k); continue} const s=AC.createBufferSource(); s.buffer=buf; s.loop=!!layer.loop; const off=Math.min(layer.off||0, Math.max(0,buf.duration-.05)); if(layer.loop&&off>0){s.loopStart=off; s.loopEnd=Math.max(off+.25, buf.duration-.03)} const g=AC.createGain(); const t=t0+(layer.d||0); const peak=Math.max(.0008,(layer.v||.4)*level); const fade=Math.max(.04,layer.fade!=null?layer.fade:.8); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+fade); const hold=layer.hold||0, decay=layer.decay||0; if(hold||decay){ if(hold)g.gain.setValueAtTime(peak,t+fade+hold); if(decay)g.gain.exponentialRampToValueAtTime(.0008,t+fade+hold+decay); if(!layer.loop){try{s.stop(t+fade+hold+decay+.06)}catch(e){}} } s.connect(g).connect(dest); try{s.start(t, off)}catch(e){} nodes.push({s,g}); sfxLog('music',{k:layer.k,d:layer.d||0,off,fade:+fade.toFixed(2),v:+peak.toFixed(3)})}
@@ -845,7 +847,7 @@ function startIntroMusic(){if(!AC||!takingOff())return; if(INTRO_TRACK){if(intro
  const id=resolveMusic('intro'); if(id==='current')return; if(introHandle)return; const go=()=>{if(introHandle||!takingOff())return; introHandle=playMusic(id,AC.introG,musicLevel('intro'))}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
 function stopIntroMusic(){introTok++; if(introS){try{introS.stop()}catch(e){} introS=null} if(introHandle){try{introHandle.stop()}catch(e){} introHandle=null}}
 function startMood(){if(!AC||takingOff())return; const id=resolveMusic('mood'); if(id==='off'||id==='current'||musicLevel('mood')<=0.001){stopMood(true); return}
- if(moodHandle&&moodHandle.id===id)return; stopMood(false); const go=()=>{if(takingOff())return; const now=musicChoice('mood'); if(now==='off'||now==='current'||musicLevel('mood')<=0.001){stopMood(true); return} if(AC.moodG)AC.moodG.gain.setTargetAtTime(1,AC.currentTime,.3); moodHandle=playMusic(id,AC.moodG,musicLevel('mood')); if(moodHandle)moodHandle.id=id; sfxLog('mood',{id})}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
+ if(moodHandle&&moodHandle.id===id)return; stopMood(false); const go=()=>{if(takingOff()||(S&&(S.dead||S.phase==='done'))||($('end')&&!$('end').classList.contains('hide')))return; const now=musicChoice('mood'); if(now==='off'||now==='current'||musicLevel('mood')<=0.001){stopMood(true); return} if(AC.moodG)AC.moodG.gain.setTargetAtTime(1,AC.currentTime,.3); moodHandle=playMusic(id,AC.moodG,musicLevel('mood')); if(moodHandle)moodHandle.id=id; sfxLog('mood',{id})}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
 function stopMood(fast){if(moodHandle){try{moodHandle.stop(fast?0.08:1.2)}catch(e){} moodHandle=null} if(AC&&AC.moodG){const t=AC.currentTime; AC.moodG.gain.cancelScheduledValues(t); if(fast)AC.moodG.gain.setValueAtTime(0,t); else AC.moodG.gain.setTargetAtTime(0,t,.2)}}
 function playEnding(){if(!AC)return; const id=resolveMusic('ending'); if(id==='current'){SB.get(BRIEF_TRACK).then(b=>{if(!b||running)return; stopWin(); winSrc=src(b,0,AC.musB,{loop:true}); winSrc.g.gain.setValueAtTime(0,AC.currentTime); winSrc.g.gain.linearRampToValueAtTime(.5*musicLevel('ending')/.75,AC.currentTime+1.2)}); return}
  const go=()=>{if(running)return; if(endHandle)endHandle.stop(); endHandle=playMusic(id,AC.musB,musicLevel('ending'))}; const need=(MUSIC_LAY[id]||[]).filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
@@ -876,7 +878,8 @@ function riser(on){if(!AC)return;const t=AC.currentTime;if(on&&!riserS&&SB.riser
  if(!on&&riserS){riserS.g.gain.cancelScheduledValues(t);riserS.g.gain.setTargetAtTime(0,t,.08);const r=riserS;setTimeout(()=>{try{r.stop()}catch(e){}},800);riserS=null}}
 function play(buf,vol=.5){if(!AC||!buf)return;src(buf,vol,AC.out)}
 function blip(f,d=.08,v=.15,type='sine'){if(!AC)return;sfxLog('blip',{f,d,v});const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=Math.min(f,600);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v*.45,t+.025);g.gain.exponentialRampToValueAtTime(.0005,t+d+.05);o.connect(g).connect(AC.tone);o.start(t);o.stop(t+d+.08)}
-function playBunker(c,P){if(!AC||!c||!c.layers)return; const go=()=>{if(!AC)return; let dest=AC.bigB; if(P){const pn=mkPan(true,320); setP0(pn,P); pn.connect(AC.bigB); dest=pn; setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1); pn._hrtf=0} try{pn.disconnect()}catch(e){}},16000)} const t0=AC.currentTime; for(const layer of c.layers){const buf=SB[layer.k]; if(!buf)continue; if(layer.attack){const s=AC.createBufferSource(); s.buffer=buf; const g=AC.createGain(); const t=t0+(layer.d||0); const peak=Math.max(.0008,layer.v||.2); const atk=Math.max(.2,layer.attack); const hold=layer.hold==null?.4:layer.hold; const dec=layer.decay==null?3:layer.decay; g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+atk); g.gain.setValueAtTime(peak,t+atk+hold); g.gain.exponentialRampToValueAtTime(.0008,t+atk+hold+dec); s.connect(g).connect(dest); const off=Math.min(layer.off||0, Math.max(0,buf.duration-.05)); s.start(t, off); try{s.stop(t+atk+hold+dec+.05)}catch(e){} sndPrev.push(s); sfxLog('bunker',{id:c.id,k:layer.k,d:layer.d||0,off,attack:atk,peak:+peak.toFixed(3)})} else {const s=src(buf,layer.v,dest,{when:t0+(layer.d||0),pri:1,fadeIn:.004,tag:'bunker:'+layer.k}); if(s&&s.stop){if(layer.hold){try{s.stop(t0+(layer.d||0)+layer.hold)}catch(e){}} sndPrev.push(s)} sfxLog('bunker',{id:c.id,k:layer.k})}}}; const need=c.layers.filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
+function blastDest(P){const pn=AC.createPanner(); pn.panningModel='equalpower'; pn.distanceModel='linear'; pn.refDistance=1; pn.maxDistance=20000; pn.rolloffFactor=0; setP0(pn,P); pn.connect(AC.bigB); setTimeout(()=>{try{pn.disconnect()}catch(e){}},18000); return pn}
+function playBunker(c,P){if(!AC||!c||!c.layers)return; const go=()=>{if(!AC)return; const loud=c.id&&String(c.id).indexOf('nb_')===0; let dest=AC.bigB; if(P) dest=loud?blastDest(P):(function(){const pn=mkPan(true,320); setP0(pn,P); pn.connect(AC.bigB); setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1); pn._hrtf=0} try{pn.disconnect()}catch(e){}},16000); return pn})(); const t0=AC.currentTime; for(const layer of c.layers){const buf=SB[layer.k]; if(!buf)continue; if(layer.attack){const s=AC.createBufferSource(); s.buffer=buf; const g=AC.createGain(); const t=t0+(layer.d||0); const peak=Math.max(.0008,layer.v||.2); const atk=Math.max(.2,layer.attack); const hold=layer.hold==null?.4:layer.hold; const dec=layer.decay==null?3:layer.decay; g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+atk); g.gain.setValueAtTime(peak,t+atk+hold); g.gain.exponentialRampToValueAtTime(.0008,t+atk+hold+dec); s.connect(g).connect(dest); const off=Math.min(layer.off||0, Math.max(0,buf.duration-.05)); s.start(t, off); try{s.stop(t+atk+hold+dec+.05)}catch(e){} sndPrev.push(s); sfxLog('bunker',{id:c.id,k:layer.k,d:layer.d||0,off,attack:atk,peak:+peak.toFixed(3),loud:loud?1:0})} else {const s=src(buf,layer.v,dest,{when:t0+(layer.d||0),pri:1,fadeIn:.004,tag:'bunker:'+layer.k}); if(s&&s.stop){if(layer.hold){try{s.stop(t0+(layer.d||0)+layer.hold)}catch(e){}} sndPrev.push(s)} sfxLog('bunker',{id:c.id,k:layer.k})}}}; const need=c.layers.filter(l=>!SB[l.k]); if(!need.length)go(); else Promise.all(need.map(l=>SB.get(l.k))).then(go)}
 function bunkerLayered(){if(typeof nbSpec==='function'&&nbSpec('bunker'))return true; const c=sndChoice('bunker'); return !!(c&&c.layers&&c.layers.length)}
 function bunkerBlast(P){if(playBank('bunker',P||BUNK)){window.__bunkerPlayed='nb:'+nbChoice('bunker'); return} const c=sndChoice('bunker'); window.__bunkerPlayed=c&&c.id||''; if(c&&c.layers&&c.layers.length)playBunker(c,P||BUNK); else boomSfx(true,P||BUNK)}
 function boomSfx(big,P){if(!AC)return;sfxLog('boomSfx',{big:!!big});
@@ -1032,9 +1035,9 @@ const NB={
  bunker:[
   {id:'current',name:'Current',desc:'The bunker blast already chosen, including Rising Cluster.'},
   {id:'oil',name:'Oil Rise',desc:'Several booms that build, then a long low tail. Vintage field tape, not listened to here.',layers:[
-    {k:'nb_b_oil',v:.42,off:.35,d:0,attack:1.5,hold:2.2,decay:4.2},
-    {k:'nb_b_cluster',v:.36,off:.08,d:1.05,attack:.8,hold:1.1,decay:2.2},
-    {k:'nb_b_rumble',v:.34,off:.15,d:2.3,attack:2.2,hold:2.6,decay:5}
+    {k:'nb_b_oil',v:1.55,off:.35,d:0,attack:1.15,hold:3.6,decay:6.5},
+    {k:'nb_b_cluster',v:.9,off:.08,d:1.05,attack:.7,hold:1.8,decay:3.4},
+    {k:'nb_b_rumble',v:1.25,off:.15,d:1.4,attack:1.5,hold:3.4,decay:7.2}
   ]},
   {id:'atom',name:'Atomic Tail',desc:'A heavy hit, a rumble under it, then the burn. Swells, then fades.',layers:[
     {k:'nb_b_huge',v:.4,off:.17,d:0,attack:1.15,hold:1.3,decay:4.2},
@@ -1093,7 +1096,7 @@ function pickCode(){let s=''; for(const c of NB_CATS){const i=NB[c].findIndex(o=
 function applyPickCode(code){if(!code||code.length<13)return false; NB_CATS.forEach((c,i)=>{const idx=parseInt(code[i],36); const opt=NB[c]&&NB[c][idx]; if(opt)rememberNb(c,opt.id)}); const lv=String(Math.min(100,Math.max(0,+code.slice(10,13)||80))); NB_MEM.lv=lv; try{localStorage.ds17_nb_lv=lv}catch(e){} if(code[13]==='-'&&code.length>14)applyDsString(code.slice(14)); return true}
 function writePickStores(code){if(!code)return; try{localStorage.ds17_pick=code}catch(e){} try{document.cookie='ds17p='+encodeURIComponent(code)+'; Max-Age=31536000; Path=/; SameSite=Lax'}catch(e){}}
 function readPickCookie(){try{const m=document.cookie.match(/(?:^|; )ds17p=([^;]*)/); return m?decodeURIComponent(m[1]):''}catch(e){return ''}}
-function applyDsString(raw){if(!raw)return; for(const part of raw.split(',')){const i=part.indexOf(':'); if(i<1)continue; const k=decodeURIComponent(part.slice(0,i)), v=decodeURIComponent(part.slice(i+1)); if(!v)continue; if(k==='flare'){ if(FLARE_OPTS.some(o=>o.id===v)){try{localStorage.ds15_flare=v}catch(e){}} } else if(k==='intro'||k==='ending'||k==='mood'){ if(MUSIC_PRE[k].some(x=>x[0]===v)){try{localStorage['ds16_'+k]=v}catch(e){}} } else if(k==='surr'){ SURR.on=v!=='0'; try{localStorage.ds16_surr=SURR.on?'1':'0'}catch(e){} } else if(k==='width'){ SURR.width=Math.min(2,Math.max(0,+v||0)); try{localStorage.ds16_width=SURR.width}catch(e){} } else if(k==='lv_intro'||k==='lv_ending'||k==='lv_mood'){ try{localStorage['ds16_'+k]=Math.min(100,Math.max(0,+v||0))}catch(e){} } else { const s=sndSec(k); if(s&&sndList(s).some(c=>c.id===v))rememberSnd(k,v) } }}
+function applyDsString(raw){if(!raw)return; for(const part of raw.split(',')){const i=part.indexOf(':'); if(i<1)continue; const k=decodeURIComponent(part.slice(0,i)), v=decodeURIComponent(part.slice(i+1)); if(!v)continue; if(k==='flare'){ if(FLARE_OPTS.some(o=>o.id===v)){try{localStorage.ds15_flare=v}catch(e){}} } else if(k==='mood'){ let allow=''; try{allow=localStorage.ds17f_mood||''}catch(e){} const use=(v==='off'||(allow&&allow===v))?v:'off'; try{localStorage.ds16_mood=use; if(!allow)localStorage.ds17f_mood=use}catch(e){} } else if(k==='intro'||k==='ending'){ if(MUSIC_PRE[k].some(x=>x[0]===v)){try{localStorage['ds16_'+k]=v}catch(e){}} } else if(k==='surr'){ SURR.on=v!=='0'; try{localStorage.ds16_surr=SURR.on?'1':'0'}catch(e){} } else if(k==='width'){ SURR.width=Math.min(2,Math.max(0,+v||0)); try{localStorage.ds16_width=SURR.width}catch(e){} } else if(k==='lv_intro'||k==='lv_ending'||k==='lv_mood'){ try{localStorage['ds16_'+k]=Math.min(100,Math.max(0,+v||0))}catch(e){} } else { const s=sndSec(k); if(s&&sndList(s).some(c=>c.id===v))rememberSnd(k,v) } }}
 function bankDest(P,bus){const dest=bus==='big'?(AC.bigB||AC.out):AC.out; if(!P)return dest; const pn=mkPan(true,bus==='big'?280:160); setP0(pn,P); pn.connect(dest); setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}},9000); return pn}
 function spawnNb(layer,dest,lv,cat,id){const buf=SB[layer.k]; if(!buf||!AC)return; const s=AC.createBufferSource(); s.buffer=buf; const off=Math.min(layer.off||0, Math.max(0,buf.duration-.05)); const dur=layer.dur?Math.min(layer.dur, Math.max(.05,buf.duration-off)):undefined; if(layer.loop){s.loop=true; if(off>0){s.loopStart=off; s.loopEnd=Math.max(off+.25, buf.duration-.03)}} const g=AC.createGain(); const t=AC.currentTime+(layer.d||0); const peak=Math.max(.0008,(layer.v||.5)*lv); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(peak,t+Math.max(.01,layer.fade||.02)); if(!layer.loop&&dur){const end=t+dur; g.gain.setValueAtTime(peak,Math.max(t+.04,end-.1)); g.gain.exponentialRampToValueAtTime(.0008,end)} s.connect(g).connect(dest); try{s.start(t,off,layer.loop?undefined:dur)}catch(e){try{s.start(t,off)}catch(e2){}} if(!layer.loop&&dur){try{s.stop(t+dur+.03)}catch(e){}} if(DS_MODE!=='game')sndPrev.push({stop(tt){try{g.gain.cancelScheduledValues(AC.currentTime); g.gain.setTargetAtTime(0,AC.currentTime,.05); s.stop((tt||AC.currentTime)+.12)}catch(e){}}}); sfxLog('nb',{cat,id,k:layer.k,off:+off.toFixed(2),dur:dur||0,v:+peak.toFixed(3)})}
 function playBank(cat,P){const spec=nbSpec(cat); if(!spec)return false; const lv=nbLevel()/0.8; if(spec.layers.some(l=>l.attack)){const layers=spec.layers.map(l=>Object.assign({},l,{v:Math.max(.0008,(l.v||.4)*lv)})); playBunker({id:'nb_'+cat+'_'+spec.id,layers},P||(S&&S.pos)); sfxLog('nb',{cat,id:spec.id,mix:1}); return true} const bus=(spec.layers[0]&&spec.layers[0].bus)||''; const dest=bankDest(P,bus); let pending=false; for(const layer of spec.layers){if(!SB[layer.k]){SB.get(layer.k); pending=true; continue} spawnNb(layer,dest,lv,cat,spec.id)} if(pending)sfxLog('nbWait',{cat,id:spec.id}); return true}
@@ -1258,6 +1261,9 @@ function updBandit(rdt){if(!S||S.dead||S.phase!=='egress')return; if(!S.bandit){
 window.__bandit=()=>S&&S.bandit;
 window.__banditReady=()=>!!(banditMesh&&banditMesh.userData.real);
 window.__mood=()=>({id:musicChoice('mood'),live:!!moodHandle,g:AC&&AC.moodG?+AC.moodG.gain.value.toFixed(4):0});
+window.__music=()=>({mood:musicChoice('mood'),moodOn:!!moodHandle,moodG:AC&&AC.moodG?+AC.moodG.gain.value.toFixed(3):0,amb:AC&&AC.amb?+AC.amb.gain.value.toFixed(3):0,mus:AC&&AC.mus?+AC.mus.gain.value.toFixed(3):0,introG:AC&&AC.introG?+AC.introG.gain.value.toFixed(3):0,wind:AC&&AC.wind?+AC.wind.g.gain.value.toFixed(3):0,deck:AC&&AC.deckJetG?+AC.deckJetG.gain.value.toFixed(3):0,bed:!!bedS||!!droneS,intro:!!introS||!!introHandle,ending:!!(typeof endHandle!=='undefined'&&endHandle)||!!winSrc,brief:!!briefSrc,riser:!!riserS,quiet:!!(S&&S.quiet),jet:AC&&AC.jet?+AC.jet.gain.value.toFixed(3):0});
+window.__sb=k=>SB[k]||null; window.__load=k=>SB.get(k); window.__end=win=>showEnd(!!win);
+window.__tanker=()=>S&&S.tanker;
 window.__hug=()=>S&&({mult:+(S.mult||1).toFixed(2),score:Math.round(S.score||0),streak:S.streak||0,best:S.bestStreak||0,spike:+(S.spike||0).toFixed(1),arm:+(S.spikeArm||0).toFixed(2),agl:Math.round(S.agl||0),spd:Math.round(S.spd||0),msg:S.msg||'',missile:!!(S.missile&&!S.missile.lost),flash:+((S.missFlash||0).toFixed(2))});
 window.__tick=n=>{for(let i=0;i<(n||1);i++){ if(!S||S.dead||S.phase==='done')return; update(0.05) }};
 if(DS_MODE==='game')ensureBanditMesh();
@@ -1293,7 +1299,7 @@ function updNuke(dt,rdt){if(!NK)return;NK.t+=dt;NK.r+=rdt;const t=NK.t,B=BUNK;
  grade.u.uS.value=Math.max(0,1-t/16)*sstep(0,.6,t);const sc=tmp.set(B.x,B.y+h*.35,B.z).project(cam);grade.u.uC.value.set(sc.x*.5+.5,sc.y*.5+.5);
  if(fade<=0){NK.all.forEach(x=>scene.remove(x));NK=null;grade.u.uS.value=0}}
 window.__nuke=()=>{S.phase="penetrate";S.penT=1.7;bigBoom()};window.__sam=i=>{S.sites[i].shots=0;S.missile=null;launchSAM(i)};
-function bigBoom(){S.boomT=0;S.shake=.9;bunker.visible=false;bulge.visible=false;nightKick(.2);bunkerBlast(BUNK);ring.visible=dome.visible=true;ring.position.copy(BUNK).y+=3;dome.position.copy(BUNK);
+function bigBoom(){S.boomT=0;S.shake=.9;bunker.visible=false;bulge.visible=false;nightKick(.2);bunkerBlast(BUNK);S.quiet=0;ring.visible=dome.visible=true;ring.position.copy(BUNK).y+=3;dome.position.copy(BUNK);
  $('flash').style.transition='none';$('flash').style.background='#ffffff';$('flash').style.opacity=1;setTimeout(()=>{$('flash').style.transition='opacity 2.6s ease-out';$('flash').style.opacity=0},140);S.cineA=null;nukeStart();
  const K=2.6,o={must:1};
  spr(tmp.copy(BUNK).setY(BUNK.y+40),0xfff2d0,160*K,.8,null,{add:true,tex:glowTex,fog:false,grow:300*K,must:1});
@@ -1336,6 +1342,59 @@ function updHug(dt,rdt){
  if(S.spikeArm>0){S.spikeArm-=rdt; if(S.spikeArm<=0){launchSAM(); if(S.missile)S.missile.spike=1; S.spike=42; S.det=S.spike; S.spikeArm=0; S.spikeCD=6}}
  if(S.spike>40&&S.spike<100&&!(S.spikeArm>0)&&(!S._spk||S.t-S._spk>.7)){S._spk=S.t; blip(640,.06,.1)}
 }
+let tankerMesh=null;
+function ensureTanker(){if(tankerMesh)return tankerMesh; const g=new THREE.Group();
+ const skin=new THREE.MeshStandardMaterial({color:0xc5c9ce,metalness:.28,roughness:.62});
+ const dark=new THREE.MeshStandardMaterial({color:0x5c636b,metalness:.4,roughness:.5});
+ const body=new THREE.Mesh(new THREE.CylinderGeometry(2.35,2.35,46,16),skin); body.rotation.x=Math.PI/2;
+ const nose=new THREE.Mesh(new THREE.ConeGeometry(2.35,8,16),skin); nose.rotation.x=-Math.PI/2; nose.position.z=-26;
+ const wing=new THREE.Mesh(new THREE.BoxGeometry(42,.55,8),skin); wing.position.set(0,.2,-2);
+ const tail=new THREE.Mesh(new THREE.BoxGeometry(14,.4,5),skin); tail.position.set(0,1.2,18);
+ const fin=new THREE.Mesh(new THREE.BoxGeometry(.45,6.2,5),skin); fin.position.set(0,3.4,18);
+ const stripe=new THREE.Mesh(new THREE.BoxGeometry(.2,1.1,40),dark); stripe.position.set(2.2,.2,0);
+ const boom=new THREE.Mesh(new THREE.CylinderGeometry(.18,.12,16,8),dark); boom.rotation.x=Math.PI/2.4; boom.position.set(0,-2.2,28);
+ const basket=new THREE.Mesh(new THREE.TorusGeometry(1.35,.16,8,18), new THREE.MeshStandardMaterial({color:0xe7ebef,metalness:.5,roughness:.35})); basket.name='basket'; basket.position.set(0,-6,32);
+ g.add(body,nose,wing,tail,fin,stripe,boom,basket);
+ for(const x of [-14,-6,6,14]){const pod=new THREE.Mesh(new THREE.CylinderGeometry(.7,.7,4.2,10),dark); pod.rotation.x=Math.PI/2; pod.position.set(x,-1.15,-2); g.add(pod)}
+ const lamp=(x,y,z,color)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.28,8,8), new THREE.MeshBasicMaterial({color})); m.position.set(x,y,z); g.add(m)};
+ lamp(-21,.3,-2,0xff4040); lamp(21,.3,-2,0x40ff68); lamp(0,4.2,20,0xfff2cc);
+ scene.add(g); g.visible=false; return tankerMesh=g}
+function failFuel(){if(!S||S.fuelFail||S.fuelDone)return; S.fuelFail=1; S.score=Math.max(0,(S.score||0)-1500); msg('LOW FUEL — PRESS ON'); if(tankerMesh)tankerMesh.visible=false}
+function updTanker(dt,rdt){if(!S||S.fuelDone||S.fuelFail||S.phase!=='ingress'||S.cine||takingOff())return;
+ if(!S.tanker)S.tanker={z:-2200,fuel:0,fails:0,called:0,contact:0,t0:0,fast:0};
+ const tk=S.tanker; tk.z-=145*dt; const x=vx(tk.z), y=H(x,tk.z)+130;
+ const yaw=Math.atan2(-(vx(tk.z-40)-x), 40);
+ const fx=-Math.sin(yaw), fz=-Math.cos(yaw);
+ const wob=Math.sin(S.t*.8)*4.5+Math.sin(S.t*1.55)*2;
+ const bx=x-fx*32+(-fz)*wob, bz=tk.z-fz*32+fx*wob, by=y-6;
+ tk.basket={x:bx,y:by,z:bz}; tk.yaw=yaw; tk.alt=y;
+ ensureTanker(); tankerMesh.visible=true; tankerMesh.position.set(x,y,tk.z); tankerMesh.rotation.set(0,yaw,Math.sin(S.t*.55)*.025);
+ const bsk=tankerMesh.getObjectByName('basket'); if(bsk){const ox=bx-x, oy=by-y, oz=bz-tk.z, c=Math.cos(yaw), s=Math.sin(yaw); bsk.position.set(ox*c-oz*s, oy, ox*s+oz*c)}
+ const dx=S.pos.x-bx, dy=S.pos.y-by, dz=S.pos.z-bz, dist=Math.hypot(dx,dy,dz);
+ const along=(S.pos.x-x)*fx+(S.pos.z-tk.z)*fz;
+ const ship=Math.hypot(S.pos.x-x,S.pos.y-y,S.pos.z-tk.z);
+ if(!tk.called&&ship<5200){tk.called=1; tk.t0=S.t; radio('Tanker, rendezvous')}
+ if(tk.called&&S.t-tk.t0>75&&tk.fuel<1){failFuel(); return}
+ if(tk.called&&along>500){failFuel(); return}
+ const closing=S.spd-145;
+ if(dist<90&&closing>42){if(!tk.fast){tk.fast=1; msg('TOO FAST — EASE OFF')}} else tk.fast=0;
+ if(dist<16&&closing>50){tk.contact=0; tk.fails++; S.shake=Math.max(S.shake,.18); msg('BREAKAWAY'); if(tk.fails>=3)failFuel(); return}
+ const aligned=dist<18&&Math.abs(dy)<9&&closing<30&&closing>-12;
+ if(aligned){if(!tk.contact){tk.contact=1; msg('CONTACT')} tk.fuel=Math.min(1,(tk.fuel||0)+dt*.13); if(tk.fuel>=1){S.fuelDone=1; S.score=(S.score||0)+4000; radio('Fuel complete'); msg('FUEL COMPLETE'); tankerMesh.visible=false}}
+ else if(tk.contact&&dist>26){tk.contact=0; tk.fails++; msg('DISCONNECT'); if(tk.fails>=3)failFuel()}
+ tk.dist=dist; tk.dy=dy; tk.closing=closing;
+}
+function drawTankerHud(cx,cy){if($('end')&&!$('end').classList.contains('hide'))return; const tk=S.tanker; if(!tk||S.fuelDone||S.fuelFail||S.phase!=='ingress'||!tk.basket)return; if((tk.dist||9999)>950)return;
+ const b=tk.basket, dx=b.x-S.pos.x, dy=b.y-S.pos.y, dz=b.z-S.pos.z;
+ const fx=-Math.sin(S.yaw), fz=-Math.cos(S.yaw), rx=fz, rz=-fx;
+ const ahead=dx*fx+dz*fz, right=dx*rx+dz*rz;
+ const hot=tk.contact?'rgba(176,230,168,1)':'rgba(230,214,170,.96)';
+ const y0=Hh*.72;
+ txt(tk.contact?'CONTACT':'TANKER',cx,y0,14,'center',hot);
+ let cue='HOLD';
+ if(!tk.contact){ if(dy>7)cue='UP'; else if(dy<-7)cue='DOWN'; else if(right>8)cue='RIGHT'; else if(right<-8)cue='LEFT'; else if(ahead>22)cue='FORWARD'; else if(ahead<-6)cue='EASE OFF'; txt(cue,cx,y0+18,13,'center','rgba(255,214,150,.96)')}
+ const bw=128,bx=cx-64,by=y0+26; hx.strokeStyle=hot; hx.strokeRect(bx,by,bw,8); hx.fillStyle=hot; hx.fillRect(bx+1,by+1,Math.max(0,(tk.fuel||0))*(bw-2),6); hx.strokeStyle=G;
+}
 function update(rdt){
  if(S.to&&S.to.fade>0){S.to.fade-=rdt;if(S.to.fade<=0){S.to.fade=0;const f=$('tofade');if(f)f.classList.remove('on')}}
  if(takingOff()){updateTakeoff(rdt);mixFlightAudio(rdt);return}
@@ -1356,7 +1415,7 @@ function update(rdt){
   bomb.position.copy(b.p);bomb.lookAt(tmp.copy(b.p).add(b.v));
   // failsafe: never stay stuck on weapon cam / bombfall forever
   if(b.age>14){S.bomb=null;bomb.visible=false;S.phase='penetrate';S.penT=1.5}
-  else if(d<6||b.p.y<b.aim.y){S.bomb=null;bomb.visible=false;S.phase='penetrate';S.penT=0;riser(false);blip(90,.4,.4,'sine');if(bunkerLayered()){if(AC)thud(AC.out,.22,42,24,.3)}else{boomSfx(false,BUNK);heavy('sub08',.35,.9)}bulge.position.copy(BUNK);bulge.visible=true;bulge.scale.set(46,.1,40);
+  else if(d<6||b.p.y<b.aim.y){S.bomb=null;bomb.visible=false;S.phase='penetrate';S.penT=0;riser(false);if(!S.quiet)blip(90,.4,.4,'sine');if(!S.quiet){if(bunkerLayered()){if(AC)thud(AC.out,.22,42,24,.3)}else{boomSfx(false,BUNK);heavy('sub08',.35,.9)}}bulge.position.copy(BUNK);bulge.visible=true;bulge.scale.set(46,.1,40);
    for(let i=0;i<22;i++)spr(BUNK,0x8f8270,16,3,new THREE.Vector3(rnd(22),18+Math.random()*35,rnd(22)),{grow:20,o:.85,must:1})}}
  if(S.phase==='penetrate'){S.penT+=rdt;const k=sstep(.5,1.6,S.penT);bulge.scale.set(46+k*8,.1+k*9,40+k*8);S.shake=Math.max(S.shake,k*.25);if(Math.random()<.3)spr(tmp.copy(BUNK).add(new THREE.Vector3(rnd(40),2,rnd(40))),0x8a7d6a,10,2,new THREE.Vector3(0,6,0),{grow:10,o:.6});if(S.penT>1.6)bigBoom()}
  if(S.boomT>=0){S.boomT+=dt;const t=S.boomT;dome.scale.set(60+t*900,(60+t*900)*.55,60+t*900);dome.material.opacity=Math.max(0,.2-t*.11);if(t>1.8)dome.visible=false;
@@ -1385,19 +1444,21 @@ function update(rdt){
  updBandit(rdt);
  if(S.phase==='egress'&&S.boomT>2&&S.pos.distanceTo(EXIT)<700){if(S.bandit&&!S.bandit.dead){if(!S._exHold){S._exHold=1;msg('BANDIT STILL UP — CANNOT EXFIL')}}else{S.phase='done';showEnd(true)}}
  if(S.pos.z<EXZ-900&&S.phase!=='egress'&&S.phase!=='done')die('LEFT THE AO');
+ if(S.phase==='ingress'&&!S.cine) updTanker(dt,rdt);
  if(NIGHT_ON){expPulse=Math.max(0,expPulse-rdt*.32); const nv=nvOn?1.35:1; R.toneMappingExposure=(nightBase||SCEN.exposure)*nv*(1+expPulse)*(MOB?.82/.88:1)} mixFlightAudio(rdt)}
 function release(){if(window.__ft)window.__ft.markRel();S.relHold=0;S._relT0=0;S.locked=false;S.phase='bombfall';
  const q=inBox();S.err=(1-q)*14+Math.random()*2;const a=Math.random()*6.28;
  S.bomb={p:S.pos.clone().add(new THREE.Vector3(0,-2,0)),v:fwd.clone().multiplyScalar(Math.max(120,S.spd)),s:Math.max(120,S.spd),aim:BUNK.clone().add(new THREE.Vector3(Math.cos(a)*S.err,0,Math.sin(a)*S.err)),tti:99,age:0};bomb.visible=true;jet.visible=true;
- if(!useSnd('bombrelease',S.pos)){riser(true);heavy('sub08',.45,1.15);if(AC&&!heavy('subdrop',.8,1,true))thud(AC.out,.6,60,28,.8);blip(300,.2,.3,'triangle');whoosh()}}
-function showEnd(win){running=false;releaseControls();clearTimeout(endTimer);stopIntroMusic();stopDeckAmbience();stopMood();if(AC){const t=AC.currentTime;riser(false);AC.jet.gain.setTargetAtTime(0,t,.5);AC.amb.gain.setTargetAtTime(0,t,.5);try{stopBed()}catch(e){};eng.g.gain.setTargetAtTime(0,t,.3);warnG.gain.setTargetAtTime(0,t,.05);trkG.gain.setTargetAtTime(0,t,.05);AC.sub.gain.setTargetAtTime(0,t,.3);if(S.missile)mslAudioStop(S.missile);$('vig').style.opacity=0;$('teach').style.display='none';seekG.gain.setTargetAtTime(0,t,.05);
- if(win)setTimeout(()=>{if(!running)playEnding()},900)}const prec=win?Math.round(clamp(100-S.err*5,0,100)):0,st=Math.round(clamp(100-S.detT/Math.max(1,S.t)*100-S.samShots*10,0,100)),tm=S.t;
+ S.quiet=1; stopMood(true); riser(false)}
+function silenceScore(){stopMood(true); stopIntroMusic(); stopDeckAmbience(); try{stopBed()}catch(e){} stopWin(); riser(false); if(typeof endHandle!=='undefined'&&endHandle){try{endHandle.stop()}catch(e){} endHandle=null} if(!AC)return; const t=AC.currentTime; [AC.amb,AC.moodG,AC.mus,AC.introG,AC.wind&&AC.wind.g,AC.jet,AC.sub,AC.deckJetG,AC.deckRotorG].forEach(g=>{if(g&&g.gain){try{g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0,t)}catch(e){}}})}
+function showEnd(win){running=false;releaseControls();clearTimeout(endTimer);silenceScore();if(AC){const t=AC.currentTime;riser(false);AC.jet.gain.setTargetAtTime(0,t,.05);AC.amb.gain.setTargetAtTime(0,t,.05);try{stopBed()}catch(e){};eng.g.gain.setTargetAtTime(0,t,.05);warnG.gain.setTargetAtTime(0,t,.05);trkG.gain.setTargetAtTime(0,t,.05);AC.sub.gain.setTargetAtTime(0,t,.05);if(S.missile)mslAudioStop(S.missile);$('vig').style.opacity=0;$('teach').style.display='none';seekG.gain.setTargetAtTime(0,t,.05);
+ }const prec=win?Math.round(clamp(100-S.err*5,0,100)):0,st=Math.round(clamp(100-S.detT/Math.max(1,S.t)*100-S.samShots*10,0,100)),tm=S.t;
  const stars=win?1+(prec>=80)+(st>=75&&tm<170):0;$('et').textContent=win?'MISSION COMPLETE // ESCAPED':'MISSION FAILED // '+S.dead;$('es').textContent='★'.repeat(stars)+'☆'.repeat(3-stars);
  let hi=0,hs=0; try{hi=+localStorage.ds17e_hi||0; hs=+localStorage.ds17e_streak||0}catch(e){}
  const sc=Math.round(S.score||0), run=S.bestStreak||0; let fresh=false;
  if(sc>hi){hi=sc; fresh=true; try{localStorage.ds17e_hi=String(hi)}catch(e){}}
  if(run>hs){hs=run; try{localStorage.ds17e_streak=String(hs)}catch(e){}}
- $('etab').innerHTML=`<tr><td>PRECISION</td><td>${prec}%${win?` · CEP ${S.err.toFixed(1)} M`:''}</td></tr><tr><td>STEALTH</td><td>${st}%</td></tr><tr><td>TIME ON MISSION</td><td>${(tm/60|0)}:${String(tm%60|0).padStart(2,'0')}</td></tr><tr><td>SAMS DEFEATED</td><td>${S.defeated}</td></tr><tr><td>BANDIT</td><td>${S.bandit&&S.bandit.dead?'DESTROYED':S.bandit?'STILL UP':'—'} </td></tr><tr><td>SCORE</td><td>${sc}${fresh?' · HIGH':''}</td></tr><tr><td>BEST STREAK</td><td>${run} · RECORD ${hs}</td></tr><tr><td>HIGH SCORE</td><td>${hi}</td></tr>`;
+ $('etab').innerHTML=`<tr><td>PRECISION</td><td>${prec}%${win?` · CEP ${S.err.toFixed(1)} M`:''}</td></tr><tr><td>STEALTH</td><td>${st}%</td></tr><tr><td>TIME ON MISSION</td><td>${(tm/60|0)}:${String(tm%60|0).padStart(2,'0')}</td></tr><tr><td>SAMS DEFEATED</td><td>${S.defeated}</td></tr><tr><td>BANDIT</td><td>${S.bandit&&S.bandit.dead?'DESTROYED':S.bandit?'STILL UP':'—'} </td></tr><tr><td>SCORE</td><td>${sc}${fresh?' · HIGH':''}</td></tr><tr><td>BEST STREAK</td><td>${run} · RECORD ${hs}</td></tr><tr><td>HIGH SCORE</td><td>${hi}</td></tr><tr><td>FUEL</td><td>${S.fuelDone?'COMPLETE':S.fuelFail?'LOW':'—'}</td></tr>`;
  $('end').classList.remove('hide')}
 // ---------- render + HUD ----------
 const hud=$('hud'),hx=hud.getContext('2d');let W=0,Hh=0,dpr=1;
@@ -1485,6 +1546,7 @@ function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!r
  const ac=S.agl>150?'rgba(255,110,90,.95)':G;hx.strokeStyle=ac;hx.strokeRect(Rr,cy-9,56,18);txt(Math.round(S.agl||0)+'R',Rr+50,cy+4,12,'right',ac);txt('AGL',Rr+28,cy-14,9,'center',ac);txt(Math.round(S.pos.y*3.28)+' FT',Rr+28,cy+24,9,'center',ac);hx.strokeStyle=G;
  txt('THR '+Math.round(S.thr*100)+'%  '+Math.round(S.spd*1.94)+' KTS',L-26,cy+40,9);txt('FLR '+S.flares,L-26,cy+54,9);
  {const m=S.mult||1, col=m>3.2?'rgba(255,196,90,1)':m>1.6?'rgba(214,232,176,1)':G; txt('×'+m.toFixed(1),78,96,18,'left',col); if((S.streak||0)>0)txt('STREAK '+S.streak,78,114,11,'left','rgba(255,210,140,.95)')}
+ drawTankerHud(cx,cy);
  // EMCON / radar detection
  const mx=Rr-4,my=cy+48,dc=S.det>60?'rgba(255,110,90,.95)':S.det>25?'rgba(255,210,110,.95)':G;txt('DETECT',mx+30,my-4,9,'center',dc);hx.strokeStyle=dc;hx.strokeRect(mx,my,64,6);hx.fillStyle=dc;hx.fillRect(mx+1,my+1,62*S.det/100,4);hx.strokeStyle=G;txt('<150R',mx+30,my+17,9,'center',dc);
  const showBox=S.phase==='ingress'||S.phase==='release';if(showBox&&bDist()<6000){const bw=W*.16,bh=Hh*.2;hx.globalAlpha=.6;for(const [sx,sy] of[[-1,-1],[1,-1],[-1,1],[1,1]]){line(cx+sx*bw,cy+sy*bh,cx+sx*(bw-14),cy+sy*bh);line(cx+sx*bw,cy+sy*bh,cx+sx*bw,cy+sy*(bh-14))}hx.globalAlpha=1}
