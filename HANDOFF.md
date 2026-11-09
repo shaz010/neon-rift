@@ -5,6 +5,14 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17g — survive the release, see the tanker, quiet the loop
+
+The bomb run no longer kills a decent pull-out. For the release, the blast, and eight seconds after the camera comes back, radar locks and SAM hits are held off, and a terrain brush lifts the jet with `PULL UP / EGRESS` instead of ending the sortie. A crash after that is only when the jet meets the ground you can see. The failure screen names the cause.
+
+The tanker starts ahead of the valley defences, large, with `TANKER AHEAD — JOIN UP` and an arrow. The looping valley bed stays off unless this build turns it on, and every music loop is held about 30 dB under the effects. Practice buttons on the brief jump to the tanker or the dogfight.
+
+Stamp `s17 · 17g`.
+
 ## s17 · 17f — quiet release, loud blast, tanker
 
 Mood now defaults to Off. An old pick code that still names a synth bed does not turn it back on. The bomb run, from release until the detonation, keeps the music and the beds down and leaves only a faint engine. Oil Rise still swells, then its peak is the loudest moment, then the rumble fades. The debrief stays silent.
@@ -147,4 +155,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17f. Mood defaults to Off, the bomb run is quiet, Oil Rise peaks loud, and a tanker rendezvous sits before the target. The score screen stays silent. 17e terrain score stays. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock and varied sorties wait until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17g. The release has a grace window, the crash matches the visible ground, the tanker is called out ahead of the defences, and the synth loop stays quiet. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
