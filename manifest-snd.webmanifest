@@ -1,14 +1,14 @@
 {
-  "name": "DEEP STRIKE SND 17j",
-  "short_name": "SND 17j",
+  "name": "DEEP STRIKE SND 17k",
+  "short_name": "SND 17k",
   "start_url": "./sounds.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#14305c",
   "theme_color": "#14305c",
   "icons": [
-    {"src": "icons/icon-snd-17j-192.png?v=17j", "sizes": "192x192", "type": "image/png"},
-    {"src": "icons/icon-snd-17j-512.png?v=17j", "sizes": "512x512", "type": "image/png"},
-    {"src": "icons/icon-snd-17j-180.png?v=17j", "sizes": "180x180", "type": "image/png"}
+    {"src": "icons/icon-snd-17k-192.png?v=17k", "sizes": "192x192", "type": "image/png"},
+    {"src": "icons/icon-snd-17k-512.png?v=17k", "sizes": "512x512", "type": "image/png"},
+    {"src": "icons/icon-snd-17k-180.png?v=17k", "sizes": "180x180", "type": "image/png"}
   ]
 }

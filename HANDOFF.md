@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17k — put the dot in the ring
+
+Refuelling shows one picture. Far away, a single arrow points at the tanker and the rest of the HUD is hidden. In the join, the camera looks up the tail so the hose and a bright drogue sit ahead of the nose. The basket is a lit ring with a dark outline and strobes, and the HUD ring is locked on it. The only job is to put the white dot in that ring. It turns green as you reach it, then reads IN with a fill bar. FAST or SLOW is one word. Score, radar, distances, and the other tapes stay hidden until fuel is complete. Contact is a little wider than the ring itself, and a light pull helps only in the last few metres. The 17j lesson flag is unchanged.
+
+Stamp `s17 · 17k`.
+
 ## s17 · 17j — calm tanker, then a distant warning
 
 The first refuelling is fully calm. Nothing shoots, locks, or spawns while the tanker call is active, until fuel is complete, the join is abandoned, or the jet leaves the tanker and enters the defended belt, plus about four seconds after. START AT TANKER practice stays calm even after the lesson is learned. A later sortie, after one real FUEL COMPLETE, adds only a distant `BANDIT, FAR` callout, a short search blip, and a countdown that never becomes a weapon. No SAM, AAA, guns, or missile can damage the jet during that phase. Combat, including the post-bomb dogfight, returns when the phase ends.
@@ -175,4 +181,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17j. First refuel and START AT TANKER stay calm. After one FUEL COMPLETE the flag `ds17j_tanker` / cookie `ds17jt` arms a distant BANDIT, FAR warning only. RESET TANKER LESSON clears it. Combat returns after the tanker phase. Baked picks stay. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17k. The tanker join is a dot and a ring. The hose and drogue sit ahead of the nose. First refuel and START AT TANKER stay calm. After one FUEL COMPLETE the flag `ds17j_tanker` / cookie `ds17jt` arms a distant warning only. RESET TANKER LESSON clears it. Baked picks stay. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
