@@ -1,14 +1,14 @@
 {
-  "name": "DEEP STRIKE 17h",
-  "short_name": "DS 17h",
+  "name": "DEEP STRIKE 17i",
+  "short_name": "DS 17i",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0c3a48",
   "theme_color": "#0c3a48",
   "icons": [
-    {"src": "icons/icon-game-17h-192.png?v=17h", "sizes": "192x192", "type": "image/png"},
-    {"src": "icons/icon-game-17h-512.png?v=17h", "sizes": "512x512", "type": "image/png"},
-    {"src": "icons/icon-game-17h-180.png?v=17h", "sizes": "180x180", "type": "image/png"}
+    {"src": "icons/icon-game-17i-192.png?v=17i", "sizes": "192x192", "type": "image/png"},
+    {"src": "icons/icon-game-17i-512.png?v=17i", "sizes": "512x512", "type": "image/png"},
+    {"src": "icons/icon-game-17i-180.png?v=17i", "sizes": "180x180", "type": "image/png"}
   ]
 }
