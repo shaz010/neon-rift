@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17s — release means a drop
+
+The RELEASE button only says RELEASE when a press drops the bomb. Hold LOCK until LOCKED, then press RELEASE and the bomb is guided. Without a lock, the same button drops a free-fall while you are in range. Once LOCKED, the lock stays through small moves until the bunker leaves the range.
+
+Stamp `s17 · 17s`.
+
 ## s17 · 17r — quieter engine, iPad is a tablet
 
 The piercing tone after a missed pass was the F-105 engine whine, left open at 2,200 Hz once the other sounds dropped away. The engine now stays under about 900 Hz and moves a little with the throttle. Warning tones are sines and they go silent as soon as the warning ends. An iPad, which tells Safari it is a Mac, is treated as a touch tablet: lighter valley, a sharper picture than a phone, and sound starts on the first touch.
@@ -219,4 +225,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17r. The engine whine stays low. An iPad is treated as a touch tablet. A held bunker lock guides the bomb onto the target. Phones start in battery saver. The valley is the 17n scenery again. The Mattertal commit remains in history as `4611f87`. Flight drawing is capped at 60 fps, menus at 30, and pause and the score screen do not draw. Battery saver is optional. Gameplay from 17i through 17m stays. Baked picks stay. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17s. The RELEASE button only says RELEASE when that press drops the bomb. Hold LOCK until LOCKED, then press RELEASE and the bomb is guided. With no lock, the same press drops a free-fall while you are in range. The lock stays through a small move until the bunker leaves the range. Everything else is 17r: the engine whine stays low, an iPad is a touch tablet, phones start in battery saver, and the valley is the 17n scenery. The Mattertal commit remains in history as `4611f87`. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
