@@ -4,12 +4,12 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-title" content="DS SCN 16"/>
+<meta name="apple-mobile-web-app-title" content="DS SCN 17"/>
 <meta name="theme-color" content="#164830"/>
 <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-scn-180.png"/>
 <link rel="icon" href="icons/icon-scn-180.png"/>
 <link rel="manifest" href="manifest-scn.webmanifest"/>
-<title>DEEP STRIKE s16 — Scenery Tester</title>
+<title>DEEP STRIKE s17 — Scenery Tester</title>
 <script type="importmap">{"imports":{"three":"./vendor/three.module.min.js"}}</script>
 <style>
 :root{--g:#b6dcae;--bg:#070908;--m:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
@@ -18,7 +18,7 @@ html,body{margin:0;min-height:100%;height:auto;background:var(--bg);color:var(--
 #bar{position:sticky;top:0;z-index:20;background:rgba(6,10,8,.96);border-bottom:1px solid rgba(182,220,174,.35);padding:calc(10px + env(safe-area-inset-top)) 14px 10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 #bar h1{margin:0;font:700 14px var(--m);letter-spacing:2px;flex:1}
 .patch{flex:1 0 100%;font:700 16px var(--m);letter-spacing:1.2px;color:#e8ffe0}
-#bar a.back{margin-left:auto;min-height:48px;min-width:132px;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(182,220,174,.6);border-radius:6px;background:rgba(40,60,40,.85);color:#e8ffe0;text-decoration:none;font:700 13px var(--m);touch-action:manipulation;z-index:31;position:relative}
+#bar a.back,#bar button.back{margin-left:auto;min-height:48px;min-width:132px;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(182,220,174,.6);border-radius:6px;background:rgba(40,60,40,.85);color:#e8ffe0;text-decoration:none;font:700 13px var(--m);touch-action:manipulation;z-index:31;position:relative}
 #picked{width:100%;margin-top:6px;padding:8px 10px;border:1px solid rgba(182,220,174,.45);background:rgba(30,50,34,.75);border-radius:6px;font:700 13px var(--m);display:none}
 #picked.on{display:block}
 #previewWrap{display:none;position:sticky;top:calc(58px + env(safe-area-inset-top));z-index:7;height:min(42dvh,320px);background:#000;border-bottom:1px solid rgba(182,220,174,.3)}
@@ -28,7 +28,7 @@ canvas#gl{position:absolute;inset:0;width:100%!important;height:100%!important;d
 #nightBox{margin:10px;padding:10px;border:1px solid rgba(182,220,174,.4);border-radius:8px;background:rgba(8,12,10,.9);display:flex;flex-direction:column;gap:8px}
 #nightBox select{min-height:44px;width:100%;background:#0c100e;color:#e8ffe0;border:1px solid rgba(182,220,174,.5);border-radius:6px;font:16px var(--m)}
 #nightBox .acts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-#nightBox button,#nightBox a.apply{min-height:44px;border-radius:6px;border:1px solid rgba(182,220,174,.5);background:rgba(20,32,24,.9);color:#e8ffe0;font:700 12px var(--m);touch-action:manipulation;display:flex;align-items:center;justify-content:center;text-decoration:none}
+#nightBox button,#nightBox a.apply,#nightBox button.apply{min-height:44px;border-radius:6px;border:1px solid rgba(182,220,174,.5);background:rgba(20,32,24,.9);color:#e8ffe0;font:700 12px var(--m);touch-action:manipulation;display:flex;align-items:center;justify-content:center;text-decoration:none}
 #nightBox .apply{grid-column:1/-1;background:rgba(70,110,60,.95)}
 #nightBox p{margin:0;font-size:12px;opacity:.8;line-height:1.35}
 #nvg{position:fixed;inset:0;pointer-events:none;z-index:8;display:none;background:rgba(70,160,60,.16);mix-blend-mode:screen;box-shadow:inset 0 0 90px 20px rgba(0,30,0,.55)}
@@ -49,9 +49,9 @@ canvas#gl{position:absolute;inset:0;width:100%!important;height:100%!important;d
 </head>
 <body>
 <div id="bar">
-  <div class="patch" data-patch>s16 · 16n</div>
-  <h1>DEEP STRIKE · s16 — SCENERY</h1>
-  <a class="back" href="./index.html">← Back to game</a>
+  <div class="patch" data-patch>s17 · 17s</div>
+  <h1>DEEP STRIKE · s17 — SCENERY</h1>
+  <button type="button" class="back" data-togame>← Back to game</button>
   <div id="picked">PICKED: —</div>
 </div>
 <div id="previewWrap">
@@ -68,7 +68,7 @@ canvas#gl{position:absolute;inset:0;width:100%!important;height:100%!important;d
     <button type="button" id="nightStop">STOP</button>
     <button type="button" id="nightChoose" class="choose">✓ Choose</button>
     <button type="button" id="nightNV">NIGHT VISION</button>
-    <a id="nightApply" class="apply" href="./index.html">APPLY TO GAME</a>
+    <button type="button" id="nightApply" class="apply">APPLY TO GAME</button>
   </div>
 </div>
 <div id="list"></div>
@@ -84,6 +84,6 @@ canvas#gl{position:absolute;inset:0;width:100%!important;height:100%!important;d
 <select id="s_bed" class="hide"></select><span id="v_eng"></span><span id="v_mus"></span><span id="v_bed"></span><span id="v_fx"></span><button id="setx" type="button"></button><div id="resume"></div>
 <div id="tt"></div><div id="tp"></div><div id="tn"></div><div id="mapc"></div><div id="previewLabel" class="hide"></div>
 <script>window.__DS_MODE='scenery';</script>
-<script type="module" src="./main.mjs?v=16n"></script>
+<script type="module" src="./main.mjs?v=17s"></script>
 </body>
 </html>

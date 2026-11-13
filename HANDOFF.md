@@ -1,9 +1,131 @@
 # DEEP STRIKE — handoff
 
-Live game for this build: https://shaz010.github.io/neon-rift/strike-16/
-Branch: `strike-16`. Pages folder: `/strike-16/` only.
+Live game for this build: https://shaz010.github.io/neon-rift/strike-17/
+Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
-Do not touch `main`, the `gh-pages` root, or any other folder there, including `/strike-15/`. `strike-15` stays the previous build (stamp `s15 · 15p`).
+`/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
+
+## s17 · 17s — release means a drop
+
+The RELEASE button only says RELEASE when a press drops the bomb. Hold LOCK until LOCKED, then press RELEASE and the bomb is guided. Without a lock, the same button drops a free-fall while you are in range. Once LOCKED, the lock stays through small moves until the bunker leaves the range.
+
+Stamp `s17 · 17s`.
+
+## s17 · 17r — quieter engine, iPad is a tablet
+
+The piercing tone after a missed pass was the F-105 engine whine, left open at 2,200 Hz once the other sounds dropped away. The engine now stays under about 900 Hz and moves a little with the throttle. Warning tones are sines and they go silent as soon as the warning ends. An iPad, which tells Safari it is a Mac, is treated as a touch tablet: lighter valley, a sharper picture than a phone, and sound starts on the first touch.
+
+Stamp `s17 · 17r`.
+
+## s17 · 17q — a lock is a hit
+
+Hold LOCK with the bunker in the box and inside 4.2 km. After a short hold the cue is LOCKED. Release then, and the bomb is GUIDED onto the bunker. Release without that lock and the bomb falls free: SHORT, LONG, or MISS. Phones start in battery saver, draw a coarser valley, and stay at 30 fps until saver is turned off, which raises them to 45.
+
+Stamp `s17 · 17q`.
+
+## s17 · 17p — valley restored
+
+17o (`4611f87`) put the flight in the real Mattertal. It did not feel right, so that scenery commit is reverted. The ground, materials, clouds, trees, and bunker are the 17n valley again. Tanker lock, the calm lesson, the bandit, the grid, the frame cap, battery saver, and the zoom lock stay.
+
+The penetrator no longer steers toward the bunker. It leaves the jet with the jet's speed, falls under gravity, and stops on the first surface the ray meets. A hit on the bunker, or within 72 m of it, is the strike. Anywhere else is SHORT, LONG, or MISS, with a dust burst on that ground. The CCIP diamond is the predicted impact.
+
+Stamp `s17 · 17p`.
+
+## s17 · 17n — cooler phone
+
+The picture stays the same. The game no longer chases a 120 Hz screen: flight is capped at 60, the brief at 30, and pause, hide, and the score screen stop drawing. Pixel ratio never goes above 2, and a slow frame drops the render scale. Battery saver, off unless chosen, goes to 30 fps and a lighter scene. The choice is `localStorage.ds17n_batt`.
+
+Stamp `s17 · 17n`.
+
+## s17 · 17m — defence grid
+
+Destroying the bunker raises a cable barrier across the escape valley. After the dogfight the jet has to thread the one gap. A cable hit is KILLED BY: DEFENCE GRID. Passing once arms extra, lower, narrower grids on later sorties. START AT GRID is the practice.
+
+Stamp `s17 · 17m`.
+
+## s17 · 17l — the ring locks
+
+The dot is the nose, and it is the same point the lock measures. When that dot sits in the ring on screen for half a second, the probe snaps in with a clunk and an autopilot holds formation until the tank is full, about nine seconds. A small stick does not break it. A hard shove or a throttle pull does. The meeting is in the south of the valley, so there is about a minute of flying before the tanker turns away, well short of the release point.
+
+Stamp `s17 · 17l`.
+
+## s17 · 17k — put the dot in the ring
+
+Refuelling shows one picture. Far away, a single arrow points at the tanker and the rest of the HUD is hidden. In the join, the camera looks up the tail so the hose and a bright drogue sit ahead of the nose. The basket is a lit ring with a dark outline and strobes, and the HUD ring is locked on it. The only job is to put the white dot in that ring. It turns green as you reach it, then reads IN with a fill bar. FAST or SLOW is one word. Score, radar, distances, and the other tapes stay hidden until fuel is complete. Contact is a little wider than the ring itself, and a light pull helps only in the last few metres. The 17j lesson flag is unchanged.
+
+Stamp `s17 · 17k`.
+
+## s17 · 17j — calm tanker, then a distant warning
+
+The first refuelling is fully calm. Nothing shoots, locks, or spawns while the tanker call is active, until fuel is complete, the join is abandoned, or the jet leaves the tanker and enters the defended belt, plus about four seconds after. START AT TANKER practice stays calm even after the lesson is learned. A later sortie, after one real FUEL COMPLETE, adds only a distant `BANDIT, FAR` callout, a short search blip, and a countdown that never becomes a weapon. No SAM, AAA, guns, or missile can damage the jet during that phase. Combat, including the post-bomb dogfight, returns when the phase ends.
+
+The lesson flag is `localStorage.ds17j_tanker` = `1`, and cookie `ds17jt=1` (one year, path `/`). It is written beside the high score keys `ds17e_hi` and `ds17e_streak`, and only on a non-practice FUEL COMPLETE. RESET TANKER LESSON on the brief clears both. The current sortie reads the flag once at start, so finishing fuel does not flip that same join into the warning.
+
+Stamp `s17 · 17j`.
+
+## s17 · 17i — tanker keeps up, bandit in front
+
+The tanker flies at the jet's speed in the join, and faster when the jet runs past, so minimum throttle no longer overruns it. The basket is wider. The bandit merges head-on, in front, and comes back to twelve o'clock instead of camping at six. The F-105 whine is low-passed, and that loop stops on the debrief.
+
+Stamp `s17 · 17i`.
+
+## s17 · 17h — Sonniss choices on the sound bank
+
+Extra Sonniss GDC 2026 clips sit on the sound bank rows. Nothing new is baked. The 17g flight is unchanged. The licence note is in `docs/sonniss/` and is not part of the public download.
+
+Stamp `s17 · 17h`.
+
+## s17 · 17g — survive the release, see the tanker, quiet the loop
+
+The bomb run no longer kills a decent pull-out. For the release, the blast, and eight seconds after the camera comes back, radar locks and SAM hits are held off, and a terrain brush lifts the jet with `PULL UP / EGRESS` instead of ending the sortie. A crash after that is only when the jet meets the ground you can see. The failure screen names the cause.
+
+The tanker starts ahead of the valley defences, large, with `TANKER AHEAD — JOIN UP` and an arrow. The looping valley bed stays off unless this build turns it on, and every music loop is held about 30 dB under the effects. Practice buttons on the brief jump to the tanker or the dogfight.
+
+Stamp `s17 · 17g`.
+
+## s17 · 17f — quiet release, loud blast, tanker
+
+Mood now defaults to Off. An old pick code that still names a synth bed does not turn it back on. The bomb run, from release until the detonation, keeps the music and the beds down and leaves only a faint engine. Oil Rise still swells, then its peak is the loudest moment, then the rumble fades. The debrief stays silent.
+
+On the way to the target a tanker flies the valley. Hold the basket to take fuel. Drift off and the hose drops. Three breaks, or running out of time, is a low-fuel warning and a score penalty. A full contact is fuel complete and a bonus. The fuel clock itself waits for the next build.
+
+Home Screen names are DS 17f and SND 17f.
+
+Stamp `s17 · 17f`.
+
+## s17 · 17e — terrain-hugging score
+
+A multiplier from ×1 to ×5 builds while the jet is low and fast, and falls off as it climbs. Passing close to the ground or a ridge is a near miss: a short whoosh, a small shake, and a streak bonus. Above the ceiling the radar spikes, then a SAM lock, then a launch. Dropping into the weeds breaks that lock. The ground still kills. The debrief shows the score, the best streak, and the saved high score.
+
+The 17d picks, Mood Off, and the F-15 fight are unchanged. The Home Screen name is DS 17e, and the sound icon is SND 17e. iOS keeps the old icon until the shortcut is removed and added again.
+
+Stamp `s17 · 17e`.
+
+## s17 · 17d — mood off, and a real fighter
+
+Mood has an Off. It silences the valley synth, and that choice stays in the pick code, so a refresh, a retry, and a Home Screen launch that can read the code keep it off. The baked gun, bunker, flare, pass, impact, AAA, engine, and deck picks are unchanged. SAM and crash stay Current.
+
+The escape fighter is the CC0 F-15 already on the deck, gear up, with afterburner, heat haze, and wingtip trails. It slashes, climbs, and tries for the six. It warns before guns and before a missile. Flares spoil a shot when the player is tracking it. Ten hits bring smoke, then fire, then a falling wreck. The chase camera is unchanged and the gun still fires only while it is held.
+
+Stamp `s17 · 17d`.
+
+## s17 · 17c — picks in the build, fighter in front
+
+The sound bank picks are the build defaults: Deep Report, Oil Rise, Pressure Hiss, Shells Overhead, Violent Hit, Fifty Cal, F-105 Whine, and Pier Bed. SAM launch and the crash stay on the sound-tester choice. Current on a row keeps that saved sound. Apply writes a pick code into the page, a cookie, and the address. The brief can paste a code, because an iPhone Home Screen icon does not share the sound page's storage. Empty storage still plays the baked picks.
+
+Apply and the Game button stay in the app, so the game brief opens in place. iOS no longer gets a temporary page whose close returns to the sound picker.
+
+After the bunker the fighter is in front of the chase view, with its silhouette, a target box, a lead marker, and an arrow when it leaves the screen. The gun fires only while it is held. Six hits, the guns warning, and the exfil gate are unchanged. Oil Rise is the bunker detonation. The generic blast does not play over it.
+
+Stamp `s17 · 17c`.
+
+## s17 · 17b — separate sound bank
+
+A new page, `sound-bank.html`, offers a short list of CC0 field recordings. Current keeps the sound-tester choice. Apply sends only the new overrides together with the choices already saved. Each row is wired to the sortie event it names. Sirens were not shipped. Stamp `s17 · 17b`.
+
+## s17 · 17a — escape dogfight
+
+After the bunker, a fighter intercepts. The player turns, breaks, and fires the gun. Exfil stays closed until that fighter is destroyed. The chase camera does not swoop. The bunker blast at detonation is the blast chosen in the sound tester, including Rising Cluster. Stamp `s17 · 17a`.
 
 ## s16 · 16n — audible beds and distinct nights
 
@@ -96,3 +218,11 @@ Stamp is `s16 · 16a` (`main.mjs?v=16a`). Home-screen icon is sea-teal with an a
 ## Deploy
 
 Copy this branch into `gh-pages` at `strike-16/` only, then push `gh-pages`. Cache-bust is the `?v=` on `main.mjs`.
+
+## Bot continuity and recovery
+
+Every bot working on this project, and any new bot Shahbaz creates, follows the shared "Bot continuity and recovery" skill. The ready-to-paste setup pack is at `docs/Bot-Continuity-Setup-Pack.md`.
+
+Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
+
+Current project checkpoint: DEEP STRIKE s17 · 17s. The RELEASE button only says RELEASE when that press drops the bomb. Hold LOCK until LOCKED, then press RELEASE and the bomb is guided. With no lock, the same press drops a free-fall while you are in range. The lock stays through a small move until the bunker leaves the range. Everything else is 17r: the engine whine stays low, an iPad is a touch tablet, phones start in battery saver, and the valley is the 17n scenery. The Mattertal commit remains in history as `4611f87`. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
