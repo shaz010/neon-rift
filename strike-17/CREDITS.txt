@@ -49,10 +49,3 @@ Throttle: wider speed band, clearer engine pitch/volume; THROTTLE label + KTS + 
 Enemy fire: aaaw rebuilt as cannon (Big Bang 01 + Subsonic Boom FX 03 + Boomer FX 27 + Thunder), ~476ms attack to 50%, long tail; src fadeIn .28s (was 4ms click). Flak fades slowed.
 Music beds (Logic Pro library): ambient=Iron Veil (default); mus_depth=Subsonic Drone 02; mus_dream=Dream Space Layers; mus_layers=Jet Propulsion Synth Layers; mus_waves=Warm Summer Waves Sub Bass. Dub 02 / brief still mission-complete only.
 Textures (CC0): Poly Haven rock_face_03, aerial_rocks_02, coast_sand_rocks_02; ambientCG Ground037. Existing ambientCG Rock030/Grass004/Ground054/Snow006 + Poly Haven aerial_grass_rock / rocky_terrain_02.
-
-== Strike s17 · 17o — Mattertal elevation ==
-Place: Mattertal, Valais, Switzerland, from the glacier valley south of Zermatt to the Rhône at Visp.
-Elevation: Mapzen Terrain Tiles, Terrarium PNG, zoom 12, from the AWS Open Data bucket elevation-tiles-prod (https://registry.opendata.aws/terrain-tiles/).
-For this part of Europe the tiles are produced using Copernicus data and information funded by the European Union (EU-DEM). See docs/terrain-mattertal.md.
-The game samples that elevation onto the existing valley mesh. A two-metre channel marks the Vispa. No vertical exaggeration.
-Ground textures are unchanged and remain CC0: ambientCG Rock030, Grass004, Ground054, Snow006; Poly Haven aerial_grass_rock and rocky_terrain_02.

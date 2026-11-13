@@ -1,12 +1,11 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17o'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17p'])[1];
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
 
 import * as THREE from 'three';
-import {DEM} from './terrain/mattertal.js';
 import {Sky} from './vendor/jsm/objects/Sky.js';
 import {EffectComposer} from './vendor/jsm/postprocessing/EffectComposer.js';
 import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js';
@@ -135,24 +134,22 @@ function hash(x,y){const s=Math.sin(x*127.1+y*311.7)*43758.5453;return s-Math.fl
 function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
  return lerp(lerp(hash(xi,yi),hash(xi+1,yi),u),lerp(hash(xi,yi+1),hash(xi+1,yi+1),u),v)}
 function fbm(x,y){let a=0,f=1,s=.5;for(let i=0;i<4;i++){a+=vnoise(x*f,y*f)*s;f*=2.03;s*=.5}return a}
-const vx=()=>0;
-const _demBin=Uint8Array.from(atob(DEM.b64),c=>c.charCodeAt(0));
-const _dem=new Uint16Array(_demBin.buffer);
-function Hraw(x,z){
- const cols=DEM.cols, rows=DEM.rows;
- let c=(x-DEM.x0)/(DEM.x1-DEM.x0)*(cols-1), r=(z-DEM.z0)/(DEM.z1-DEM.z0)*(rows-1);
- c=c<0?0:c>cols-1?cols-1:c; r=r<0?0:r>rows-1?rows-1:r;
- const c0=c|0, r0=r|0, c1=c0+1<cols?c0+1:c0, r1=r0+1<rows?r0+1:r0, fx=c-c0, fz=r-r0;
- const i=r0*cols, j=r1*cols;
- return ((_dem[i+c0]*(1-fx)+_dem[i+c1]*fx)*(1-fz)+(_dem[j+c0]*(1-fx)+_dem[j+c1]*fx)*fz)*DEM.scale}
-const BZ=-10000, _bench=Hraw(340,BZ);
-function H(x,z){
- const h=Hraw(x,z);
- if(z<BZ-160||z>BZ+160)return h;
- if(x>=300&&x<=480)return _bench;
- if(x>480&&x<760){const t=(x-480)/280; return _bench+(h-_bench)*t*t}
- return h}
-const BUNK=new THREE.Vector3(420,0,BZ); BUNK.y=H(BUNK.x,BUNK.z);
+const vx=z=>Math.sin(z/1500)*380+Math.sin(z/570+1)*90;
+function H(x,z){const d=Math.abs(x-vx(z));
+ // large ridgelines flanking the valley (multi-scale fbm)
+ const ridge=860*sstep(110,1550,d)*(.48+.52*fbm(x*.0005+2.1,z*.00048))
+  +420*sstep(180,980,d)*fbm(x*.0011+7.3,z*.00105+1.4)
+  +180*sstep(90,520,d)*Math.max(0,fbm(x*.0024+4,z*.0022)-.35);
+ // eroded mid-slopes + rocky outcrops
+ const mid=fbm(x*.0032+1.7,z*.003)*210*sstep(70,720,d);
+ const outcrop=Math.max(0,fbm(x*.011+9,z*.01)-.58)*110*sstep(140,900,d);
+ // dry wadi / riverbed meander on valley floor
+ const wx=vx(z)+Math.sin(z*.00205+1.2)*48+Math.sin(z*.0007)*22;
+ const wd=Math.abs(x-wx);const wadi=-32*Math.exp(-(wd*wd)/(68*68))*(1-sstep(0,1,d/520));
+ // micro relief + valley floor fill
+ const micro=fbm(x*.022,z*.021)*7+fbm(x*.06,z*.055)*2.2;
+ return ridge+mid+outcrop+wadi+micro-6}
+const BZ=-10000, BUNK=new THREE.Vector3(vx(BZ)+40,0,BZ); BUNK.y=H(BUNK.x,BUNK.z);
 const MEET_Z=12800, TANKER_Z=12320, TANKER_LEAVE_Z=-3200;
 function meetPos(){const z=MEET_Z,x=vx(z); return {x,y:H(x,z)+150,z}}
 const SAMP=new THREE.Vector3(vx(-10900)+330,0,-10900); SAMP.y=H(SAMP.x,SAMP.z);
@@ -177,7 +174,7 @@ let PR=pickPR(); R.setPixelRatio(PR*renderScale);
 R.toneMapping=THREE.ACESFilmicToneMapping; R.toneMappingExposure=.88; R.shadowMap.enabled=!MOB; R.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene(); scene.fog=null;
 const cam=new THREE.PerspectiveCamera(60,1,1,16000); cam.rotation.order='YXZ';
-const SCEN={turbidity:2.6,rayleigh:.95,mie:.0025,mieG:.78,sunEl:21,sunAz:.62,sunInt:4.5,hemi:1.15,exposure:.88,env:.75,fogDen:0.00005,fogFar:14000,snowAlt0:2680,snowAlt1:3250,snowAmt:1,warmth:0,clouds:0.5};
+const SCEN={turbidity:2.6,rayleigh:.95,mie:.0025,mieG:.78,sunEl:21,sunAz:.62,sunInt:4.5,hemi:1.15,exposure:.88,env:.75,fogDen:0,fogFar:14000,snowAlt0:490,snowAlt1:700,snowAmt:1,warmth:0,clouds:0};
 const SCEN_DEFAULT={...SCEN};
 let NIGHT_ON=false, expPulse=0, nvOn=false, nightBase=SCEN.exposure, nightId='current';
 function nightKick(a){if(!NIGHT_ON)return; expPulse=Math.min(.26, expPulse+(a||.16))}
@@ -250,17 +247,14 @@ const glowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64
   vec3 aer=mix(texture2D(tA,vWP.xz/140.).rgb,texture2D(tA,vWP.xz/37.).rgb,.4);gr=mix(gr,aer*vec3(.86,.88,.8),.6);dt=mix(dt,aer,.45);
   vec3 sn=texture2D(tS,vWP.xz/22.).rgb*vec3(.88,.90,.93);
   float sl=normalize(vWN).y;
-  float gw=smoothstep(.78,.94,sl+(mac2-.5)*.16)*(1.-smoothstep(1850.,2450.,vWP.y));
+  float gw=smoothstep(.80,.93,sl+(mac2-.5)*.18)*(1.-smoothstep(320.,460.,vWP.y));
   vec3 c=mix(rk,mix(dt,gr,smoothstep(.2,.8,mac+mac2*.4-.2)*.8),gw);
   float alt=smoothstep(uSnowAlt0,uSnowAlt1,vWP.y+(mac-.5)*240.);
   float slopeKeep=smoothstep(.48,.86,sl);
   float sw=alt*slopeKeep*uSnowAmt;
   vec3 snSoft=mix(sn,rk,.18)*vec3(.94,.95,.97);
   c=mix(c,snSoft,sw);
-  float river=smoothstep(78.,14.,abs(vWP.x))*smoothstep(.55,.9,sl);
-  vec3 water=mix(vec3(.50,.66,.64),vec3(.78,.82,.84),smoothstep(2200.,2700.,vWP.y));
-  c=mix(c,water,river*(vWP.y>2700.?.35:.75));
-  c=mix(c,rk,smoothstep(.74,.42,sl)*.55);
+  c=mix(c,rk,smoothstep(.7,.35,sl)*smoothstep(350.,800.,vWP.y)*.45);
   c*=.86+mac*.28;c=mix(vec3(dot(c,vec3(.33))),c,.88);
   c=mix(c,c*vec3(1.06,1.0,.92),clamp(uWarmth,0.,1.)*.35);
   diffuseColor.rgb*=c;`).replace('#include <normal_fragment_maps>',`#include <normal_fragment_maps>
@@ -275,12 +269,12 @@ const tmesh=new THREE.Mesh(g,tm);tmesh.receiveShadow=true;scene.add(tmesh);windo
 const _gyRay=new THREE.Raycaster(), _gyDir=new THREE.Vector3(0,-1,0), _gyO=new THREE.Vector3();
 function groundY(x,z){const mesh=window.__tmesh; if(!mesh)return H(x,z); _gyO.set(x,6000,z); _gyRay.set(_gyO,_gyDir); _gyRay.far=9000; const hit=_gyRay.intersectObject(mesh,false); return hit.length?hit[0].point.y:H(x,z)}
 // Optional cloud cards for scenery tester (hidden at SCEN.clouds=0)
-{const cg=new THREE.Group();cg.visible=false;window.__cloudGroup=cg;const N=MOB?8:12;
+{const cg=new THREE.Group();cg.visible=false;window.__cloudGroup=cg;const N=MOB?6:10;
  for(let i=0;i<N;i++){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
-  const g=x.createRadialGradient(64,64,8,64,64,60);g.addColorStop(0,'rgba(255,255,255,.7)');g.addColorStop(.45,'rgba(236,240,244,.28)');g.addColorStop(1,'rgba(255,255,255,0)');
+  const g=x.createRadialGradient(64,64,8,64,64,60);g.addColorStop(0,'rgba(255,255,255,.55)');g.addColorStop(.5,'rgba(255,255,255,.18)');g.addColorStop(1,'rgba(255,255,255,0)');
   x.fillStyle=g;x.fillRect(0,0,128,128);const t=new THREE.CanvasTexture(c);
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false,fog:true,opacity:.0}));
-  const z=12000-Math.random()*28000,x0=rnd(1600);s.position.set(x0,H(x0,z)+140+Math.random()*820,z);s.scale.set(700+Math.random()*1300,240+Math.random()*380,1);cg.add(s)}
+  const z=-2000-Math.random()*12000,x0=vx(z)+rnd(2500);s.position.set(x0,520+Math.random()*480,z);s.scale.set(800+Math.random()*1200,280+Math.random()*400,1);cg.add(s)}
  scene.add(cg)}
 // Small settlement / roads near bunker (readable compound)
 {const camp=new THREE.Group();const roadM=new THREE.MeshStandardMaterial({color:0x4a453c,roughness:.95});
@@ -294,12 +288,11 @@ function groundY(x,z){const mesh=window.__tmesh; if(!mesh)return H(x,z); _gyO.se
 // conifers (instanced lathe, two LODs by distance band handled via fog) + boulders
 {const prof=[];const T=4;prof.push(new THREE.Vector2(.0,0));prof.push(new THREE.Vector2(.35,0));prof.push(new THREE.Vector2(.35,2));
  for(let i=0;i<T;i++){const y0=2+i*3.2,r0=3.2*(1-i/T)+.6;prof.push(new THREE.Vector2(r0,y0));prof.push(new THREE.Vector2(r0*.35,y0+3.4))}prof.push(new THREE.Vector2(0,15.5));
- const g=new THREE.LatheGeometry(prof,7); const N=MOB?700:1400, m=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({color:0x1f2a1b,roughness:.97}),N), M=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), C=new THREE.Color();
- let k=0; for(let i=0;i<N*8&&k<N;i++){const z=13000-Math.random()*27000, x=(Math.random()<.5?-1:1)*(55+Math.random()*1450), y=H(x,z);
-  if(y<1050||y>2000||Math.abs(H(x+40,z)-H(x-40,z))>34||Math.hypot(x-BUNK.x,z-BUNK.z)<220)continue;
+ const g=new THREE.LatheGeometry(prof,7); const N=MOB?1000:2800, m=new THREE.InstancedMesh(g,new THREE.MeshStandardMaterial({color:0x1f2a1b,roughness:.97}),N), M=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), C=new THREE.Color();
+ let k=0; for(let i=0;i<N*4&&k<N;i++){const z=1000-Math.random()*17000, x=vx(z)+rnd(700), y=H(x,z); if(y>260||y<4||Math.hypot(x-BUNK.x,z-BUNK.z)<230||fbm(x*.004,z*.004)<.45)continue;
   const s=.7+Math.random()*.9; q.setFromEuler(e.set(rnd(.05),Math.random()*6,rnd(.05))); M.compose(new THREE.Vector3(x,y-.5,z),q,new THREE.Vector3(s,s*(.85+Math.random()*.5),s)); m.setMatrixAt(k,M); m.setColorAt(k,C.setHSL(.25+rnd(.05),.18+Math.random()*.1,.55+Math.random()*.45)); k++} m.count=k; m.castShadow=false; scene.add(m); (window.__farBits=window.__farBits||[]).push(m);
- const bN=MOB?180:420, bm=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0x8a847c,roughness:1,map:(()=>{const t=new THREE.TextureLoader().load('tex/rocky_terrain_02_diff.jpg');t.colorSpace=THREE.SRGBColorSpace;return t})(),normalMap:new THREE.TextureLoader().load('tex/rocky_terrain_02_nor_gl.jpg')}),bN); k=0;bm.castShadow=!MOB;bm.receiveShadow=true;
- for(let i=0;i<bN;i++){const z=13000-Math.random()*28000, x=(Math.random()<.5?-1:1)*(40+Math.random()*1900), y=H(x,z); if(y<700||y>3400)continue; const s=1.2+Math.random()*5; q.setFromEuler(e.set(Math.random()*3,Math.random()*3,0)); M.compose(new THREE.Vector3(x,y-s*.3,z),q,new THREE.Vector3(s,s*(.45+Math.random()*.35),s*(.9+Math.random()*.6))); bm.setMatrixAt(k++,M)} bm.count=k; scene.add(bm); window.__farBits.push(bm);}
+ const bg=new THREE.DodecahedronGeometry(1,0), bm=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0x8a847c,roughness:1,map:(()=>{const t=new THREE.TextureLoader().load('tex/rocky_terrain_02_diff.jpg');t.colorSpace=THREE.SRGBColorSpace;return t})(),normalMap:new THREE.TextureLoader().load('tex/rocky_terrain_02_nor_gl.jpg')}),MOB?260:1100); k=0;bm.castShadow=!MOB;bm.receiveShadow=true;
+ for(let i=0;i<(MOB?260:1100);i++){const z=1000-Math.random()*17000, x=vx(z)+rnd(500), y=H(x,z); const s=1+Math.random()*4; q.setFromEuler(e.set(Math.random()*3,Math.random()*3,0)); M.compose(new THREE.Vector3(x,y-s*.3,z),q,new THREE.Vector3(s,s*(.45+Math.random()*.35),s*(.9+Math.random()*.6))); bm.setMatrixAt(k++,M)} scene.add(bm); window.__farBits.push(bm);}
 // ---------- materials ----------
 const concrete=new THREE.MeshStandardMaterial({color:0x8d8a83,roughness:.95,map:detail.clone()}); concrete.map.repeat.set(2,2);
 const steel=new THREE.MeshStandardMaterial({color:0x4a4d4e,roughness:.6,metalness:.6});
@@ -317,7 +310,7 @@ tgtGlow.position.set(BUNK.x,BUNK.y+48,BUNK.z); tgtGlow.scale.setScalar(36); scen
 const tgtBeam=new THREE.Mesh(new THREE.CylinderGeometry(.8,.8,90,6,1,true),new THREE.MeshBasicMaterial({color:0xffc56a,transparent:true,opacity:.28,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
 tgtBeam.position.set(BUNK.x,BUNK.y+45,BUNK.z); scene.add(tgtBeam);
 const radDish=new THREE.Group();
-{bunker.rotation.y=Math.PI/2;
+{const ry=Math.atan2(vx(BZ-50)-vx(BZ+50),-100); bunker.rotation.y=0;
  box(150,1.2,110,concrete,0,-.4,0,bunker);
  const berm=new THREE.Mesh(new THREE.SphereGeometry(40,24,10,0,Math.PI*2,0,Math.PI/2),earth);berm.scale.set(1,.32,.8);berm.position.z=8;bunker.add(berm);
  box(26,12,6,concrete,0,6,-22,bunker); box(18,9,1,dark,0,4.5,-25.2,bunker);
@@ -339,16 +332,7 @@ const radDish=new THREE.Group();
  box(4,.4,4,steel,70,10,-55,bunker);for(const [a,b] of[[-1,-1],[1,-1],[-1,1],[1,1]])box(.3,10,.3,steel,70+a*1.6,5,-55+b*1.6,bunker);box(4,2.2,4,olive,70,11.5,-55,bunker);
  truck(bunker,-20,-40,.3);truck(bunker,22,-44,-.2);truck(bunker,40,10,1.5);truck(bunker,-12,50,Math.PI/2);
  for(let i=0;i<10;i++)box(3,1.2,.6,concrete,-20+i*4.2,.6,-60,bunker);
- box(16,.5,36,new THREE.MeshStandardMaterial({color:0x3e3a34,roughness:1}),-70,.3,0,bunker);
- const roadM=new THREE.MeshStandardMaterial({color:0x3a3834,roughness:1});
- const xA=30,zA=BZ+420,xB=BUNK.x-90,zB=BZ;
- for(let i=0;i<12;i++){const t0=i/12,t1=(i+1)/12,ax=xA+(xB-xA)*t0,az=zA+(zB-zA)*t0,bx=xA+(xB-xA)*t1,bz=zA+(zB-zA)*t1;
-  const ay=H(ax,az)+.6,by=H(bx,bz)+.6,dx=bx-ax,dy=by-ay,dz=bz-az,len=Math.hypot(dx,dz)||1;
-  const seg=new THREE.Mesh(new THREE.BoxGeometry(8,.4,len),roadM);
-  seg.position.set((ax+bx)/2,(ay+by)/2,(az+bz)/2);
-  const look=new THREE.Matrix4().lookAt(seg.position, new THREE.Vector3(bx,by,bz), new THREE.Vector3(0,1,0));
-  seg.quaternion.setFromRotationMatrix(look);
-  scene.add(seg);}}
+ box(8,.8,500,new THREE.MeshStandardMaterial({color:0x3e3a34,roughness:1}),0,-.5,-310,bunker);}
 // SAM site and EW radar
 const sam=new THREE.Group(); sam.position.copy(SAMP); scene.add(sam);
 {truck(sam,0,0,.6,true);truck(sam,14,8,-.4);const rv=new THREE.Mesh(new THREE.TorusGeometry(10,1.2,6,24),earth);rv.rotation.x=Math.PI/2;rv.scale.z=.8;sam.add(rv);}
@@ -525,7 +509,7 @@ function enterMission(){
  const meet=meetPos(); S.pos.set(meet.x,meet.y,meet.z); S.yaw=0; S.pitch=0; S.roll=0;
  S.spd=85+S.thr*195; S.cine=false; S.shake=0; S.msg=''; S.msgT=0;
  document.body.classList.remove('takingoff','to-deck','to-arm');
- seaLight(false); carrier.visible=false; if(CVN.sea)CVN.sea.visible=false; stopIntroMusic(); stopDeckAmbience(); if(CVN.fill)CVN.fill.intensity=0;
+ seaLight(false); carrier.visible=false; if(CVN.sea)CVN.sea.visible=false; stopIntroMusic(); stopDeckAmbience(); if(JET){startBed(); ambS=bedS} startMood(); if(CVN.fill)CVN.fill.intensity=0;
  if(window.__tmesh)window.__tmesh.visible=true;
  if(window.__farBits)window.__farBits.forEach(o=>o.visible=true);
  scene.fog=SCEN.fogDen>0.00001?scene.fog:null;
@@ -592,7 +576,7 @@ function mixFlightAudio(rdt){if(!AC||!eng)return; const tt=AC.currentTime;
  if(AC.deckJetG){const hold=takingOff()&&(S.phase==='deck'||S.phase==='signal'||S.phase==='cat'); const fade=takingOff()&&!hold; AC.deckJetG.gain.setTargetAtTime(hold?.1:fade?.03:0,tt,.35); AC.deckRotorG.gain.setTargetAtTime(hold?.15:fade?.04:0,tt,.35); if(CVN.heli&&AC.rotorPan){CVN.heli.updateWorldMatrix(true,false); const e=CVN.heli.matrixWorld.elements; setP(AC.rotorPan,{x:e[12],y:e[13],z:e[14]})} if(CVN.taxi&&AC.jetIdlePan){CVN.taxi.updateWorldMatrix(true,false); const e=CVN.taxi.matrixWorld.elements; setP(AC.jetIdlePan,{x:e[12],y:e[13],z:e[14]})}}
  const moodId=musicChoice('mood'); const moodOn=moodId!=='current'&&moodId!=='off'&&!takingOff()&&!(S&&S.quiet); if(moodOn)AC.amb.gain.setTargetAtTime(0,tt,.4); if((moodId==='off'||(S&&S.quiet))&&moodHandle)stopMood(true);
  if(S&&S.quiet){if(!S._bedHeld){try{stopBed()}catch(e){} S._bedHeld=1} stopMood(true); AC.amb.gain.cancelScheduledValues(tt); AC.amb.gain.value=0; if(AC.moodG){AC.moodG.gain.cancelScheduledValues(tt); AC.moodG.gain.value=0} AC.wind.g.gain.cancelScheduledValues(tt); AC.wind.g.gain.value=.005; const eg=JET&&JET.plain&&JET.g?JET.g:AC.jet; if(eg){eg.gain.cancelScheduledValues(tt); eg.gain.value=.04} AC.sub.gain.cancelScheduledValues(tt); AC.sub.gain.value=.01}
- else if(S&&S._bedHeld){S._bedHeld=0}
+ else if(S&&S._bedHeld){S._bedHeld=0; if(!takingOff()&&BED!=='off')startBed()}
  const warn=S.missile&&!S.missile.decoy&&!S.missile.lost;trkG.gain.setTargetAtTime(!warn&&S.th&&S.th.anyTrk?.022:0,tt,.03);S.srchT-=rdt;if(S.th&&S.th.anySrch&&!S.th.anyTrk&&S.srchT<=0){S.srchT=1.3;blip(380,.09,.03,'sine')}
  {const md=warn?S.missile.p.distanceTo(S.pos):9e3,rate=warn?4+18*clamp(1-md/6000,0,1):8;S.wph=(S.wph||0)+rdt*rate;warnG.gain.setTargetAtTime(warn?((S.wph|0)%2?1:0):0,tt,.008);tone.frequency.setTargetAtTime(warn?((S.wph|0)%2?620:760+180*clamp(1-md/4000,0,1)):760,tt,.01)}
  const seek=S.phase==='ingress'&&bDist()<4500&&inBox()>0;seekG.gain.setTargetAtTime(seek?((S.t*5|0)%2?.022:0):S.phase==='release'?.016:0,tt,.015);seekG.o.frequency.setTargetAtTime(S.phase==='release'?700:520,tt,.02); syncWindBed()}
@@ -893,17 +877,17 @@ function startDeckAmbience(){if(!AC||!takingOff())return;
 function stopDeckAmbience(){if(deckJet){try{deckJet.stop()}catch(e){} deckJet=null} if(deckRotor){try{deckRotor.stop()}catch(e){} deckRotor=null}
  if(AC&&AC.deckJetG){const t=AC.currentTime; AC.deckJetG.gain.setTargetAtTime(0,t,.15); AC.deckRotorG.gain.setTargetAtTime(0,t,.15)}}
 function startJet(){
- const nbE=nbSpec('engine'); if(nbE){const k=nbE.layers[0].k; if(!SB[k]){SB.get(k); return} if(!JET){JET=plainLoop(SB[k],(nbE.layers[0].v||.3)*(nbLevel()/0.8),AC.engWhineLP||AC.engB,{tag:'nb:engine',id:nbE.id}); sfxLog('nb',{cat:'engine',id:nbE.id,k}); } return}
+ const nbE=nbSpec('engine'); if(nbE){const k=nbE.layers[0].k; if(!SB[k]){SB.get(k); return} if(!JET){JET=plainLoop(SB[k],(nbE.layers[0].v||.3)*(nbLevel()/0.8),AC.engWhineLP||AC.engB,{tag:'nb:engine',id:nbE.id}); sfxLog('nb',{cat:'engine',id:nbE.id,k}); if(!takingOff()){startBed(); ambS=bedS}} return}
  const engC=sndChoice('engine');
  if(engC.id!=='current'){
   if(!SB[engC.key]){SB.get(engC.key); return}
-  if(!JET){JET=plainLoop(SB[engC.key],.22,AC.engWhineLP||AC.engB,{sec:'engine',id:engC.id}); }
+  if(!JET){JET=plainLoop(SB[engC.key],.22,AC.engWhineLP||AC.engB,{sec:'engine',id:engC.id}); if(!takingOff()){startBed(); ambS=bedS}}
   return}
  if(JET||!(SB.jet8||SB.jet))return;
  if(SB.jet8){JET=startSmoothLoop(SB.jet8,1.15,AC.jet,{tag:'jet',xf:.4,detune:1.0025,fadeIn:.9})}
  else{JET=startSmoothLoop(SB.jet,1,AC.jet,{tag:'jet',xf:.4,detune:1.002,fadeIn:.9})}
- }
-function briefMusic(){return;if(!AC)return;const go=()=>{if(!$('brief')||$('brief').classList.contains('hide'))return;if(SB.ambient&&!briefSrc){briefSrc=src(mkSeamless(SB.ambient,.45),0,AC.mus,{loop:true,off:Math.random()*2,tag:'brief'});briefSrc.g.gain.cancelScheduledValues(AC.currentTime);briefSrc.g.gain.setValueAtTime(0,AC.currentTime);briefSrc.g.gain.linearRampToValueAtTime(.16,AC.currentTime+2)}};
+ if(!takingOff()){startBed();ambS=bedS}}
+function briefMusic(){if(!AC)return;const go=()=>{if(!$('brief')||$('brief').classList.contains('hide'))return;if(SB.ambient&&!briefSrc){briefSrc=src(mkSeamless(SB.ambient,.45),0,AC.mus,{loop:true,off:Math.random()*2,tag:'brief'});briefSrc.g.gain.cancelScheduledValues(AC.currentTime);briefSrc.g.gain.setValueAtTime(0,AC.currentTime);briefSrc.g.gain.linearRampToValueAtTime(.16,AC.currentTime+2)}};
  if(briefT)return;briefT=1;SB.get('ambient').then(()=>go())}
 let winSrc=null;function stopBrief(){briefT=1;if(briefSrc){const b=briefSrc;b.g.gain.setTargetAtTime(0,AC.currentTime,.4);setTimeout(()=>{try{b.stop()}catch(e){}},2500);briefSrc=null}stopWin()}
 function stopWin(){if(winSrc&&AC){const w=winSrc;w.g.gain.cancelScheduledValues(AC.currentTime);w.g.gain.setTargetAtTime(0,AC.currentTime,.3);setTimeout(()=>{try{w.stop()}catch(e){}},2000);winSrc=null}}
@@ -1358,7 +1342,7 @@ window.__banditReady=()=>!!(banditMesh&&banditMesh.userData.real);
 window.__mood=()=>({id:musicChoice('mood'),live:!!moodHandle,g:AC&&AC.moodG?+AC.moodG.gain.value.toFixed(4):0});
 window.__music=()=>({mood:musicChoice('mood'),moodOn:!!moodHandle,moodG:AC&&AC.moodG?+AC.moodG.gain.value.toFixed(3):0,amb:AC&&AC.amb?+AC.amb.gain.value.toFixed(3):0,mus:AC&&AC.mus?+AC.mus.gain.value.toFixed(3):0,introG:AC&&AC.introG?+AC.introG.gain.value.toFixed(3):0,wind:AC&&AC.wind?+AC.wind.g.gain.value.toFixed(3):0,deck:AC&&AC.deckJetG?+AC.deckJetG.gain.value.toFixed(3):0,bed:!!bedS||!!droneS,intro:!!introS||!!introHandle,ending:!!(typeof endHandle!=='undefined'&&endHandle)||!!winSrc,brief:!!briefSrc,riser:!!riserS,quiet:!!(S&&S.quiet),jet:AC&&AC.jet?+AC.jet.gain.value.toFixed(3):0});
 window.__sb=k=>SB[k]||null; window.__load=k=>SB.get(k); window.__end=win=>showEnd(!!win);
-window.__tanker=()=>S&&S.tanker; window.__ground=(x,z)=>groundY(x,z); window.__h=(x,z)=>H(x,z); window.__kill=()=>S&&S.kill; window.__learned=()=>tankerLearned(); window.__calm=()=>S&&S.calm||'';
+window.__tanker=()=>S&&S.tanker; window.__ground=(x,z)=>groundY(x,z); window.__kill=()=>S&&S.kill; window.__learned=()=>tankerLearned(); window.__calm=()=>S&&S.calm||'';
 window.__aim=()=>{ if(!S||!S.tanker||!S.tanker.basket)return null; const v=tankerScreen(); const b=S.tanker.basket; return {dist:S.tanker.dist, contact:!!S.tanker.contact, fuel:S.tanker.fuel, calm:S.calm||'', cue:S.tanker.cue, ahead:S.tanker.ahead, lock:S.tanker.lock||'', lockT:S.tanker.lockT||0, sep:v&&v.sep, rad:v&&v.rad, bs:v&&v.cs, fp:v&&v.fp, dpr, W, H:Hh, z:S.pos.z, bunk:bDist(), rig:!!(tankerRig&&tankerRig.visible), hose:!!(tankerHose&&tankerHose.visible), client:[hud.clientWidth,hud.clientHeight], basket:[b.x,b.y,b.z]} };
 window.__render=()=>{ try{render()}catch(e){} };
 window.__hug=()=>S&&({mult:+(S.mult||1).toFixed(2),score:Math.round(S.score||0),streak:S.streak||0,best:S.bestStreak||0,spike:+(S.spike||0).toFixed(1),arm:+(S.spikeArm||0).toFixed(2),agl:Math.round(S.agl||0),spd:Math.round(S.spd||0),msg:S.msg||'',missile:!!(S.missile&&!S.missile.lost),flash:+((S.missFlash||0).toFixed(2))});
@@ -1487,7 +1471,7 @@ function bigBoom(){S.boomT=0;S.shake=.9;bunker.visible=false;bulge.visible=false
  const K=2.6,o={must:1};
  spr(tmp.copy(BUNK).setY(BUNK.y+40),0xfff2d0,160*K,.8,null,{add:true,tex:glowTex,fog:false,grow:300*K,must:1});
  for(let i=0;i<36;i++)spr(tmp.copy(BUNK).add(new THREE.Vector3(rnd(30*K),5+Math.random()*30*K,rnd(30*K))),new THREE.Color().setHSL(.08+Math.random()*.05,1,.6),(70+Math.random()*45)*K,2+Math.random()*1.8,new THREE.Vector3(rnd(40*K),(50+Math.random()*100)*K*.8,rnd(40*K)),{add:true,grow:80*K,drag:.6,fog:false,c1:new THREE.Color(0x7a1e00),must:1});
-for(let i=0;i<(MOB?8:14);i++){const up=i<10;spr(tmp.copy(BUNK).add(new THREE.Vector3(rnd(25*K),Math.random()*20*K,rnd(25*K))),new THREE.Color().setHSL(.07,.1,.16+Math.random()*.08),(50+Math.random()*40)*K,10+Math.random()*6,new THREE.Vector3(rnd(up?10*K:22*K),(up?50+Math.random()*70:30+Math.random()*40)*K*.7,rnd(up?10*K:22*K)),{grow:(up?26:36)*K,o:.88,drag:.22,fadeIn:.5,must:1})}
+/*col*/ for(let i=0;i<0;i++){const up=i<28;spr(tmp.copy(BUNK).add(new THREE.Vector3(rnd(25*K),Math.random()*20*K,rnd(25*K))),new THREE.Color().setHSL(.07,.12,.08+Math.random()*.07),(50+Math.random()*35)*K,12+Math.random()*7,new THREE.Vector3(rnd(up?12*K:35*K),(up?40+Math.random()*60:90+Math.random()*30)*K*.8,rnd(up?12*K:35*K)),{grow:(up?28:45)*K,o:.92,drag:.25,fadeIn:.6,must:1})}
  for(let i=0;i<(MOB?6:12);i++)spr(tmp.copy(BUNK).add(new THREE.Vector3(rnd(30),Math.random()*30,rnd(30))),0x9a8a72,60*K*.6,14+Math.random()*4,new THREE.Vector3(rnd(10),25+Math.random()*45,rnd(10)),{grow:34,o:.7,drag:.12,fadeIn:1,must:1});
  for(let i=0;i<48;i++){const a=i/48*6.28+rnd(.1),sp=(120+Math.random()*90)*K*.8;spr(tmp.copy(BUNK).add(new THREE.Vector3(Math.cos(a)*40,4,Math.sin(a)*40)),0x8a7a66,30*K,6+Math.random()*3,new THREE.Vector3(Math.cos(a)*sp,6+Math.random()*10,Math.sin(a)*sp),{grow:30*K,drag:.9,o:.75,fadeIn:.2,must:1})}
  for(let i=0;i<80;i++){const m=new THREE.Mesh(debG,debM);const sz=.8+Math.random()*3.4;m.scale.set(sz,sz*.7,sz);m.position.copy(BUNK).y+=5;m.castShadow=true;scene.add(m);debris.push({m,v:new THREE.Vector3(rnd(180),90+Math.random()*260,rnd(180)),r:new THREE.Vector3(Math.random()*5,Math.random()*5,0)})}
@@ -1990,7 +1974,7 @@ document.addEventListener('touchend',e=>{
 addEventListener('resize',fitSoon);
 addEventListener('orientationchange',()=>{resetTouch(); fitSoon()});
 if(window.visualViewport){visualViewport.addEventListener('resize',fitSoon); visualViewport.addEventListener('scroll',fitSoon)}
-async function begin(){reset(); S.tankerLesson=practice!=='tanker'&&tankerLearned(); jet.visible=true; if(practice==='tanker'){const p=meetPos(); S.phase='ingress'; S.pos.set(p.x,p.y,p.z); S.yaw=0; S.pitch=0; S.thr=.5; S.spd=160} else if(practice==='fight'){const z=BZ+900; S.phase='egress'; S.boomT=12; S.cine=false; S.safe=false; S.graceHold=0; S.pos.set(vx(z),groundY(vx(z),z)+140,z); S.yaw=0; S.pitch=0; S.thr=.7; S.spd=220; bunker.visible=false} else if(practice==='grid'){S.phase='egress'; S.boomT=20; S.cine=false; S.safe=false; S.graceHold=0; S.gridOn=1; bunker.visible=false; makeGrids(); const g0=S.grids[0]; const z=g0.z+2400; S.pos.set(vx(z), g0.gy, z); S.yaw=0; S.pitch=0; S.thr=.65; S.spd=200; S.bandit={dead:1,timer:30,impact:1,hp:0,p:new THREE.Vector3(0,-500,0),yaw:0,pitch:0,roll:0,state:'merge'}} const keep=musicRoll.prev; musicRoll={prev:keep}; const musicId=takingOff()?resolveMusic('intro'):resolveMusic('mood'); const musicKeys=(MUSIC_LAY[musicId]||[]).map(l=>l.k); const bunk=(sndChoice('bunker').layers||[]).map(l=>l.k); const nbK=nbKeys(); const sndK=[]; for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)sndK.push(c.key)} if(AC){AC.resume(); const deckKeys=['deck_jet','deck_rotor','deck_clank','deck_steam','deck_call']; if(INTRO_TRACK)deckKeys.push(INTRO_TRACK); await Promise.all(['jet8','jet','ambient','aaaw','sub08',...deckKeys,...musicKeys,...bunk,...nbK,...sndK].map(k=>SB.get(k).catch(()=>null))); try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3);}catch(e){} const fk=flareChoice().key; if(fk)SB.get(fk).catch(()=>{}); try{for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)SB.get(c.key).catch(()=>{})}}catch(e){} prewarmAudio(); } prewarmGfx(); if(takingOff())startDeckAmbience(); running=true;last=performance.now();wake(); if(practice==='fight')spawnBandit()}
+async function begin(){reset(); S.tankerLesson=practice!=='tanker'&&tankerLearned(); jet.visible=true; if(practice==='tanker'){const p=meetPos(); S.phase='ingress'; S.pos.set(p.x,p.y,p.z); S.yaw=0; S.pitch=0; S.thr=.5; S.spd=160} else if(practice==='fight'){const z=BZ+900; S.phase='egress'; S.boomT=12; S.cine=false; S.safe=false; S.graceHold=0; S.pos.set(vx(z),groundY(vx(z),z)+140,z); S.yaw=0; S.pitch=0; S.thr=.7; S.spd=220; bunker.visible=false} else if(practice==='grid'){S.phase='egress'; S.boomT=20; S.cine=false; S.safe=false; S.graceHold=0; S.gridOn=1; bunker.visible=false; makeGrids(); const g0=S.grids[0]; const z=g0.z+2400; S.pos.set(vx(z), g0.gy, z); S.yaw=0; S.pitch=0; S.thr=.65; S.spd=200; S.bandit={dead:1,timer:30,impact:1,hp:0,p:new THREE.Vector3(0,-500,0),yaw:0,pitch:0,roll:0,state:'merge'}} const keep=musicRoll.prev; musicRoll={prev:keep}; const musicId=takingOff()?resolveMusic('intro'):resolveMusic('mood'); const musicKeys=(MUSIC_LAY[musicId]||[]).map(l=>l.k); const bunk=(sndChoice('bunker').layers||[]).map(l=>l.k); const nbK=nbKeys(); const sndK=[]; for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)sndK.push(c.key)} if(AC){AC.resume(); const deckKeys=['deck_jet','deck_rotor','deck_clank','deck_steam','deck_call']; if(INTRO_TRACK)deckKeys.push(INTRO_TRACK); await Promise.all(['jet8','jet','ambient','aaaw','sub08',...deckKeys,...musicKeys,...bunk,...nbK,...sndK].map(k=>SB.get(k).catch(()=>null))); try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3);}catch(e){} const fk=flareChoice().key; if(fk)SB.get(fk).catch(()=>{}); try{for(const s of SND){const c=sndChoice(s.id); if(c&&c.key)SB.get(c.key).catch(()=>{})}}catch(e){} prewarmAudio(); } prewarmGfx(); if(takingOff()){startDeckAmbience(); startIntroMusic()} else startMood(); running=true;last=performance.now();wake(); if(practice==='fight')spawnBandit()}
 reset();
 if(DS_MODE==='game'){clock();drawMap();chat();addEventListener('resize',()=>{if(!$('brief').classList.contains('hide'))drawMap()});wake()}
 

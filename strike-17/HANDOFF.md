@@ -5,11 +5,11 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
-## s17 · 17o — Mattertal
+## s17 · 17p — valley restored
 
-The valley is the Mattertal in Valais, from the high ground south of Zermatt to the opening at Visp. Elevation is Copernicus, through Mapzen Terrain Tiles. The mesh and the crash check read that same grid. Snow sits on the high walls, forest on the mid slopes, and the Vispa runs the floor. Clouds are a few cards you can fly near. No music starts on its own. The 17n frame cap, battery saver, and zoom lock stay.
+17o (`4611f87`) put the flight in the real Mattertal. It did not feel right, so that scenery commit is reverted. The ground, materials, clouds, trees, and bunker are the 17n valley again. Tanker lock, the calm lesson, the bandit, the grid, the frame cap, battery saver, and the zoom lock stay.
 
-Stamp `s17 · 17o`.
+Stamp `s17 · 17p`.
 
 ## s17 · 17n — cooler phone
 
@@ -205,4 +205,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17o. The valley is the real Mattertal. Music stays off unless chosen. Flight drawing is capped at 60 fps, menus at 30, and pause and the score screen do not draw. Battery saver is optional. Gameplay from 17i through 17m stays. Baked picks stay. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17p. The valley is the 17n scenery again. The Mattertal commit remains in history as `4611f87`. Flight drawing is capped at 60 fps, menus at 30, and pause and the score screen do not draw. Battery saver is optional. Gameplay from 17i through 17m stays. Baked picks stay. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
