@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17r'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17s'])[1];
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -1046,12 +1046,11 @@ function setThr(v){S&&(S.thr=v);$('thrk').style.bottom=(3+v*(130-12))+'px';const
 let relDown=false, gunDown=false, gunPid=null;
 function releaseControls(){gunDown=false; relDown=false; const g=$('gun'); if(g&&gunPid!=null){try{if(g.hasPointerCapture&&g.hasPointerCapture(gunPid))g.releasePointerCapture(gunPid)}catch(e){}} gunPid=null}
 let lockDown=false; window.__lockDown=v=>{lockDown=!!v};
-$('lock').addEventListener('pointerdown',e=>{e.stopPropagation(); lockDown=true});
+$('lock').addEventListener('pointerdown',e=>{e.stopPropagation(); lockDown=true; try{if(e.pointerId!=null)e.currentTarget.setPointerCapture(e.pointerId)}catch(err){}});
 $('lock').addEventListener('pointerup',()=>{lockDown=false});
 $('lock').addEventListener('pointercancel',()=>{lockDown=false});
-let relTapAt=0;
-function armRelease(e){if(e.cancelable)e.preventDefault(); e.stopPropagation(); try{if(e.pointerId!=null&&e.currentTarget&&e.currentTarget.setPointerCapture)e.currentTarget.setPointerCapture(e.pointerId)}catch(err){} const now=performance.now(); if(now-relTapAt<350)return; relTapAt=now; tryRelease()}
-$('rel').addEventListener('pointerdown',armRelease); $('rel').addEventListener('touchstart',armRelease,{passive:false});
+function armRelease(e){if(e.cancelable)e.preventDefault(); e.stopPropagation(); try{if(e.pointerId!=null&&e.currentTarget&&e.currentTarget.setPointerCapture)e.currentTarget.setPointerCapture(e.pointerId)}catch(err){} tryRelease()}
+$('rel').addEventListener('pointerdown',armRelease);
 addEventListener('pointerup',()=>relDown=false);
 $('flr').addEventListener('pointerdown',e=>{e.stopPropagation();fireFlares()});$('brk').addEventListener('pointerdown',e=>{e.stopPropagation();doBreak()});$('ecm').addEventListener('pointerdown',e=>{e.stopPropagation();doECM()});
 if($('gun')){$('gun').addEventListener('pointerdown',e=>{e.stopPropagation();gunDown=true;gunPid=e.pointerId;try{$('gun').setPointerCapture(e.pointerId)}catch(err){}fireCannon()});$('gun').addEventListener('pointerup',()=>{gunDown=false;gunPid=null});$('gun').addEventListener('pointercancel',()=>{gunDown=false;gunPid=null});$('gun').addEventListener('lostpointercapture',()=>{gunDown=false;gunPid=null})}
@@ -1059,21 +1058,31 @@ addEventListener('keydown',e=>{if(e.key==='l')lockDown=true;if(e.key==='f')fireF
 // ---------- gameplay ----------
 const V=new THREE.Vector3(),fwd=new THREE.Vector3(),tmp=new THREE.Vector3();
 function scr(p){V.copy(p).project(cam);if(V.z>1||!isFinite(V.x)||!isFinite(V.y))return null;return{x:(V.x*.5+.5)*(W||innerWidth),y:(-V.y*.5+.5)*(Hh||innerHeight)}}
-function inBox(){const s=scr(BUNK);if(!s)return 0;const bw=innerWidth*.16,bh=innerHeight*.2,cx=innerWidth/2,cy=innerHeight*.5;const dx=Math.abs(s.x-cx)/bw,dy=Math.abs(s.y-cy)/bh;return dx<1&&dy<1?1-Math.max(dx,dy):0}
+function inBox(){const s=scr(BUNK);if(!s)return 0;const bw=innerWidth*.34,bh=innerHeight*.42,cx=innerWidth/2,cy=innerHeight*.5;const dx=Math.abs(s.x-cx)/bw,dy=Math.abs(s.y-cy)/bh;return dx<1&&dy<1?1-Math.max(dx,dy):0}
 const bDist=()=>S.pos.distanceTo(BUNK);
-function canLock(){return S&&S.phase==='ingress'&&!S.locked&&bDist()<4200&&bDist()>450&&inBox()>0}
-function grantLock(){if(!S||S.locked)return; S.lockT=0; S.locked=true; S.phase='release'; blip(560,.18,.07); setTimeout(()=>blip(740,.22,.06),120); msg('LOCKED'); S.msgT=1.8}
-function tryRelease(){if(!S||takingOff()){msg('NOT AIRBORNE');return}
- if(S.dead){msg('AIRCRAFT DOWN');return}
- if(S.bomb||S.bombSpent||S.phase==='bombfall'||S.phase==='penetrate'||S.phase==='egress'||S.phase==='done'){msg('BOMB ALREADY GONE');return}
- if(S.missile&&!S.missile.decoy&&!S.missile.lost){msg('DEFEAT MISSILE FIRST');return}
- if(S.phase!=='ingress'&&S.phase!=='release'){msg('NO BOMB');return}
- const guided=!!(S.locked&&S.phase==='release');
+function bombLive(){return !!(S&&(S.bomb||S.bombSpent||S.phase==='bombfall'||S.phase==='penetrate'||S.phase==='egress'||S.phase==='done'))}
+function missileUp(){return !!(S&&S.missile&&!S.missile.decoy&&!S.missile.lost)}
+// One plan for the words and the drop. The button never says RELEASE unless this same plan will drop.
+function dropPlan(){
+ if(!S||takingOff()||S.dead||missileUp())return {cue:'',act:''};
+ if(S.phase!=='ingress'&&S.phase!=='release')return {cue:'',act:''};
  const d=bDist();
- if(!guided&&(d>3000||d<400)){const ai=aimSite(); if(ai>=0){dropIron(ai); const bar=$('relf'); if(bar)bar.style.width='100%'; return}
-  msg(d>3000?'OUT OF RANGE — '+((d-3000)/1000).toFixed(1)+' KM':'TOO CLOSE — BREAK OFF'); return}
- if(!guided&&S.phase==='ingress'){/* ballistic drop, lock was not held */}
- release(); const bar=$('relf'); if(bar)bar.style.width='100%'; const el=$('rel'); if(el)el.classList.add('hot')}
+ const bunkLeft=!bombLive();
+ // While the bunker bomb is still aboard, the button talks only about that bomb.
+ if(bunkLeft&&(S.locked||(d>=350&&d<=4500)))return {cue:'RELEASE',act:S.locked?'guided':'free'};
+ if(bunkLeft&&d<350&&d>40)return {cue:'TOO CLOSE',act:''};
+ if(bunkLeft&&d>4500&&d<6500)return {cue:'OUT OF RANGE',act:''};
+ let site=-1;
+ if(!S.ironBomb&&S.iron>0&&typeof aimSite==='function')site=aimSite();
+ if(site>=0)return {cue:'RELEASE',act:'iron',site};
+ return {cue:'',act:''}}
+function dropCue(){return dropPlan().cue}
+function paintRelease(){const plan=dropPlan(); const el=$('rel'); if(el){const span=el.querySelector('span'); if(span&&span.textContent!==plan.cue)span.textContent=plan.cue; const hot=plan.cue==='RELEASE'; el.classList.toggle('off',!hot); el.classList.toggle('hot',hot)}
+ const lk=$('lock'); if(lk&&S){const lab=S.locked?'LOCKED':((S.lockT||0)>0?'LOCKING':'LOCK'); if(lk.textContent!==lab)lk.textContent=lab; const on=!!(canLock()||S.locked); lk.classList.toggle('off',!on); lk.classList.toggle('hot',on)}}
+window.__cue=dropCue; window.__paint=paintRelease;
+function canLock(){return S&&S.phase==='ingress'&&!S.locked&&bDist()<=4500&&bDist()>=350&&inBox()>0}
+function grantLock(){if(!S||S.locked)return; S.lockT=0; S.locked=true; S.phase='release'; blip(560,.18,.07); setTimeout(()=>blip(740,.22,.06),120); msg('LOCKED'); S.msgT=1.8}
+function tryRelease(){const plan=dropPlan(); if(plan.cue!=='RELEASE')return; if(plan.act==='guided'||plan.act==='free'){release(); return} if(plan.act==='iron')dropIron(plan.site)}
 const flrWin=()=>S.samShots<=1?3200:2600;
 function defeat(m,why){if(m.def)return;m.def=1;S.defeated++;msg(why)}
 function doBreak(){if(S.dead||S.cine||S.brkCD>0||S.phase==='done')return;S.brkCD=3.5;S.brk=1.3;const m=S.missile;let dir=1;if(m){const rx=m.p.x-S.pos.x,rz=m.p.z-S.pos.z;const side=(-Math.cos(S.yaw))*rx-(-Math.sin(S.yaw))*rz;dir=side>0?1:-1}S.brkDir=dir;if(AC){thud(AC.out,.3,55,30,.5);nburst(AC.out,.12,600,.8)}
@@ -1759,8 +1768,8 @@ function update(rdt){
   const agl=S.pos.y-floor; S.agl=agl; S.spd=spd;
   if(agl<1.6){ if(S.safe){S.pos.y=floor+36; if(!S._pull||S.t-S._pull>2.5){S._pull=S.t; msg('PULL UP / EGRESS')}} else return die('TERRAIN','AGL '+Math.max(0,agl).toFixed(1)+' M · GROUND '+Math.round(floor)+' · HEIGHT FIELD '+Math.round(S.hAnalytic)) } }
  updHug(dt,rdt);
- if(lockDown&&S.phase==='ingress'&&!S.locked){if(canLock()){S.lockT=(S.lockT||0)+rdt; if(S.lockT>=0.45)grantLock()} else S.lockT=0} else if(!S.locked) S.lockT=0;
- if(S.phase==='release'&&S.locked){if(bDist()<400||bDist()>4300||inBox()<=0){S.locked=false;S.phase='ingress';S.lockT=0;msg('LOCK LOST — REATTACK')}}
+ if(lockDown&&!S.locked&&S.phase==='ingress'){if(canLock()){S.lockT=(S.lockT||0)+rdt; if(S.lockT>=0.4)grantLock()} else if(bDist()<350||bDist()>4500)S.lockT=0} else if(!S.locked) S.lockT=0;
+ if(S.locked){const ld=bDist(); if(ld<280||ld>4800||S.phase==='egress'||S.phase==='done'||S.bomb){S.locked=false; S.lockT=0; if(S.phase==='release')S.phase='ingress'; msg('LOCK LOST')}}
  updIron(rdt);
  const b=S.bomb;if(b){b.age=(b.age||0)+rdt; if(!b.prev)b.prev=new THREE.Vector3(); b.prev.copy(b.p); const step=b.guided?rdt:dt; if(b.guided)guideBomb(b,step); else bombAccel(b.v,step);
   _bombNext.copy(b.p).addScaledVector(b.v,step); const hit=bombCast(b.prev,_bombNext); if(hit)b.p.copy(hit.p); else b.p.copy(_bombNext);
@@ -1823,7 +1832,7 @@ function predictImpact(){if(!S||S.bomb||S.bombSpent||S.locked||S.dead||takingOff
 function release(){if(window.__ft)window.__ft.markRel();S.relHold=0;S._relT0=0; const guided=!!(S.locked&&S.phase==='release'); S.locked=false; S.lockT=0; S.phase='bombfall';
  const spd=Math.max(40,S.spd||(85+(S.thr||0)*195));
  S.bomb={p:S.pos.clone().add(new THREE.Vector3(0,-2,0)),v:fwd.clone().multiplyScalar(spd),tti:99,age:0,guided};bomb.visible=true;jet.visible=true;
- S.quiet=1; S.graceHold=8; S.safe=1; stopMood(true); riser(false); S.msg=guided?'GUIDED':'PULL UP / EGRESS'; S.msgT=guided?2.4:1.4}
+ S.quiet=1; S.graceHold=8; S.safe=1; stopMood(true); riser(false); S.msg=guided?'GUIDED':'BOMB AWAY'; S.msgT=guided?2.4:1.4; paintRelease()}
 function silenceScore(){stopMood(true); stopIntroMusic(); stopDeckAmbience(); try{stopBed()}catch(e){} stopWin(); riser(false); if(typeof endHandle!=='undefined'&&endHandle){try{endHandle.stop()}catch(e){} endHandle=null} try{if(JET){JET.stop(0.05); JET=null}}catch(e){} try{if(windBed){windBed.stop(); windBed=null}}catch(e){} try{gridHumSet(false)}catch(e){} if(!AC)return; const t=AC.currentTime; [AC.amb,AC.moodG,AC.mus,AC.introG,AC.wind&&AC.wind.g,AC.jet,AC.sub,AC.engB,AC.deckJetG,AC.deckRotorG,eng&&eng.g,warnG,trkG,seekG].forEach(g=>{if(g&&g.gain){try{g.gain.cancelScheduledValues(t); g.gain.value=0}catch(e){}}})}
 function showEnd(win){running=false;releaseControls();clearTimeout(endTimer);silenceScore();if(AC){const t=AC.currentTime;riser(false);AC.jet.gain.setTargetAtTime(0,t,.05);AC.amb.gain.setTargetAtTime(0,t,.05);try{stopBed()}catch(e){};eng.g.gain.setTargetAtTime(0,t,.05);warnG.gain.setTargetAtTime(0,t,.05);trkG.gain.setTargetAtTime(0,t,.05);AC.sub.gain.setTargetAtTime(0,t,.05);if(S.missile)mslAudioStop(S.missile);$('vig').style.opacity=0;$('teach').style.display='none';seekG.gain.setTargetAtTime(0,t,.05);
  }const prec=win?Math.round(clamp(100-S.err*5,0,100)):0,st=Math.round(clamp(100-S.detT/Math.max(1,S.t)*100-S.samShots*10,0,100)),tm=S.t;
@@ -1882,8 +1891,8 @@ function drawTakeoffHUD(){const cx=W/2;hx.shadowColor='rgba(0,0,0,.85)';hx.shado
  hx.shadowBlur=0}
 function drawCine(){const cx=W/2;hx.fillStyle='rgba(0,0,0,.85)';hx.fillRect(0,0,W,Hh*.09);hx.fillRect(0,Hh*.91,W,Hh*.09);
  const guided=!!(S.bomb&&S.bomb.guided);
- const t=S.phase==='bombfall'?(guided?'GUIDED':((S.bomb&&(S.bomb.age||0)>.35)?'WPN CAM  //  GBU-PEN  TTI '+(S.bomb.tti.toFixed(1)):'RELEASED  //  TTI '+(S.bomb?S.bomb.tti.toFixed(1):'0.0'))):S.phase==='penetrate'?'PENETRATING  '+Math.min(60,Math.round(S.penT*38))+' M  //  FUZE DELAY':'BDA  //  TARGET DESTROYED';
- txt(t,cx,Hh*.06,guided?22:12,'center',guided?'rgba(190,245,190,1)':'rgba(220,225,215,.9)');txt((S.gridShot>0)?'GRID ACTIVATED — TRAP':guided?'GUIDED':'PULL UP / EGRESS',cx,Hh*.16,18,'center',guided?'rgba(190,245,190,1)':(S.gridShot>0)?'rgba(255,220,150,1)':'rgba(255,214,150,.98)');txt('REC ●  '+S.t.toFixed(1),W-20-(innerWidth>0?0:0),Hh*.96,10,'right','rgba(255,120,100,.85)')}
+ const t=S.phase==='bombfall'?(guided?'GUIDED':((S.bomb&&(S.bomb.age||0)>.35)?'WPN CAM  //  GBU-PEN  TTI '+(S.bomb.tti.toFixed(1)):'BOMB AWAY  //  TTI '+(S.bomb?S.bomb.tti.toFixed(1):'0.0'))):S.phase==='penetrate'?'PENETRATING  '+Math.min(60,Math.round(S.penT*38))+' M  //  FUZE DELAY':'BDA  //  TARGET DESTROYED';
+ txt(t,cx,Hh*.06,guided?22:12,'center',guided?'rgba(190,245,190,1)':'rgba(220,225,215,.9)');txt((S.gridShot>0)?'GRID ACTIVATED — TRAP':guided?'GUIDED':'EGRESS',cx,Hh*.16,18,'center',guided?'rgba(190,245,190,1)':(S.gridShot>0)?'rgba(255,220,150,1)':'rgba(255,214,150,.98)');txt('REC ●  '+S.t.toFixed(1),W-20-(innerWidth>0?0:0),Hh*.96,10,'right','rgba(255,120,100,.85)')}
 function line(a,b,c,d){hx.beginPath();hx.moveTo(a,b);hx.lineTo(c,d);hx.stroke()}
 function markTarget(cx,cy){const d=bDist(),pulse=.5+.5*Math.sin(performance.now()*.004),col=d<3000?'rgba(255,214,120,1)':'rgba(210,225,190,.95)';
  const s=scr(tmp.copy(BUNK).setY(BUNK.y+12));
@@ -1915,7 +1924,7 @@ function drawGridHud(cx,cy){const g=S.grids.filter(x=>!x.done).sort((a,b)=>b.z-a
   const ax=cx+dx*k, ay=cy+dy*k; hx.fillStyle='rgba(255,214,120,1)'; hx.beginPath(); hx.moveTo(ax+dx*28,ay+dy*28); hx.lineTo(ax-dy*13,ay+dx*13); hx.lineTo(ax+dy*13,ay-dx*13); hx.closePath(); hx.fill()}
  else {hx.strokeStyle='rgba(255,236,190,.95)'; hx.lineWidth=2; hx.strokeRect(s.x-16,s.y-10,32,20)}
  hx.shadowBlur=0}
-function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!running&&!S.dead){document.body.classList.remove('tanking');document.body.classList.remove('gridding');return}if(takingOff()){document.body.classList.remove('tanking');document.body.classList.remove('gridding');drawTakeoffHUD();return}if(S.cine){document.body.classList.remove('tanking');document.body.classList.remove('gridding');drawCine();return}const cx=W/2,cy=Hh*.5;if(tankerAiming()){document.body.classList.remove('gridding');document.body.classList.add('tanking');if($('thrl'))$('thrl').textContent='THROTTLE';drawTankerAim(cx,cy);return}document.body.classList.remove('tanking');if(gridHudOn()){document.body.classList.add('gridding');if($('thrl'))$('thrl').textContent='THROTTLE';drawGridHud(cx,cy);return}document.body.classList.remove('gridding');hx.strokeStyle=G;hx.lineWidth=1;hx.shadowColor='rgba(0,0,0,.9)';hx.shadowBlur=3;
+function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!running&&!S.dead){document.body.classList.remove('tanking');document.body.classList.remove('gridding');return}paintRelease();if(takingOff()){document.body.classList.remove('tanking');document.body.classList.remove('gridding');drawTakeoffHUD();return}if(S.cine){document.body.classList.remove('tanking');document.body.classList.remove('gridding');drawCine();return}const cx=W/2,cy=Hh*.5;if(tankerAiming()){document.body.classList.remove('gridding');document.body.classList.add('tanking');if($('thrl'))$('thrl').textContent='THROTTLE';drawTankerAim(cx,cy);return}document.body.classList.remove('tanking');if(gridHudOn()){document.body.classList.add('gridding');if($('thrl'))$('thrl').textContent='THROTTLE';drawGridHud(cx,cy);return}document.body.classList.remove('gridding');hx.strokeStyle=G;hx.lineWidth=1;hx.shadowColor='rgba(0,0,0,.9)';hx.shadowBlur=3;
  const fp=scr(tmp.copy(S.pos).addScaledVector(fwd,1500))||{x:cx,y:cy};
  hx.beginPath();hx.arc(fp.x,fp.y,6,0,7);hx.stroke();line(fp.x-17,fp.y,fp.x-6,fp.y);line(fp.x+6,fp.y,fp.x+17,fp.y);line(fp.x,fp.y-6,fp.x,fp.y-12);
  // boresight cross
@@ -1938,43 +1947,40 @@ function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!r
  {const m=S.mult||1, col=m>3.2?'rgba(255,196,90,1)':m>1.6?'rgba(214,232,176,1)':G; txt('×'+m.toFixed(1),78,96,18,'left',col); if((S.streak||0)>0)txt('STREAK '+S.streak,78,114,11,'left','rgba(255,210,140,.95)')}
  // EMCON / radar detection
  const mx=Rr-4,my=cy+48,dc=S.det>60?'rgba(255,110,90,.95)':S.det>25?'rgba(255,210,110,.95)':G;txt('DETECT',mx+30,my-4,9,'center',dc);hx.strokeStyle=dc;hx.strokeRect(mx,my,64,6);hx.fillStyle=dc;hx.fillRect(mx+1,my+1,62*S.det/100,4);hx.strokeStyle=G;txt('<150R',mx+30,my+17,9,'center',dc);
- const showBox=S.phase==='ingress'||S.phase==='release';if(showBox&&bDist()<6000){const bw=W*.16,bh=Hh*.2;hx.globalAlpha=.6;for(const [sx,sy] of[[-1,-1],[1,-1],[-1,1],[1,1]]){line(cx+sx*bw,cy+sy*bh,cx+sx*(bw-14),cy+sy*bh);line(cx+sx*bw,cy+sy*bh,cx+sx*bw,cy+sy*(bh-14))}hx.globalAlpha=1}
+ const showBox=S.phase==='ingress'||S.phase==='release';if(showBox&&bDist()<6000){const bw=W*.34,bh=Hh*.42;hx.globalAlpha=.6;for(const [sx,sy] of[[-1,-1],[1,-1],[-1,1],[1,1]]){line(cx+sx*bw,cy+sy*bh,cx+sx*(bw-14),cy+sy*bh);line(cx+sx*bw,cy+sy*bh,cx+sx*bw,cy+sy*(bh-14))}hx.globalAlpha=1}
  if(bunker.visible)markTarget(cx,cy);
  SITES.forEach((st,i)=>{const ss=S.sites[i];if(ss.dead||ss.st==='off')return;tagBox(tmp.copy(st.p).setY(st.p.y+6),ss.warned?st.n+' LOCK':ss.st==='track'?st.n+' TRK':st.n,ss.warned||ss.st==='track'?'rgba(255,80,70,1)':'rgba(255,170,110,.9)',ss.warned?12:9)});tagBox(tmp.copy(RADP).setY(RADP.y+27),'EW','rgba(255,190,110,.95)',9);
  if(S.missile)tagBox(S.missile.p,S.missile.decoy?'DECOY':'MSL','rgba(255,80,70,1)',14);
  drawBanditHud(cx);
  if(S.bomb){const s=scr(S.bomb.p);if(s)txt('WPN',s.x+12,s.y,9,'left')}
- else if(!S.bombSpent){const ip=predictImpact(); if(ip){const s=scr(ip); if(s){hx.strokeStyle='rgba(255,214,120,.95)'; hx.strokeRect(s.x-8,s.y-8,16,16); line(s.x,s.y-16,s.x,s.y-8); line(s.x,s.y+8,s.x,s.y+16); line(s.x-16,s.y,s.x-8,s.y); line(s.x+8,s.y,s.x+16,s.y); hx.strokeStyle=G; txt('CCIP',s.x,s.y-20,9)}}}
+ else if(dropCue()==='RELEASE'&&!S.locked){const ip=predictImpact(); if(ip){const s=scr(ip); if(s){hx.strokeStyle='rgba(255,214,120,.95)'; hx.strokeRect(s.x-8,s.y-8,16,16); line(s.x,s.y-16,s.x,s.y-8); line(s.x,s.y+8,s.x,s.y+16); line(s.x-16,s.y,s.x-8,s.y); line(s.x+8,s.y,s.x+16,s.y); hx.strokeStyle=G; txt('CCIP',s.x,s.y-20,9)}}}
  if(S.phase==='egress')tagBox(EXIT,'EXFIL',G,12);
- let o='';const d=bDist();
- const bombWin=(S.phase==='ingress'||S.phase==='release')&&d<3000&&d>400;
+ let o='';const d=bDist(); const cue=dropCue();
  if(S.phase==='release'&&S.locked)o='LOCKED';
  else if((S.lockT||0)>0)o='LOCKING';
- else if(bombWin)o='IN RANGE — HOLD LOCK, THEN RELEASE';
+ else if(cue==='TOO CLOSE'||cue==='OUT OF RANGE')o=cue;
+ else if(cue==='RELEASE'&&!S.locked)o='RELEASE';
  else if(S.phase==='ingress'&&S.tanker&&!S.fuelDone&&!S.fuelFail&&tankerMesh&&tankerMesh.visible){const td=Math.hypot(S.pos.x-tankerMesh.position.x,S.pos.z-tankerMesh.position.z); o='TANKER AHEAD — JOIN UP  '+(td/1000).toFixed(1)+' KM'+(S.calm==='light'?'  ·  BANDIT, FAR':'')}
  else if(S.phase==='ingress')o=d<4500?'TGT '+(d/1000).toFixed(1)+' KM':'FLY TO BUNKER  '+(d/1000).toFixed(1)+' KM';
- else if(S.safe&&S.phase==='egress')o='PULL UP / EGRESS';
- else if(S.phase==='release')o='CLOSE — '+((d<400)?'TOO CLOSE':((d-3000)/1000).toFixed(1)+' KM');
+ else if(S.phase==='egress')o='';
  else if(S.phase==='bombfall')o=(S.bomb&&S.bomb.guided)?'GUIDED':'WPN AWAY  TTI '+(S.bomb?S.bomb.tti.toFixed(1):'0.0');
  else if(S.phase==='penetrate')o='PENETRATING  '+Math.min(60,Math.round(S.penT*38))+' M';
  else if(S.phase==='egress')o=S.boomT<2?'TARGET DESTROYED':(S.bandit&&!S.bandit.dead?'BANDIT '+(S.pos.distanceTo(S.bandit.p)/1000).toFixed(1)+' KM — GUNS':(S.gridOn&&S.grids&&S.grids.some(g=>!g.done)?'GRID AHEAD':'EGRESS  EXFIL '+(S.pos.distanceTo(EXIT)/1000).toFixed(1)+' KM'));
- const loud=o==='LOCKED'||o==='LOCKING'||o==='GUIDED'; txt(o,cx,loud?Hh*.18:70,loud?26:14,'center',o==='LOCKED'||o==='GUIDED'?'rgba(190,245,190,1)':o==='LOCKING'?'rgba(255,220,150,1)':G);
- const aiHud=aimSite(); if(aiHud>=0&&!bombWin)txt('TAP RELEASE — BOMB '+SITES[aiHud].n+'  ×'+S.iron,cx,90,12,'center','rgba(255,210,140,.95)');
+ const loud=o==='LOCKED'||o==='LOCKING'||o==='GUIDED'||o==='RELEASE'; txt(o,cx,loud?Hh*.18:70,loud?26:14,'center',o==='LOCKED'||o==='GUIDED'?'rgba(190,245,190,1)':o==='RELEASE'?'rgba(255,214,140,1)':o==='LOCKING'?'rgba(255,220,150,1)':G);
  const thr=[];if(S.missile&&!S.missile.decoy&&!S.missile.lost)thr.push([S.missile.p,threatBehind(S.missile.p)?'SIX':'MSL',1]);if(S.bandit&&!S.bandit.dead&&threatBehind(S.bandit.p))thr.push([S.bandit.p,'SIX',1]);SITES.forEach((st,i)=>{if(S.sites[i].st==='track')thr.push([st.p,'SAM',0])});
  for(const [P,lab,isM] of thr){V.copy(P).applyMatrix4(cam.matrixWorldInverse);let dx=V.x,dy=-V.y;if(V.z>0){dx=V.x;dy=Math.abs(V.y)+Math.abs(V.x)*.2}const n=Math.hypot(dx,dy)||1;dx/=n;dy/=n;const r=Hh*.3,ax=cx+dx*r,ay=cy+dy*r;
   const c=isM?((S.t*6|0)%2?'rgba(255,70,60,1)':'rgba(255,200,180,1)'):'rgba(255,140,90,.95)';hx.fillStyle=c;hx.beginPath();hx.moveTo(ax+dx*16,ay+dy*16);hx.lineTo(ax-dy*8,ay+dx*8);hx.lineTo(ax+dy*8,ay-dx*8);hx.closePath();hx.fill();txt(lab,ax-dx*14,ay-dy*14+4,9,'center',c)}
  const clk=P=>{const rx=P.x-S.pos.x,rz=P.z-S.pos.z;let a=Math.atan2(-rx,-rz)-S.yaw;a=-a;let h=Math.round(((a/D2R%360)+360)%360/30)%12;return (h||12)+" O'CLOCK"};
  const M=S.missile;if(M&&!M.decoy&&!M.lost){const md=M.p.distanceTo(S.pos),fw=flrWin(),bw=S.samShots<=1?1500:1100;txt(md<bw&&S.brkCD<=0&&md>220?((S.t*6|0)%2?'▶▶ FLARE / BREAK NOW ◀◀':'   FLARE / BREAK NOW   '):md<fw?((S.t*5|0)%2?'▶▶ FLARE NOW ◀◀':'   FLARE NOW   '):'MISSILE  '+clk(M.p)+'  —  FLARE IN '+((md-fw)/1000).toFixed(1)+' KM · ECM NOW',cx,Hh-30,md<fw?17:13,'center','rgba(255,90,80,1)');txt('MISSILE',cx,cy-Hh*.2,18,'center',(S.t*4|0)%2?'rgba(255,70,60,1)':'rgba(255,70,60,.25)');if(md<GUN_RANGE)txt('GUN THE MISSILE',cx,cy+Hh*.16,13,'center','rgba(255,220,160,.95)')}
- else if(lockSite()>=0){const li=lockSite();txt(SITES[li].n+' LOCK '+(Math.max(0,1.75-S.sites[li].warnT)).toFixed(1)+'s — GUN OR BOMB',cx,Hh-30,13,'center',(S.t*5|0)%2?'rgba(255,90,70,1)':'rgba(255,190,140,.95)')}
+ else if(lockSite()>=0){const li=lockSite();const iron=dropPlan().act==='iron';txt(SITES[li].n+' LOCK '+(Math.max(0,1.75-S.sites[li].warnT)).toFixed(1)+'s — '+(iron?'GUN OR RELEASE':'GUN'),cx,Hh-30,13,'center',(S.t*5|0)%2?'rgba(255,90,70,1)':'rgba(255,190,140,.95)')}
  else if(S.th&&S.th.anyTrk)txt('SAM TRACKING — DROP BEHIND RIDGE / BREAK LOS',cx,Hh-30,12,'center','rgba(255,140,90,1)');
  else if(S.msgT>0){const big=S.msg==='FUEL COMPLETE'||S.msg==='SHORT'||S.msg==='LONG'||S.msg==='MISS'||/^THREADED/.test(S.msg||''); txt(S.msg,cx,big?Hh*.42:Hh-30,big?26:12,'center',S.msg==='SHORT'||S.msg==='LONG'||S.msg==='MISS'?'rgba(255,170,110,1)':big?'rgba(190,245,190,1)':'rgba(255,215,130,.95)')}
  else if((S.spike||0)>40||(S.spikeArm||0)>0)txt((S.spikeArm||0)>0?'SAM LOCK — DIVE':'SPIKED',cx,Hh-30,15,'center',(S.t*5|0)%2?'rgba(255,90,70,1)':'rgba(255,190,140,.95)');
  else if(S.agl>165&&S.phase!=='done')txt('ALT — RADAR EXPOSURE',cx,Hh-30,12,'center','rgba(255,110,90,.95)');
- const ironOn=aimSite()>=0; const dropOk=(S.locked&&S.phase==='release')||bombWin||ironOn;
- let hudKey=(canLock()?1:0)+':'+(S.locked?1:0)+':'+(dropOk?1:0)+':'+(S.missile&&!S.missile.lost?1:0)+':'+(S.ecmN|0)+':'+(S.ecm|0)+':'+(S.flares|0)+':'+(S.brkCD>0?1:0);
+ paintRelease();
+ let hudKey=(canLock()?1:0)+':'+(S.locked?1:0)+':'+cue+':'+(missileUp()?1:0)+':'+(S.ecmN|0)+':'+(S.ecm|0)+':'+(S.flares|0)+':'+(S.brkCD>0?1:0);
  if(hudKey!==window.__hudKey){window.__hudKey=hudKey;
  $('lock').classList.toggle('off',!canLock()&&!S.locked);$('lock').classList.toggle('hot',canLock()||!!S.locked);
- $('rel').classList.toggle('off',!dropOk||!!(S.missile&&!S.missile.decoy&&!S.missile.lost));$('rel').classList.toggle('hot',!!dropOk&&!(S.missile&&!S.missile.decoy&&!S.missile.lost));if(S.phase!=='bombfall'&&S.relHold<=0)$('relf').style.width='0%';
  const gunEl=$('gun'); if(gunEl){const banditHot=!!(S.bandit&&!S.bandit.dead&&S.pos.distanceTo(S.bandit.p)<GUN_RANGE); gunEl.classList.toggle('hot',!!(S.missile&&!S.missile.lost)||lockSite()>=0||banditHot); gunEl.classList.toggle('off',!!(S.cine||S.dead))}}
  {const M=S.missile,act=M&&!M.decoy&&!M.lost,md=act?M.p.distanceTo(S.pos):9e9;
  // red vignette pulse, faster as missile closes
@@ -2015,7 +2021,7 @@ function clock(){const d=new Date();$('clk').textContent=String(d.getUTCHours())
 // ---------- start / tutorial ----------
 const TUT=[['1/3  FLIGHT CONTROL','Drag anywhere with one finger. Left/right banks and turns; up/down climbs or dives (30° limit). Release and the aircraft returns to level flight.'],
  ['2/3  EMCON','Stay below 150 m AGL. Above that the EW radar tracks you and the SAM site launches. Throttle: left slider.'],
- ['3/3  WEAPONS + DEFENCE','Place the bunker in the HUD box, tap LOCK, hold RELEASE. A SAM that is locking shows a countdown: hold GUN with the pipper on the battery, or hold RELEASE to bomb it. Hold GUN on an inbound missile to splash it. FLARE, BREAK and ECM still work. You survive one hit.']];
+ ['3/3  WEAPONS + DEFENCE','Hold LOCK with the bunker in the box until it says LOCKED, then press RELEASE. The bomb guides in. With no lock, RELEASE still drops a free-fall while the button says RELEASE. A SAM countdown: hold GUN on the battery, or press RELEASE to bomb it. Hold GUN on an inbound missile to splash it. You survive one hit.']];
 let tutI=0;function showTut(){$('tt').textContent=TUT[tutI][0];$('tp').textContent=TUT[tutI][1];$('tn').textContent='TAP TO CONTINUE'}
 $('brief').addEventListener('pointerdown',()=>{initAudio();briefMusic();$('snd').textContent='♪ SOUND ON'});
 let practice='';
