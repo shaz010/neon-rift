@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17n — cooler phone
+
+The picture stays the same. The game no longer chases a 120 Hz screen: flight is capped at 60, the brief at 30, and pause, hide, and the score screen stop drawing. Pixel ratio never goes above 2, and a slow frame drops the render scale. Battery saver, off unless chosen, goes to 30 fps and a lighter scene. The choice is `localStorage.ds17n_batt`.
+
+Stamp `s17 · 17n`.
+
 ## s17 · 17m — defence grid
 
 Destroying the bunker raises a cable barrier across the escape valley. After the dogfight the jet has to thread the one gap. A cable hit is KILLED BY: DEFENCE GRID. Passing once arms extra, lower, narrower grids on later sorties. START AT GRID is the practice.
@@ -193,4 +199,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17m. The bunker raises a cable grid on the escape route. After the dogfight the jet threads the gap. The flag `ds17m_grid` / cookie `ds17mg` adds extra grids. Tanker lock, the calm lesson, and the bandit stay. Baked picks stay. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17n. Flight drawing is capped at 60 fps, menus at 30, and pause and the score screen do not draw. Battery saver is optional. Gameplay from 17i through 17m stays. Baked picks stay. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
