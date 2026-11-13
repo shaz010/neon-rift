@@ -268,6 +268,23 @@ const glowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64
 const tmesh=new THREE.Mesh(g,tm);tmesh.receiveShadow=true;scene.add(tmesh);window.__tmesh=tmesh;}
 const _gyRay=new THREE.Raycaster(), _gyDir=new THREE.Vector3(0,-1,0), _gyO=new THREE.Vector3();
 function groundY(x,z){const mesh=window.__tmesh; if(!mesh)return H(x,z); _gyO.set(x,6000,z); _gyRay.set(_gyO,_gyDir); _gyRay.far=9000; const hit=_gyRay.intersectObject(mesh,false); return hit.length?hit[0].point.y:H(x,z)}
+const BOMB_G=9.81, BOMB_DRAG=0.045, BOMB_BLAST=72;
+const _bombRay=new THREE.Raycaster(), _bombDir=new THREE.Vector3(), _bombNext=new THREE.Vector3();
+function bombAccel(v,dt){v.y-=BOMB_G*dt; v.multiplyScalar(Math.exp(-BOMB_DRAG*dt))}
+function bombCast(from,to){
+ const dir=_bombDir.subVectors(to,from), len=dir.length();
+ if(len<0.04)return null;
+ dir.multiplyScalar(1/len);
+ _bombRay.set(from,dir); _bombRay.near=0; _bombRay.far=len+0.25;
+ const list=[];
+ if(window.__tmesh&&window.__tmesh.visible)list.push(window.__tmesh);
+ if(typeof bunker!=='undefined'&&bunker&&bunker.visible)list.push(bunker);
+ if(!list.length)return null;
+ const hits=_bombRay.intersectObjects(list,true);
+ if(!hits.length)return null;
+ const h=hits[0]; let onBunk=false, o=h.object;
+ while(o){if(o===bunker){onBunk=true; break} o=o.parent}
+ return {p:h.point.clone(), onBunk}}
 // Optional cloud cards for scenery tester (hidden at SCEN.clouds=0)
 {const cg=new THREE.Group();cg.visible=false;window.__cloudGroup=cg;const N=MOB?6:10;
  for(let i=0;i<N;i++){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
@@ -1011,7 +1028,7 @@ function canLock(){return S.phase==='ingress'&&bDist()<4500&&bDist()>500&&inBox(
 function tryLock(){if(!canLock())return;S.locked=true;S.phase='release';blip(560,.18,.07);setTimeout(()=>blip(740,.22,.06),120)}
 function tryRelease(){if(!S||takingOff()){msg('NOT AIRBORNE');return}
  if(S.dead){msg('AIRCRAFT DOWN');return}
- if(S.bomb||S.phase==='bombfall'||S.phase==='penetrate'||S.phase==='egress'||S.phase==='done'){msg('BOMB ALREADY GONE');return}
+ if(S.bomb||S.bombSpent||S.phase==='bombfall'||S.phase==='penetrate'||S.phase==='egress'||S.phase==='done'){msg('BOMB ALREADY GONE');return}
  if(S.missile&&!S.missile.decoy&&!S.missile.lost){msg('DEFEAT MISSILE FIRST');return}
  if(S.phase!=='ingress'&&S.phase!=='release'){msg('NO BOMB');return}
  const d=bDist();
@@ -1269,9 +1286,9 @@ function updRounds(rdt){for(let i=rounds.length-1;i>=0;i--){const r=rounds[i];r.
   if(hit||r.life<=0||r.p.y<H(r.p.x,r.p.z)){if(r.m)r.m.visible=false;rounds.splice(i,1)}}}
 function siteInBox(p){const s=scr(p);if(!s)return 0;const bw=innerWidth*.16,bh=innerHeight*.2,cx=innerWidth/2,cy=innerHeight*.5;const dx=Math.abs(s.x-cx)/bw,dy=Math.abs(s.y-cy)/bh;return dx<1&&dy<1?1-Math.max(dx,dy):0}
 function aimSite(){if(!S||S.iron<=0||S.phase!=='ingress'||S.cine||S.ironBomb)return -1;let best=-1,sc=0;for(let i=0;i<SITES.length;i++){if(S.sites[i].dead)continue;const d=S.pos.distanceTo(SITES[i].p);if(d<700||d>4200)continue;const q=siteInBox(SITES[i].p);if(q>sc){sc=q;best=i}}return best}
-function dropIron(i){if(i<0||!S||S.iron<=0||S.ironBomb||S.sites[i].dead)return;S.iron--;S.ironHold=0;const aim=SITES[i].p.clone();aim.y+=4;S.ironBomb={p:S.pos.clone().add(new THREE.Vector3(0,-3,0)),v:nose().clone().multiplyScalar(Math.max(140,S.spd||160)),aim,i};ironMesh.visible=true;if(AC)thud(AC.out,.35,52,28,.4);msg('BOMB AWAY — '+SITES[i].n)}
-function updIron(rdt){const b=S.ironBomb;if(!b)return;b.age=(b.age||0)+rdt;const to=b.aim.clone().sub(b.p),d=to.length()||1;b.v.lerp(to.normalize().multiplyScalar(320),clamp(rdt*4,0,1));b.v.y-=1.5*rdt;b.p.addScaledVector(b.v,rdt);ironMesh.position.copy(b.p);ironMesh.lookAt(b.p.clone().add(b.v));
- if(d<28||b.p.y<H(b.p.x,b.p.z)+3||b.age>12){ironMesh.visible=false;const hit=b.p.distanceTo(SITES[b.i].p);S.ironBomb=null;fire(b.p,.5);boomSfx(false,b.p);if(!S.sites[b.i].dead&&hit<BOMB_R)killSite(b.i);else msg('BOMB MISS')}}
+function dropIron(i){if(i<0||!S||S.iron<=0||S.ironBomb||S.sites[i].dead)return;S.iron--;S.ironHold=0;const spd=Math.max(40,S.spd||(85+(S.thr||0)*195));S.ironBomb={p:S.pos.clone().add(new THREE.Vector3(0,-2,0)),v:new THREE.Vector3(-Math.sin(S.yaw)*Math.cos(S.pitch),Math.sin(S.pitch),-Math.cos(S.yaw)*Math.cos(S.pitch)).multiplyScalar(spd),i,age:0};ironMesh.visible=true;if(AC)thud(AC.out,.35,52,28,.4);msg('BOMB AWAY — '+SITES[i].n)}
+function updIron(rdt){const b=S.ironBomb;if(!b)return;b.age=(b.age||0)+rdt;const prev=b.p.clone();bombAccel(b.v,rdt);_bombNext.copy(b.p).addScaledVector(b.v,rdt);const hit=bombCast(prev,_bombNext);if(hit)b.p.copy(hit.p);else b.p.copy(_bombNext);ironMesh.position.copy(b.p);ironMesh.lookAt(b.p.clone().add(b.v));
+ if(hit||b.age>16){const p=b.p.clone();ironMesh.visible=false;S.ironBomb=null;groundBurst(p);if(!S.sites[b.i].dead&&p.distanceTo(SITES[b.i].p)<BOMB_R)killSite(b.i);else msg('BOMB MISS')}}
 function lockSite(){let best=-1,t=-1;for(let i=0;i<SITES.length;i++){const s=S.sites[i];if(s.warned&&!s.dead&&s.warnT>=t){t=s.warnT;best=i}}return best}
 let endTimer=0;
 let banditMesh=null;
@@ -1705,12 +1722,11 @@ function update(rdt){
  updHug(dt,rdt);
  if(S.phase==='release'){if(bDist()<350||!scr(BUNK)){S.locked=false;S.phase='ingress';msg('LOCK LOST — REATTACK')}}
  updIron(rdt);
- const b=S.bomb;if(b){b.age=(b.age||0)+rdt;const to=tmp.copy(b.aim).sub(b.p),d=to.length()||1;b.s=Math.min(420,b.s+120*dt);b.v.lerp(to.normalize().multiplyScalar(b.s),clamp(dt*1.4,0,1));b.v.y-=3*dt;b.p.addScaledVector(b.v,dt);b.tti=d/Math.max(.1,b.v.length());
+ const b=S.bomb;if(b){b.age=(b.age||0)+rdt;const prev=b.p.clone();bombAccel(b.v,dt);_bombNext.copy(b.p).addScaledVector(b.v,dt);const hit=bombCast(prev,_bombNext);if(hit)b.p.copy(hit.p);else b.p.copy(_bombNext);
   bomb.position.copy(b.p);bomb.lookAt(tmp.copy(b.p).add(b.v));
-  // failsafe: never stay stuck on weapon cam / bombfall forever
-  if(b.age>14){S.bomb=null;bomb.visible=false;S.phase='penetrate';S.penT=1.5}
-  else if(d<6||b.p.y<b.aim.y){S.bomb=null;bomb.visible=false;S.phase='penetrate';S.penT=0;riser(false);if(!S.quiet)blip(90,.4,.4,'sine');if(!S.quiet){if(bunkerLayered()){if(AC)thud(AC.out,.22,42,24,.3)}else{boomSfx(false,BUNK);heavy('sub08',.35,.9)}}bulge.position.copy(BUNK);bulge.visible=true;bulge.scale.set(46,.1,40);
-   for(let i=0;i<22;i++)spr(BUNK,0x8f8270,16,3,new THREE.Vector3(rnd(22),18+Math.random()*35,rnd(22)),{grow:20,o:.85,must:1})}}
+  const gy=groundY(b.p.x,b.p.z), drop=b.p.y-gy; b.tti=b.v.y<-1?Math.max(0,drop/-b.v.y):Math.max(0,drop/40);
+  if(b.age>18)bombMiss(b.p);
+  else if(hit){if(hit.onBunk||hit.p.distanceTo(BUNK)<=BOMB_BLAST)bombStrike(hit.p);else bombMiss(hit.p)}}
  if(S.phase==='penetrate'){S.penT+=rdt;const k=sstep(.5,1.6,S.penT);bulge.scale.set(46+k*8,.1+k*9,40+k*8);S.shake=Math.max(S.shake,k*.25);if(Math.random()<.3)spr(tmp.copy(BUNK).add(new THREE.Vector3(rnd(40),2,rnd(40))),0x8a7d6a,10,2,new THREE.Vector3(0,6,0),{grow:10,o:.6});if(S.penT>1.6)bigBoom()}
  if(S.boomT>=0){S.boomT+=dt;const t=S.boomT;dome.scale.set(60+t*900,(60+t*900)*.55,60+t*900);dome.material.opacity=Math.max(0,.2-t*.11);if(t>1.8)dome.visible=false;
   while(S.sec.length&&t>S.sec[0]){S.sec.shift();const bp=tmp.copy(BUNK).add(new THREE.Vector3(rnd(90),0,rnd(90)));fire(bp,1.1);if(!bunkerLayered()&&!heavy('sub01',.5,.85+Math.random()*.15))boomSfx(false,bp)}}
@@ -1744,9 +1760,24 @@ function update(rdt){
  if(S.pos.z<EXZ-900&&S.phase!=='egress'&&S.phase!=='done')die('LEFT THE AO');
  if(S.phase==='ingress'&&!S.cine) updTanker(dt,rdt);
  if(NIGHT_ON){expPulse=Math.max(0,expPulse-rdt*.32); const nv=nvOn?1.35:1; R.toneMappingExposure=(nightBase||SCEN.exposure)*nv*(1+expPulse)*(MOB?.82/.88:1)} mixFlightAudio(rdt)}
+function groundBurst(p){const q=p.clone(); q.y=Math.max(p.y, groundY(p.x,p.z)); fire(q,.45); boomSfx(false,q);
+ for(let i=0;i<(MOB?8:14);i++)spr(q.clone(),0x9a8a72,16+Math.random()*22,1.6+Math.random()*1.4,new THREE.Vector3(rnd(14),6+Math.random()*16,rnd(14)),{grow:14,o:.82,drag:.25,fadeIn:.15,must:1});
+ for(let i=0;i<10;i++)spr(q.clone(),0x5c564c,8+Math.random()*6,2.2,new THREE.Vector3(rnd(8),1+Math.random()*3,rnd(8)),{grow:6,o:.7,drag:.4,must:1})}
+function bombCall(p){const dx=p.x-BUNK.x, dz=p.z-BUNK.z; if(Math.abs(dx)>80&&Math.abs(dx)>Math.abs(dz)*0.75)return 'MISS'; if(dz>40)return 'SHORT'; if(dz<-40)return 'LONG'; return 'MISS'}
+function bombStrike(p){S.err=Math.hypot(p.x-BUNK.x,p.z-BUNK.z); S.bomb=null; bomb.visible=false; S.phase='penetrate'; S.penT=0; riser(false);
+ if(!S.quiet)blip(90,.4,.4,'sine'); if(!S.quiet){if(bunkerLayered()){if(AC)thud(AC.out,.22,42,24,.3)}else{boomSfx(false,BUNK);heavy('sub08',.35,.9)}}
+ bulge.position.copy(BUNK); bulge.visible=true; bulge.scale.set(46,.1,40);
+ for(let i=0;i<22;i++)spr(BUNK,0x8f8270,16,3,new THREE.Vector3(rnd(22),18+Math.random()*35,rnd(22)),{grow:20,o:.85,must:1})}
+function bombMiss(p){S.bomb=null; bomb.visible=false; S.bombSpent=1; S.phase='ingress'; S.cine=false; S.cineA=null; S.quiet=0; groundBurst(p); msg(bombCall(p)); S.msgT=3.2}
+const _pp=new THREE.Vector3(), _pv=new THREE.Vector3(), _pa=new THREE.Vector3();
+function predictImpact(){if(!S||S.bomb||S.bombSpent||S.dead||takingOff()||(S.phase!=='ingress'&&S.phase!=='release'))return null;
+ _pp.copy(S.pos); _pp.y-=2; _pv.copy(fwd).multiplyScalar(Math.max(40,S.spd||0));
+ for(let n=0;n<160;n++){_pa.copy(_pp); bombAccel(_pv,.08); _pp.addScaledVector(_pv,.08);
+  if(_pp.y<H(_pp.x,_pp.z)+3){const hit=bombCast(_pa,_pp); return hit?hit.p:_pp.clone().setY(H(_pp.x,_pp.z))}}
+ return null}
 function release(){if(window.__ft)window.__ft.markRel();S.relHold=0;S._relT0=0;S.locked=false;S.phase='bombfall';
- const q=inBox();S.err=(1-q)*14+Math.random()*2;const a=Math.random()*6.28;
- S.bomb={p:S.pos.clone().add(new THREE.Vector3(0,-2,0)),v:fwd.clone().multiplyScalar(Math.max(120,S.spd)),s:Math.max(120,S.spd),aim:BUNK.clone().add(new THREE.Vector3(Math.cos(a)*S.err,0,Math.sin(a)*S.err)),tti:99,age:0};bomb.visible=true;jet.visible=true;
+ const spd=Math.max(40,S.spd||(85+(S.thr||0)*195));
+ S.bomb={p:S.pos.clone().add(new THREE.Vector3(0,-2,0)),v:fwd.clone().multiplyScalar(spd),tti:99,age:0};bomb.visible=true;jet.visible=true;
  S.quiet=1; S.graceHold=8; S.safe=1; stopMood(true); riser(false); msg('PULL UP / EGRESS')}
 function silenceScore(){stopMood(true); stopIntroMusic(); stopDeckAmbience(); try{stopBed()}catch(e){} stopWin(); riser(false); if(typeof endHandle!=='undefined'&&endHandle){try{endHandle.stop()}catch(e){} endHandle=null} try{if(JET){JET.stop(0.05); JET=null}}catch(e){} try{if(windBed){windBed.stop(); windBed=null}}catch(e){} try{gridHumSet(false)}catch(e){} if(!AC)return; const t=AC.currentTime; [AC.amb,AC.moodG,AC.mus,AC.introG,AC.wind&&AC.wind.g,AC.jet,AC.sub,AC.engB,AC.deckJetG,AC.deckRotorG,eng&&eng.g,warnG,trkG,seekG].forEach(g=>{if(g&&g.gain){try{g.gain.cancelScheduledValues(t); g.gain.value=0}catch(e){}}})}
 function showEnd(win){running=false;releaseControls();clearTimeout(endTimer);silenceScore();if(AC){const t=AC.currentTime;riser(false);AC.jet.gain.setTargetAtTime(0,t,.05);AC.amb.gain.setTargetAtTime(0,t,.05);try{stopBed()}catch(e){};eng.g.gain.setTargetAtTime(0,t,.05);warnG.gain.setTargetAtTime(0,t,.05);trkG.gain.setTargetAtTime(0,t,.05);AC.sub.gain.setTargetAtTime(0,t,.05);if(S.missile)mslAudioStop(S.missile);$('vig').style.opacity=0;$('teach').style.display='none';seekG.gain.setTargetAtTime(0,t,.05);
@@ -1867,6 +1898,7 @@ function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!r
  if(S.missile)tagBox(S.missile.p,S.missile.decoy?'DECOY':'MSL','rgba(255,80,70,1)',14);
  drawBanditHud(cx);
  if(S.bomb){const s=scr(S.bomb.p);if(s)txt('WPN',s.x+12,s.y,9,'left')}
+ else if(!S.bombSpent){const ip=predictImpact(); if(ip){const s=scr(ip); if(s){hx.strokeStyle='rgba(255,214,120,.95)'; hx.strokeRect(s.x-8,s.y-8,16,16); line(s.x,s.y-16,s.x,s.y-8); line(s.x,s.y+8,s.x,s.y+16); line(s.x-16,s.y,s.x-8,s.y); line(s.x+8,s.y,s.x+16,s.y); hx.strokeStyle=G; txt('CCIP',s.x,s.y-20,9)}}}
  if(S.phase==='egress')tagBox(EXIT,'EXFIL',G,12);
  let o='';const d=bDist();
  const bombWin=(S.phase==='ingress'||S.phase==='release')&&d<3000&&d>400;
@@ -1887,7 +1919,7 @@ function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!r
  const M=S.missile;if(M&&!M.decoy&&!M.lost){const md=M.p.distanceTo(S.pos),fw=flrWin(),bw=S.samShots<=1?1500:1100;txt(md<bw&&S.brkCD<=0&&md>220?((S.t*6|0)%2?'▶▶ FLARE / BREAK NOW ◀◀':'   FLARE / BREAK NOW   '):md<fw?((S.t*5|0)%2?'▶▶ FLARE NOW ◀◀':'   FLARE NOW   '):'MISSILE  '+clk(M.p)+'  —  FLARE IN '+((md-fw)/1000).toFixed(1)+' KM · ECM NOW',cx,Hh-30,md<fw?17:13,'center','rgba(255,90,80,1)');txt('MISSILE',cx,cy-Hh*.2,18,'center',(S.t*4|0)%2?'rgba(255,70,60,1)':'rgba(255,70,60,.25)');if(md<GUN_RANGE)txt('GUN THE MISSILE',cx,cy+Hh*.16,13,'center','rgba(255,220,160,.95)')}
  else if(lockSite()>=0){const li=lockSite();txt(SITES[li].n+' LOCK '+(Math.max(0,1.75-S.sites[li].warnT)).toFixed(1)+'s — GUN OR BOMB',cx,Hh-30,13,'center',(S.t*5|0)%2?'rgba(255,90,70,1)':'rgba(255,190,140,.95)')}
  else if(S.th&&S.th.anyTrk)txt('SAM TRACKING — DROP BEHIND RIDGE / BREAK LOS',cx,Hh-30,12,'center','rgba(255,140,90,1)');
- else if(S.msgT>0){const big=S.msg==='FUEL COMPLETE'||/^THREADED/.test(S.msg||''); txt(S.msg,cx,big?Hh*.42:Hh-30,big?26:12,'center',big?'rgba(190,245,190,1)':'rgba(255,215,130,.95)')}
+ else if(S.msgT>0){const big=S.msg==='FUEL COMPLETE'||S.msg==='SHORT'||S.msg==='LONG'||S.msg==='MISS'||/^THREADED/.test(S.msg||''); txt(S.msg,cx,big?Hh*.42:Hh-30,big?26:12,'center',S.msg==='SHORT'||S.msg==='LONG'||S.msg==='MISS'?'rgba(255,170,110,1)':big?'rgba(190,245,190,1)':'rgba(255,215,130,.95)')}
  else if((S.spike||0)>40||(S.spikeArm||0)>0)txt((S.spikeArm||0)>0?'SAM LOCK — DIVE':'SPIKED',cx,Hh-30,15,'center',(S.t*5|0)%2?'rgba(255,90,70,1)':'rgba(255,190,140,.95)');
  else if(S.agl>165&&S.phase!=='done')txt('ALT — RADAR EXPOSURE',cx,Hh-30,12,'center','rgba(255,110,90,.95)');
  $('lock').classList.toggle('off',!canLock());$('lock').classList.toggle('hot',canLock());

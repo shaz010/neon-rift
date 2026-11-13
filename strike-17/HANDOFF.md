@@ -9,6 +9,8 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 17o (`4611f87`) put the flight in the real Mattertal. It did not feel right, so that scenery commit is reverted. The ground, materials, clouds, trees, and bunker are the 17n valley again. Tanker lock, the calm lesson, the bandit, the grid, the frame cap, battery saver, and the zoom lock stay.
 
+The penetrator no longer steers toward the bunker. It leaves the jet with the jet's speed, falls under gravity, and stops on the first surface the ray meets. A hit on the bunker, or within 72 m of it, is the strike. Anywhere else is SHORT, LONG, or MISS, with a dust burst on that ground. The CCIP diamond is the predicted impact.
+
 Stamp `s17 · 17p`.
 
 ## s17 · 17n — cooler phone
