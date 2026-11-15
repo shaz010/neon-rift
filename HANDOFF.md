@@ -5,6 +5,16 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x2 — the dot in the ring connects, and the hose is a drogue
+
+The aim dot is the refuelling probe. The ring is the drogue basket. If the dot sits in the ring and the closure is gentle, the probe locks in about half a second. A phone gets a wider ring. There is no hidden speed, depth, or throttle gate. If the picture is right but the join is not, the line is one word: SLOW, FAST, or CLOSER. Once fuel is flowing, a small drift pauses with DISCONNECT and keeps the lock for a moment, so it does not flicker. A real gap drops the lock.
+
+The hose reels from a drum under the tanker's tail. It hangs in a shallow curve, with a little sway. The basket is a metal ring, a fabric canopy, ribs, and a coupler in the middle. The player's jet has a metal probe on the nose. On contact the probe seats in the coupler, the basket eases forward, the hose shortens a little, and a wave runs up it. While connected the hose follows the jet. On disconnect the basket springs back and swings. The fuel cue is the gauge. The hose glint is only a faint shimmer.
+
+The fuel rumble and the clunk fade in and out, and they will not restart every frame.
+
+Stamp `s17 · 17x2`.
+
 ## s17 · 17x — the fuel transfer, a second pass, a quieter HUD
 
 The refuel is no longer an autopilot. Once the boom locks there is a clunk and a shake, fuel runs down the hose, and a gauge counts the pounds. Lights under the tanker say up, down, forward, or aft. Drift out and the flow stops with DISCONNECT until you reconnect. Full says TANK FULL, the hose pulls away, then CLEARED.
@@ -273,4 +283,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17x. The sky is still the Poly Haven Alps Field photograph. Refuelling is flown by hand, with a gauge, hose flow, and director lights. A missed bunker can be re-attacked. The HUD fades idle detail and keeps the live numbers large. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17x2. The sky is still the Poly Haven Alps Field photograph. The refuel is a probe and drogue: the dot in the ring connects, the hose hangs from the tanker, and the gauge is the fuel cue. A missed bunker can be re-attacked. The HUD fades idle detail. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.

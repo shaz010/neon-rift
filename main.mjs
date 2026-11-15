@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17x'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17x2'])[1];
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -347,9 +347,9 @@ new THREE.TextureLoader().load('tex/sky/alps-field-env.jpg', t=>{photoEnvMap=t; 
 const tankerBeacon=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffc14a,transparent:true,depthWrite:false,depthTest:false,fog:false,blending:THREE.AdditiveBlending}));
 tankerBeacon.visible=false; tankerBeacon.renderOrder=4; tankerBeacon.frustumCulled=false; scene.add(tankerBeacon);
 const fuelGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffc56a,transparent:true,depthWrite:false,depthTest:false,fog:false,blending:THREE.AdditiveBlending,opacity:.95}));
-fuelGlow.visible=false; fuelGlow.frustumCulled=false; fuelGlow.renderOrder=5; scene.add(fuelGlow);
-const fuelMist=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xd5e2ee,transparent:true,depthWrite:false,depthTest:false,fog:false,blending:THREE.AdditiveBlending,opacity:.4}));
-fuelMist.visible=false; fuelMist.frustumCulled=false; fuelMist.renderOrder=5; scene.add(fuelMist);
+fuelGlow.material.opacity=.16; fuelGlow.scale.setScalar(2.2); fuelGlow.visible=false; fuelGlow.frustumCulled=false; fuelGlow.renderOrder=5; scene.add(fuelGlow);
+const fuelMist=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xd5e2ee,transparent:true,depthWrite:false,depthTest:false,fog:false,blending:THREE.AdditiveBlending,opacity:.1}));
+fuelMist.visible=false; fuelMist.frustumCulled=false; fuelMist.renderOrder=5; fuelMist.scale.setScalar(2.4); scene.add(fuelMist);
 window.__hiScenery={skirt:0,clouds:0,peaks:0,photo:1};
 // ---------- materials ----------
 const concrete=new THREE.MeshStandardMaterial({color:0x8d8a83,roughness:.95,map:detail.clone()}); concrete.map.repeat.set(2,2);
@@ -443,7 +443,12 @@ function slab(pts,depth=.12){const s=new THREE.Shape();s.moveTo(...pts[0]);pts.s
   fragmentShader:'uniform float t,a;varying vec2 u;void main(){vec2 p=u-.5;float r=length(p);float n=sin(p.x*40.+t*30.)*sin(p.y*36.-t*24.);gl_FragColor=vec4(vec3(1.,.55,.25)*(.06+.04*n)*smoothstep(.5,.0,r)*a,1.);}'}));
  sh.position.z=7.6;jet.add(sh);jet.userData.sh=sh;
  // nav lights
- for(const [x,c] of[[-5.55,0xff2a20],[5.55,0x30ff50]]){const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:c,blending:THREE.AdditiveBlending,depthWrite:false}));l.scale.setScalar(.6);l.position.set(x,-.15,2.7);jet.add(l)}}
+ for(const [x,c] of[[-5.55,0xff2a20],[5.55,0x30ff50]]){const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:c,blending:THREE.AdditiveBlending,depthWrite:false}));l.scale.setScalar(.6);l.position.set(x,-.15,2.7);jet.add(l)}
+ const probeG=new THREE.Group(); probeG.name='probe';
+ const pMat=new THREE.MeshStandardMaterial({color:0xd5dbe0,metalness:.84,roughness:.26});
+ const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.075,.1,3.1,8), pMat); shaft.rotation.x=Math.PI/2; shaft.position.set(.95,-.28,-7.4);
+ const tip=new THREE.Mesh(new THREE.SphereGeometry(.14,8,6), pMat); tip.position.set(.95,-.28,-9.05); tip.name='tip';
+ probeG.add(shaft,tip); jet.add(probeG); jet.userData.probe=probeG;}
 bunker.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});sam.traverse(o=>{if(o.isMesh)o.castShadow=true});
 // ---------- GLB jet (F-35 Lightning II by bohmerang, Sketchfab) ----------
 jet.traverse(o=>{if(o.isMesh&&o!==jet.userData.sh)o.castShadow=true});
@@ -454,8 +459,8 @@ import('./vendor/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>new GLTFLoader
  const L=Math.max(sz.x,sz.z);wrap.scale.setScalar(14.5/L);
  wrap.rotation.y=(ax==='x'?Math.PI/2:0)+(window.__jetFlip?Math.PI:0);
  m.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;const mt=o.material;if(mt&&mt.isMeshStandardMaterial){mt.envMapIntensity=1;if(!mt.transparent){mt.roughness=Math.max(mt.roughness,.45)}}}});
- for(const c of[...jet.children])if(c.isMesh&&c!==jet.userData.sh&&c!==jet.userData.core)c.visible=false;
- for(const c of jet.children)if(c.isGroup)c.visible=false;
+ for(const c of[...jet.children])if(c.isMesh&&c!==jet.userData.sh&&c!==jet.userData.core&&c.parent&&c.parent.name!=='probe')c.visible=false;
+ for(const c of jet.children)if(c.isGroup&&c.name!=='probe')c.visible=false;
  jet.userData.core.visible=false;jet.add(wrap);window.__glb='ok';
  const sc=14.5/L, lat=(ax==='x'?sz.z:sz.x)*sc, tall=sz.y*sc;
  jet.userData.span=Math.max(8,lat); jet.userData.jetH=Math.max(2.4,tall);
@@ -1486,10 +1491,16 @@ window.__mood=()=>({id:musicChoice('mood'),live:!!moodHandle,g:AC&&AC.moodG?+AC.
 window.__music=()=>({mood:musicChoice('mood'),moodOn:!!moodHandle,moodG:AC&&AC.moodG?+AC.moodG.gain.value.toFixed(3):0,amb:AC&&AC.amb?+AC.amb.gain.value.toFixed(3):0,mus:AC&&AC.mus?+AC.mus.gain.value.toFixed(3):0,introG:AC&&AC.introG?+AC.introG.gain.value.toFixed(3):0,wind:AC&&AC.wind?+AC.wind.g.gain.value.toFixed(3):0,deck:AC&&AC.deckJetG?+AC.deckJetG.gain.value.toFixed(3):0,bed:!!bedS||!!droneS,intro:!!introS||!!introHandle,ending:!!(typeof endHandle!=='undefined'&&endHandle)||!!winSrc,brief:!!briefSrc,riser:!!riserS,quiet:!!(S&&S.quiet),jet:AC&&AC.jet?+AC.jet.gain.value.toFixed(3):0});
 window.__sb=k=>SB[k]||null; window.__load=k=>SB.get(k); window.__end=win=>showEnd(!!win);
 window.__tanker=()=>S&&S.tanker; window.__ground=(x,z)=>groundY(x,z); window.__kill=()=>S&&S.kill; window.__learned=()=>tankerLearned(); window.__calm=()=>S&&S.calm||'';
-window.__aim=()=>{ if(!S||!S.tanker||!S.tanker.basket)return null; const v=tankerScreen(); const b=S.tanker.basket; return {dist:S.tanker.dist, contact:!!S.tanker.contact, fuel:S.tanker.fuel, calm:S.calm||'', cue:S.tanker.cue, ahead:S.tanker.ahead, lock:S.tanker.lock||'', lockT:S.tanker.lockT||0, sep:v&&v.sep, rad:v&&v.rad, bs:v&&v.cs, fp:v&&v.fp, dpr, W, H:Hh, z:S.pos.z, bunk:bDist(), rig:!!(tankerRig&&tankerRig.visible), hose:!!(tankerHose&&tankerHose.visible), client:[hud.clientWidth,hud.clientHeight], basket:[b.x,b.y,b.z]} };
+window.__aim=()=>{ if(!S||!S.tanker||!S.tanker.basket)return null; const v=tankerScreen(); const b=S.tanker.basket; const tip=probeTipWorld(); return {dist:S.tanker.dist, contact:!!S.tanker.contact, fuel:S.tanker.fuel, calm:S.calm||'', cue:S.tanker.cue, ahead:S.tanker.ahead, lock:S.tanker.lock||'', lockT:S.tanker.lockT||0, sep:v&&v.sep, rad:v&&v.rad, bs:v&&v.cs, fp:v&&v.fp, dpr, W, H:Hh, z:S.pos.z, bunk:bDist(), rig:!!(tankerRig&&tankerRig.visible), hose:!!(tankerHose&&tankerHose.visible), client:[hud.clientWidth,hud.clientHeight], basket:[b.x,b.y,b.z], tipD:+Math.hypot(tip.x-S.pos.x,tip.y-S.pos.y,tip.z-S.pos.z).toFixed(2), jScale:jet.scale.x} };
 window.__render=()=>{ try{render()}catch(e){} };
+function placeProbeCam(){const p=probeTipWorld(); const b=S&&S.tanker&&S.tanker.basket; const tx=b?b.x:p.x, ty=b?b.y:p.y, tz=b?b.z:p.z; const pod=podPoint();
+ _h0.set(pod.x-tx,pod.y-ty,pod.z-tz); if(_h0.lengthSq()<1)_h0.set(0,0,1); _h0.normalize(); _h1.set(0,1,0).cross(_h0); if(_h1.lengthSq()<1e-4)_h1.set(1,0,0); _h1.normalize();
+ const o=window.__probeOff||{side:8,back:.4,up:2.4,fov:16};
+ cam.position.set(tx+_h1.x*o.side-_h0.x*o.back, ty+o.up, tz+_h1.z*o.side-_h0.z*o.back); cam.up.set(0,1,0); cam.lookAt(tx,ty,tz); cam.fov=o.fov; cam.updateProjectionMatrix()}
+window.__shotProbe=()=>{ window.__probeCam=1 };
 window.__hug=()=>S&&({mult:+(S.mult||1).toFixed(2),score:Math.round(S.score||0),streak:S.streak||0,best:S.bestStreak||0,spike:+(S.spike||0).toFixed(1),arm:+(S.spikeArm||0).toFixed(2),agl:Math.round(S.agl||0),spd:Math.round(S.spd||0),msg:S.msg||'',missile:!!(S.missile&&!S.missile.lost),flash:+((S.missFlash||0).toFixed(2))});
 window.__tick=n=>{for(let i=0;i<(n||1);i++){ if(!S||S.dead||S.phase==='done')return; update(0.05) }};
+window.__step=dt=>{ if(S&&!S.dead&&S.phase!=='done') update(dt==null?1/30:dt); };
 if(DS_MODE==='game')ensureBanditMesh();
 function die(why,detail){if(S.dead)return;if(takingOff())return;valleyRespawn=true;S.dead=why;S.kill={why,detail:detail||'',agl:+(S.agl||0).toFixed(1),ground:Math.round(S.ground||0),analytic:Math.round(S.hAnalytic||H(S.pos.x,S.pos.z)),y:Math.round(S.pos.y)};try{sfxLog('death',S.kill)}catch(e){}crashSfx();fire(S.pos,.9);jet.visible=false;releaseControls();clearTimeout(endTimer);endTimer=setTimeout(()=>{if(S&&S.dead)showEnd(false)},1800)}
 function killText(){const k=S.kill||{}, w=String(k.why||S.dead||''); let name='UNKNOWN'; if(/TERRAIN/i.test(w))name='TERRAIN'; else if(/SAM/i.test(w))name='SAM'; else if(/BANDIT MISSILE/i.test(w))name='BANDIT MISSILE'; else if(/BANDIT/i.test(w))name='BANDIT'; else if(/AO|AREA/i.test(w))name='LEFT THE AREA'; else if(/BLAST/i.test(w))name='OWN BLAST'; else if(w)name=w; const extra=k.detail||(/TERRAIN/i.test(name)?'AGL '+(k.agl!=null?k.agl:0)+' M · GROUND '+(k.ground||0):'AGL '+(k.agl!=null?k.agl:'—')+' M'); return name+(extra?' · '+extra:'')}
@@ -1686,43 +1697,53 @@ function ensureTanker(){if(tankerMesh)return tankerMesh; const g=new THREE.Group
  const dir=new THREE.Group(); dir.name='director';
  for(const [n,x,y,z] of [['c',0,-2.6,20.5],['u',0,-1.15,20.5],['d',0,-4.05,20.5],['f',0,-2.6,18.6],['a',0,-2.6,22.4]]){const m=new THREE.Mesh(new THREE.SphereGeometry(1.15,10,8), new THREE.MeshBasicMaterial({color:0x2a1408,toneMapped:false,fog:false})); m.position.set(x,y,z); m.name=n; dir.add(m)}
  g.add(dir); g.userData.dir=dir;
+ const drum=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,1.15,12), dark); drum.rotation.z=Math.PI/2; drum.position.set(0,-1.55,20); g.add(drum);
  g.scale.setScalar(2.6); g.frustumCulled=false; g.traverse(o=>{o.frustumCulled=false; const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[]; ms.forEach(m=>{if(m)m.fog=false})}); scene.add(g); g.visible=false; return tankerMesh=g}
 let tankerRig=null, tankerHose=null;
-const _tkTail=new THREE.Vector3(), _tkB=new THREE.Vector3(), _tkDir=new THREE.Vector3(), _tkUp=new THREE.Vector3(0,1,0);
+const HOSE_N=MOB?10:14;
+const _pod=new THREE.Vector3(), _h0=new THREE.Vector3(), _h1=new THREE.Vector3(), _ha=new THREE.Vector3(), _hb=new THREE.Vector3(), _sc=new THREE.Vector3();
+const _hoseQ=new THREE.Quaternion(), _hoseUp=new THREE.Vector3(0,1,0), _hoseS=new THREE.Vector3(), _hoseM=new THREE.Matrix4();
+const _probeTip=new THREE.Vector3();
 function hideTankerRig(){ if(tankerRig)tankerRig.visible=false; if(tankerHose)tankerHose.visible=false }
 function ensureTankerRig(){ if(tankerRig)return;
- tankerRig=new THREE.Group(); tankerRig.name='drogue';
- const lit=new THREE.MeshBasicMaterial({color:0xfff6d2,toneMapped:false,fog:false});
- const dark=new THREE.MeshBasicMaterial({color:0x120c06,toneMapped:false,fog:false});
- const ring=new THREE.Mesh(new THREE.TorusGeometry(5.6,.7,12,32), lit); ring.name='ring';
- const outline=new THREE.Mesh(new THREE.TorusGeometry(6.35,1.15,10,28), dark);
- const lip=new THREE.Mesh(new THREE.TorusGeometry(4.15,.28,10,28), new THREE.MeshBasicMaterial({color:0xffb03a,toneMapped:false,fog:false}));
- const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffc14a,transparent:true,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending,fog:false,opacity:.92}));
- halo.scale.set(30,30,1); halo.name='halo'; halo.renderOrder=3;
- tankerRig.add(outline,ring,lip,halo);
- for(let i=0;i<4;i++){ const s=new THREE.Mesh(new THREE.SphereGeometry(.62,8,8), new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false,fog:false})); const a=i*Math.PI/2; s.position.set(Math.cos(a)*5.6,Math.sin(a)*5.6,.4); s.name='strobe'; tankerRig.add(s) }
+ tankerRig=new THREE.Group(); tankerRig.name='drogue'; tankerRig.frustumCulled=false;
+ const metal=new THREE.MeshStandardMaterial({color:0xb8b3ab,metalness:.74,roughness:.36});
+ const cloth=new THREE.MeshStandardMaterial({color:0x8a4a32,metalness:.04,roughness:.88});
+ const couplerM=new THREE.MeshStandardMaterial({color:0x2a2e32,metalness:.82,roughness:.3});
+ const ring=new THREE.Mesh(new THREE.TorusGeometry(2.15,.13,8,24), metal);
+ const chute=new THREE.Mesh(new THREE.TorusGeometry(1.45,.38,8,18), cloth); chute.scale.z=.42;
+ const coupler=new THREE.Mesh(new THREE.CylinderGeometry(.26,.2,.62,10), couplerM); coupler.rotation.x=Math.PI/2;
+ const lip=new THREE.Mesh(new THREE.TorusGeometry(.36,.05,6,12), metal);
+ tankerRig.add(ring,chute,coupler,lip);
+ const ribG=new THREE.InstancedMesh(new THREE.BoxGeometry(.05,1.55,.05), new THREE.MeshStandardMaterial({color:0x9a948c,metalness:.5,roughness:.46}), 8);
+ ribG.frustumCulled=false;
+ for(let i=0;i<8;i++){const a=i*Math.PI/4; _h0.set(Math.cos(a)*1.2,Math.sin(a)*1.2,-.1); _h1.set(Math.cos(a),Math.sin(a),0).normalize(); _hoseQ.setFromUnitVectors(_hoseUp,_h1); _hoseM.compose(_h0,_hoseQ,_hoseS.set(1,1,1)); ribG.setMatrixAt(i,_hoseM)}
+ tankerRig.add(ribG);
  scene.add(tankerRig);
- tankerHose=new THREE.Mesh(new THREE.CylinderGeometry(.55,.48,1,10), new THREE.MeshBasicMaterial({color:0x24180e,toneMapped:false,fog:false}));
- const stripe=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,1,6), new THREE.MeshBasicMaterial({color:0xffe7a8,toneMapped:false,fog:false}));
- tankerHose.add(stripe); tankerRig.frustumCulled=false; tankerHose.frustumCulled=false; scene.add(tankerHose); tankerRig.visible=false; tankerHose.visible=false }
-function placeDrogue(bx,by,bz,fx,fz){ ensureTankerRig(); tankerRig.visible=true; tankerHose.visible=true;
- tankerRig.position.set(bx,by,bz); tankerRig.up.set(0,1,0); tankerRig.lookAt(bx-fx,by,bz-fz);
- const flash=(Math.sin((S&&S.t||0)*14)>0.15)?0xffffff:0xff8a1e;
- tankerRig.children.forEach(c=>{ if(c.name==='strobe'&&c.material&&c.material.color)c.material.color.setHex(flash) });
- const sc=2.6, lz=23, ly=-1.15, yaw=tankerMesh.rotation.y;
- _tkTail.set(tankerMesh.position.x+Math.sin(yaw)*lz*sc, tankerMesh.position.y+ly*sc, tankerMesh.position.z+Math.cos(yaw)*lz*sc);
- _tkB.set(bx,by,bz);
- const len=Math.max(1,_tkTail.distanceTo(_tkB));
- _tkDir.subVectors(_tkB,_tkTail).multiplyScalar(1/len);
- tankerHose.position.copy(_tkTail).addScaledVector(_tkDir,len*.5);
- tankerHose.quaternion.setFromUnitVectors(_tkUp.set(0,1,0),_tkDir);
- tankerHose.scale.set(1,len,1); if(S&&S.tanker)S.tanker.hoseLen=len }
+ tankerHose=new THREE.InstancedMesh(new THREE.CylinderGeometry(.1,.1,1,6), new THREE.MeshStandardMaterial({color:0x3c3834,metalness:.22,roughness:.74}), HOSE_N);
+ tankerHose.frustumCulled=false; tankerHose.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(tankerHose);
+ tankerRig.visible=false; tankerHose.visible=false }
+function podPoint(){const yaw=tankerMesh.rotation.y, sc=2.6, lz=20, ly=-1.55;
+ _pod.set(tankerMesh.position.x+Math.sin(yaw)*lz*sc, tankerMesh.position.y+ly*sc, tankerMesh.position.z+Math.cos(yaw)*lz*sc); return _pod}
+function hoseAt(out, pod, basket, t, sag, wave){
+ const wob=Math.sin((S&&S.t||0)*.7+t*5.4)*(0.22+wave)*Math.sin(Math.PI*t);
+ const wob2=Math.cos((S&&S.t||0)*.5+t*3.1)*0.16*Math.sin(Math.PI*t);
+ out.set(pod.x+(basket.x-pod.x)*t+wob, pod.y+(basket.y-pod.y)*t-Math.sin(Math.PI*t)*sag, pod.z+(basket.z-pod.z)*t+wob2); return out}
+function layHose(bx,by,bz,sag,wave){ensureTankerRig(); tankerHose.visible=true; tankerRig.visible=true;
+ const pod=podPoint(); const basket=_h1.set(bx,by,bz);
+ for(let i=0;i<HOSE_N;i++){hoseAt(_ha,pod,basket,i/HOSE_N,sag,wave); hoseAt(_hb,pod,basket,(i+1)/HOSE_N,sag,wave);
+  _hoseS.subVectors(_hb,_ha); const len=Math.max(.08,_hoseS.length()); _hoseS.multiplyScalar(1/len);
+  _hoseQ.setFromUnitVectors(_hoseUp,_hoseS); _ha.addScaledVector(_hoseS,len*.5); _sc.set(1,len,1); _hoseM.compose(_ha,_hoseQ,_sc); tankerHose.setMatrixAt(i,_hoseM)}
+ tankerHose.instanceMatrix.needsUpdate=true;
+ tankerRig.position.set(bx,by,bz); tankerRig.up.set(0,1,0); tankerRig.lookAt(pod.x,pod.y,pod.z);
+ if(S&&S.tanker)S.tanker.hoseLen=pod.distanceTo(basket)}
+function probeTipWorld(){_probeTip.set(.95,-.28,-9.05); jet.position.copy(S.pos); jet.rotation.set(S.pitch||0,S.yaw||0,S.roll||0); jet.updateMatrixWorld(true); return jet.localToWorld(_probeTip)}
 function failFuel(){if(!S||S.fuelFail||S.fuelDone)return; S.fuelFail=1; S.score=Math.max(0,(S.score||0)-1500); if(S.calmLeft==null)S.calmLeft=4; S.descendCue=1; msg('TANKER BREAKING AWAY — DESCEND'); hideTankerRig()}
 function breakTanker(why){if(!S||S.fuelFail||S.fuelDone)return; S.fuelFail=1; if(S.calmLeft==null)S.calmLeft=3; S.descendCue=1; if(S.tanker){S.tanker.lock=''; S.tanker.contact=0} msg(why||'TANKER BREAKING AWAY — DESCEND'); hideTankerRig()}
 function lockClick(){if(!AC)return; sfxLog('lockclick'); blip(860,.05,.14); thud(AC.tone||AC.out,.22,150,24,.16)}
 function lockClunk(){if(!AC)return; sfxLog('lockclunk'); thud(AC.out,.6,68,26,.32); thud(AC.out,.35,40,16,.48)}
-function fuelRumble(){if(!AC)return; nburst(AC.out,.04,72,.42)}
-function fuelClunk(hard){if(!AC)return; thud(AC.out,hard?.5:.28,48,26,hard?.4:.26)}
+function fuelRumble(){if(!AC||!S)return; if(S.t-(S._fuelSnd||-9)<1.2)return; S._fuelSnd=S.t; const t=AC.currentTime, dur=.72; const n=AC.createBufferSource(); n.buffer=noiseBuf(1); const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.setValueAtTime(80,t); f.frequency.linearRampToValueAtTime(55,t+dur); const g=AC.createGain(); g.gain.setValueAtTime(.0008,t); g.gain.linearRampToValueAtTime(.028,t+.14); g.gain.linearRampToValueAtTime(.016,t+dur-.2); g.gain.linearRampToValueAtTime(.0008,t+dur); n.connect(f).connect(g).connect(AC.out); n.start(t,0); n.stop(t+dur+.02)}
+function fuelClunk(){if(!AC||!S)return; if(S.t-(S._clunk||-9)<.85)return; S._clunk=S.t; thud(AC.out,.32,44,26,.34)}
 function setDirLights(mode){const g=tankerMesh&&tankerMesh.userData.dir; if(!g)return; const col={c:0x2a1408,u:0x2a1408,d:0x2a1408,f:0x2a1408,a:0x2a1408};
  if(mode==='HOLD')col.c=0x3dff78; else if(mode==='UP')col.u=0xffc24a; else if(mode==='DOWN')col.d=0xffc24a; else if(mode==='FWD')col.f=0xffc24a; else if(mode==='AFT')col.a=0xffc24a; else if(mode==='OFF')col.c=0xff5a3a;
  g.children.forEach(m=>{if(m.material&&m.material.color)m.material.color.setHex(col[m.name]||0x2a1408)})}
@@ -1744,7 +1765,7 @@ function refreshCalm(rdt){if(!S||takingOff()){if(S)S.calm=''; return}
  if(S.calm)clearCombat();
  if(S.calm==='light'){if(S.farPress==null)S.farPress=48; if(!S._farSaid){S._farSaid=1; msg('BANDIT, FAR'); radio('Bandit, far')} S._farT=(S._farT||0)-(rdt||0); if(S._farT<=0){S._farT=5.5; if(AC)blip(420,.1,.035)} S.farPress-=rdt||0; if(S.farPress<=0){S.farPress=48; msg('BANDIT STILL FAR — NO LOCK')}} else if(!on)S.farPress=null}
 function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(!S.fuelDone&&S.phase!=='ingress'){hideTankerRig();return}
- if(S.fuelDone){const tk=S.tanker; if(tk&&tk.lock==='done'&&S.t<(tk.hideAt||0)&&tankerMesh&&tankerMesh.visible){const u=clamp((S.t-(tk.fullAt||S.t))/1.45,0,1); if(tankerHose&&tk.hoseLen)tankerHose.scale.y=Math.max(.35,tk.hoseLen*(1-u*.94)); if(tankerRig)tankerRig.visible=u<0.8; if(u>0.55&&!tk.cleared){tk.cleared=1; msg('CLEARED'); S.msgT=1.6; fuelClunk(0)} hideFuelFx(); refreshCalm(0); return} if(tk&&!tk.away){tk.away=1; S.descendCue=1; msg('TANKER BREAKING AWAY'); S.msgT=3.2} hideTankerRig(); hideFuelFx(); if(tankerMesh)tankerMesh.visible=false; return}
+ if(S.fuelDone){const tk=S.tanker; if(tk&&tk.lock==='done'&&S.t<(tk.hideAt||0)&&tankerMesh&&tankerMesh.visible){const u=clamp((S.t-(tk.fullAt||S.t))/1.45,0,1); const pod=podPoint(); const o=tk.reelFrom||{x:0,y:0,z:0}; const bx=pod.x+o.x*(1-u), by=pod.y+o.y*(1-u), bz=pod.z+o.z*(1-u); layHose(bx,by,bz,.3*(1-u),0); tk.basket={x:bx,y:by,z:bz}; if(u>0.82){tankerRig.visible=false; tankerHose.visible=false} if(u>0.55&&!tk.cleared){tk.cleared=1; msg('CLEARED'); S.msgT=1.6; fuelClunk()} hideFuelFx(); refreshCalm(0); return} if(tk&&!tk.away){tk.away=1; S.descendCue=1; msg('TANKER BREAKING AWAY'); S.msgT=3.2} hideTankerRig(); hideFuelFx(); if(tankerMesh)tankerMesh.visible=false; return}
  if(!S.tanker)S.tanker={z:TANKER_Z,fuel:0,fails:0,called:0,contact:0,t0:0,fast:0,shout:-10,spd:220,rejoin:0,lock:'',lockT:0};
  const tk=S.tanker;
  const playerSpd=Math.max(85, S.spd||(85+(S.thr||0)*195));
@@ -1753,7 +1774,9 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(!S.fue
  let fx=-Math.sin(yaw), fz=-Math.cos(yaw);
  let along=(S.pos.x-x)*fx+(S.pos.z-tk.z)*fz;
  const ship0=Math.hypot(S.pos.x-x,S.pos.y-y,S.pos.z-tk.z);
- if(along>40){tk.rejoin=1; tk.spd=playerSpd+55; if(!tk._ov||S.t-tk._ov>4){tk._ov=S.t; msg('OVERSHOOT, REJOIN')}}
+ const bPrev=tk.basket, nearB=!!(bPrev&&Math.hypot(S.pos.x-bPrev.x,S.pos.y-bPrev.y,S.pos.z-bPrev.z)<48);
+ if(tk.lock==='hold'||nearB)tk.spd=playerSpd;
+ else if(along>40){tk.rejoin=1; tk.spd=playerSpd+55; if(!tk._ov||S.t-tk._ov>4){tk._ov=S.t; msg('OVERSHOOT, REJOIN')}}
  else if(tk.rejoin&&along<-220){tk.rejoin=0; tk.spd=playerSpd; msg('TANKER AHEAD — JOIN UP')}
  else if(!tk.rejoin&&along<-350)tk.spd=Math.max(85, playerSpd-35);
  else if(!tk.rejoin&&along<-140)tk.spd=Math.max(85, playerSpd-10);
@@ -1763,54 +1786,72 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(!S.fue
  yaw=Math.atan2(-(vx(tk.z-40)-x), 40);
  fx=-Math.sin(yaw); fz=-Math.cos(yaw);
  ensureTanker(); tankerMesh.visible=true; tankerMesh.position.set(x,y,tk.z); tankerMesh.rotation.set(0,yaw,Math.sin(S.t*.55)*.02);
- const sc=2.6, lz=23, ly=-1.15;
- const tailx=x+Math.sin(yaw)*lz*sc, tailz=tk.z+Math.cos(yaw)*lz*sc, taily=y+ly*sc;
  const aftX=Math.sin(yaw), aftZ=Math.cos(yaw);
- const wob=Math.sin(S.t*.55)*1.15;
- const bx=tailx+aftX*28+(-aftZ)*wob, bz=tailz+aftZ*28+aftX*wob, by=taily-5.5;
+ const wob=Math.sin(S.t*.55)*.7;
+ const podAft=20*2.6, reel=24;
+ const restx=x+aftX*(podAft+reel)+(-aftZ)*wob, restz=tk.z+aftZ*(podAft+reel)+aftX*wob, resty=y-1.55*2.6-2.4;
+ const seated=tk.lock==='hold';
+ let wx=0, wy=0, wz=0;
+ if(seated){const p=probeTipWorld(); const iy=S.yaw||0, seat=.55; wx=p.x+Math.sin(iy)*seat-restx; wy=p.y-resty; wz=p.z+Math.cos(iy)*seat-restz; const mag=Math.hypot(wx,wy,wz); if(mag>16){wx*=16/mag; wy*=16/mag; wz*=16/mag} tk._held=1; tk.wave=tk.wave==null?1:Math.max(0,tk.wave-dt*1.3)}
+ else { if(tk._held){tk._held=0; tk.swing=1.15} tk.wave=0 }
+ tk.swing=Math.max(0,(tk.swing||0)-dt*.65);
+ const pull=1-Math.exp(-(seated?14:4)*Math.max(dt,.016));
+ if(tk.ox==null){tk.ox=0; tk.oy=0; tk.oz=0}
+ tk.ox+=(wx-tk.ox)*pull; tk.oy+=(wy-tk.oy)*pull; tk.oz+=(wz-tk.oz)*pull;
+ const sw=Math.sin(S.t*2.3)*(tk.swing||0)*2.6;
+ const bx=restx+tk.ox+(-aftZ)*sw, by=resty+tk.oy, bz=restz+tk.oz+aftX*sw;
+ layHose(bx,by,bz, seated?0.7:2.7, seated?(tk.wave||0):(tk.swing||0)*.35);
  tk.basket={x:bx,y:by,z:bz}; tk.yaw=yaw; tk.alt=y; tk.x=x; tk.y=y;
- placeDrogue(bx,by,bz,fx,fz);
  let dx=S.pos.x-bx, dy=S.pos.y-by, dz=S.pos.z-bz, dist=Math.hypot(dx,dy,dz);
  along=(S.pos.x-x)*fx+(S.pos.z-tk.z)*fz;
  const ship=Math.hypot(S.pos.x-x,S.pos.y-y,S.pos.z-tk.z);
  if(!tk.called){tk.called=1; tk.t0=S.t; tk.shout=S.t; radio('Tanker ahead, join up'); msg('TANKER AHEAD — JOIN UP')}
  else if(!tk.contact&&!tk.rejoin&&S.t-(tk.shout||-10)>6){tk.shout=S.t; msg('TANKER AHEAD — JOIN UP  '+(ship/1000).toFixed(1)+' KM')}
- const closing=playerSpd-tk.spd;
+ const inst=tk._pd==null?0:(tk._pd-dist)/Math.max(dt,.016); tk._pd=dist;
+ tk.rate=tk.rate==null?inst:tk.rate+(inst-tk.rate)*(1-Math.exp(-3.2*Math.max(dt,.016)));
+ const closing=tk.rate;
  tk.cue=closing>8?'FAST':closing<-8?'SLOW':'STABLE';
  tk.dist=dist; tk.dy=dy; tk.closing=closing; tk.along=along; tk.ship=ship; tk.ahead=(bx-S.pos.x)*fx+(bz-S.pos.z)*fz;
  aimTankerCam();
  const view=tankerScreen(); tk.view=view;
- const bubble=view&&view.cs&&view.fp&&view.sep<=view.rad*2.6;
+ const slop=MOB?1.4:1.12, staySlop=MOB?2.25:1.85;
+ const dotIn=!!(view&&view.cs&&view.fp&&view.sep<=view.rad*slop);
+ const stay=!!(view&&view.cs&&view.fp&&view.sep<=view.rad*staySlop&&dist<(MOB?520:420));
+ const relx=S.pos.x-bx, relz=S.pos.z-bz, fore=relx*aftX+relz*aftZ, side=relx*(-aftZ)+relz*aftX;
+ let mode='HOLD';
+ if(Math.abs(side)>Math.abs(dy)&&Math.abs(side)>Math.abs(fore)&&Math.abs(side)>8) mode=side>0?'RIGHT':'LEFT';
+ else if(Math.abs(dy)>Math.abs(fore)&&Math.abs(dy)>6) mode=dy>0?'DOWN':'UP';
+ else if(Math.abs(fore)>8) mode=fore>0?'FWD':'AFT';
+ tk.dir=mode; tk.dy=dy; tk.fore=fore; tk.side=side;
  if(tk.lock==='hold'){
-  const relx=S.pos.x-bx, relz=S.pos.z-bz, fore=relx*aftX+relz*aftZ, side=relx*(-aftZ)+relz*aftX, dy=S.pos.y-by;
-  const inEnv=Math.abs(dy)<8&&Math.abs(side)<9&&Math.abs(fore)<14&&dist<32;
-  let mode='HOLD';
-  if(!inEnv){ if(Math.abs(side)>=Math.abs(dy)&&Math.abs(side)>=Math.abs(fore)&&Math.abs(side)>=6) mode=side>0?'RIGHT':'LEFT'; else if(Math.abs(dy)>=Math.abs(fore)) mode=dy>0?'DOWN':'UP'; else mode=fore>0?'FWD':'AFT' }
-  tk.dir=mode; tk.flow=inEnv?1:0; tk.dy=dy; tk.fore=fore; tk.side=side; setDirLights(inEnv?'HOLD':(mode==='LEFT'||mode==='RIGHT'?'OFF':mode));
-  if(inEnv){
-    tk.outT=0; tk.contact=1; tk.fuel=Math.min(1,(tk.fuel||0)+dt/13);
-    if(!tk._flowSnd||S.t-tk._flowSnd>0.9){tk._flowSnd=S.t; fuelRumble()}
-    const u=(S.t*1.35)%1;
-    fuelGlow.visible=true; fuelGlow.position.set(tailx+(bx-tailx)*u, taily+(by-taily)*u, tailz+(bz-tailz)*u); fuelGlow.scale.setScalar(8+3*Math.sin(S.t*7));
-    fuelMist.visible=true; fuelMist.position.set(bx,by-1.2,bz); fuelMist.scale.setScalar(16+5*Math.sin(S.t*5));
-    if(tk.fuel>=1){S.fuelDone=1; S.calmLeft=4; tk.lock='done'; tk.fullAt=S.t; tk.hideAt=S.t+3.6; tk.flow=0; if(practice!=='tanker')rememberTanker(); S.score=(S.score||0)+4000; fuelClunk(1); S.shake=Math.max(S.shake,.32); hideFuelFx(); setDirLights('HOLD'); msg('TANK FULL'); S.msgT=2.4}
+  setDirLights(stay&&mode==='HOLD'?'HOLD':(mode==='LEFT'||mode==='RIGHT'?'OFF':mode));
+  if(stay){
+    tk.outT=0; tk.contact=1; tk.flow=1; tk.fuel=Math.min(1,(tk.fuel||0)+dt/13); fuelRumble();
+    fuelGlow.visible=true; fuelGlow.material.opacity=.05; fuelGlow.position.set(bx+(podPoint().x-bx)*.45, by+(podPoint().y-by)*.45, bz+(podPoint().z-bz)*.45); fuelGlow.scale.setScalar(1.15);
+    fuelMist.visible=false;
+    if(tk.fuel>=1){S.fuelDone=1; S.calmLeft=4; tk.lock='done'; tk.fullAt=S.t; tk.hideAt=S.t+3.6; tk.flow=0; const _rp=podPoint(); tk.reelFrom={x:bx-_rp.x,y:by-_rp.y,z:bz-_rp.z}; if(practice!=='tanker')rememberTanker(); S.score=(S.score||0)+4000; fuelClunk(); S.shake=Math.max(S.shake,.28); hideFuelFx(); setDirLights('HOLD'); msg('TANK FULL'); S.msgT=2.4}
   } else {
-    tk.contact=0; hideFuelFx(); tk.outT=(tk.outT||0)+(rdt||dt);
-    if(!tk._disc||S.t-tk._disc>1.3){tk._disc=S.t; msg('DISCONNECT'); S.msgT=1.3}
-    if(dist>40||tk.outT>1.2){tk.lock=''; tk.lockT=0; tk.outT=0; tk.dir=''; fuelClunk(0); S.shake=Math.max(S.shake,.2); setDirLights(''); msg('DISCONNECT')}
+    tk.flow=0; tk.contact=0; hideFuelFx(); tk.outT=(tk.outT||0)+(rdt||dt);
+    if(!tk._disc||S.t-tk._disc>1.6){tk._disc=S.t; msg('DISCONNECT'); S.msgT=1.4}
+    if(tk.outT>1.8||dist>(MOB?640:520)){tk.lock=''; tk.lockT=0; tk.outT=0; tk.dir=''; fuelClunk(); S.shake=Math.max(S.shake,.16); setDirLights(''); msg('DISCONNECT')}
   }
- } else if(!tk.rejoin&&dist<260){
-  hideFuelFx(); setDirLights('');
-  if(bubble){ if(!(tk.lockT>0))lockClick(); tk.lockT=(tk.lockT||0)+(rdt||dt); tk.lock='arm'; if(tk.lockT>=.5){tk.lock='hold'; tk.lockThr=S.thr; tk.contact=1; tk.outT=0; lockClunk(); S.shake=Math.max(S.shake,.34); msg('CONTACT'); S.msgT=1.6} }
-  else {tk.lockT=0; tk.lock=''}
- } else hideFuelFx();
+ } else {
+  hideFuelFx(); setDirLights(dotIn?mode:'');
+  let why='';
+  if(dotIn&&dist>(MOB?360:240)) why='CLOSER';
+  else if(dotIn&&closing>(MOB?26:18)) why='FAST';
+  else if(dotIn&&closing<(MOB?-16:-12)) why='SLOW';
+  tk.why=why;
+  if(dotIn&&!why){ tk.miss=0; tk.lockT=(tk.lockT||0)+(rdt||dt); tk.lock='arm'; if(tk.lockT>=.45){tk.lock='hold'; tk.contact=1; tk.outT=0; tk.wave=1; tk.why=''; fuelClunk(); S.shake=Math.max(S.shake,.24); msg('CONTACT'); S.msgT=1.6} }
+  else { tk.miss=(tk.miss||0)+(rdt||dt); if(tk.miss>.32) tk.lockT=Math.max(0,(tk.lockT||0)-(rdt||dt)); if((tk.lockT||0)<=0) tk.lock=''; if(why&&(!tk._whyT||S.t-tk._whyT>.9)){tk._whyT=S.t; msg(why); S.msgT=1.2} }
+ }
  refreshCalm(0);
 }
 function tankerAiming(){const tk=S&&S.tanker; if(!(S&&S.phase==='ingress'&&!S.fuelFail&&!S.cine&&tk&&tk.basket&&tankerMesh&&tankerMesh.visible&&(!S.fuelDone||tk.lock==='done')))return false; if(tk.lock==='hold'||tk.lock==='arm'||tk.lock==='done')return true; return (tk.dist!=null?tk.dist:1e9)<480&&!tk.rejoin}
-function probePoint(){return tmp.copy(S.pos).addScaledVector(fwd,8)}
+function probePoint(){return probeTipWorld()}
 function tankerScreen(){const tk=S&&S.tanker, b=tk&&tk.basket; if(!b)return null;
  const cs=scr(b); const yaw=tk.yaw||0, rx=Math.cos(yaw), rz=-Math.sin(yaw);
- const edge=scr({x:b.x+rx*5.6,y:b.y,z:b.z+rz*5.6});
+ const edge=scr({x:b.x+rx*2.15,y:b.y,z:b.z+rz*2.15});
  const viewW=W||innerWidth, viewH=Hh||innerHeight;
  let rad=cs&&edge?Math.hypot(edge.x-cs.x,edge.y-cs.y):42; rad=clamp(rad,26,Math.min(viewW,viewH)*.42);
  const fp=scr(probePoint());
@@ -1859,11 +1900,10 @@ function drawTankerAim(cx,cy){const tk=S.tanker, b=tk.basket; const dist=tk.dist
  hx.strokeStyle='rgba(0,0,0,.8)'; hx.lineWidth=8; hx.beginPath(); hx.arc(cs.x,cs.y,rad,0,7); hx.stroke();
  hx.strokeStyle=col; hx.lineWidth=5; hx.beginPath(); hx.arc(cs.x,cs.y,rad,0,7); hx.stroke();
  if(fp){hx.strokeStyle='rgba(0,0,0,.9)'; hx.lineWidth=5; hx.beginPath(); hx.arc(fp.x,fp.y,8,0,7); hx.stroke(); hx.strokeStyle='#fff'; hx.lineWidth=2; hx.beginPath(); hx.arc(fp.x,fp.y,8,0,7); hx.stroke(); hx.fillStyle='#fff'; hx.fillRect(fp.x-2,fp.y-2,4,4)}
- const label=tk.lock==='done'||S.fuelDone?'TANK FULL':tk.lock==='hold'?(tk.flow?'FLOW':'DISCONNECT'):tk.lock==='arm'?'LOCKING':'';
+ const label=tk.lock==='done'||S.fuelDone?'TANK FULL':tk.lock==='hold'?(tk.flow?'FLOW':'DISCONNECT'):tk.lock==='arm'?'LOCKING':(tk.why||'');
  if(label)txtFit(label,cx,Math.max(64,Hh*.12),Math.max(22,Math.round(Math.min(W,Hh)*.05)),'center',tk.flow?'#d8ffe4':'#ffe1a8');
  if(tk.lock==='hold'||tk.lock==='done'||tk.contact)drawFuelGauge(cx,tk);
- else {txtFit('PUT THE DOT IN THE RING',cx,Math.max(64,Hh*.12),Math.max(18,Math.round(Math.min(W,Hh)*.042)),'center','#fff6e2');
-  if(tk.cue==='FAST'||tk.cue==='SLOW')txtFit(tk.cue,cx,Hh-52,Math.max(16,Math.round(Math.min(W,Hh)*.04)),'center',tk.cue==='FAST'?'#ffd0b0':'#d6e6ff')}
+ else if(!label) txtFit('PUT THE DOT IN THE RING',cx,Math.max(64,Hh*.12),Math.max(18,Math.round(Math.min(W,Hh)*.042)),'center','#fff6e2');
  hx.shadowBlur=0}
 function update(rdt){
  if(S.to&&S.to.fade>0){S.to.fade-=rdt;if(S.to.fade<=0){S.to.fade=0;const f=$('tofade');if(f)f.classList.remove('on')}}
@@ -1998,7 +2038,9 @@ function render(){jet.position.copy(S.pos);sun.target.position.copy(S.pos);sun.p
  let far=16000; if(S&&tankerMesh&&tankerMesh.visible&&!S.fuelDone){const td=cam.position.distanceTo(tankerMesh.position); if(td>11000)far=Math.min(100000,td+6000)}
  if(Math.abs(cam.far-far)>400){cam.far=far; cam.updateProjectionMatrix()}
  if(sun.castShadow){sun.shadow.needsUpdate=(shadowN++%4)===0}
- if(useBloom)composer.render(); else R.render(scene,cam); drawHUD()}
+ if(window.__probeCam){placeProbeCam(); try{hx.setTransform(1,0,0,1,0,0); hx.clearRect(0,0,hud.width,hud.height)}catch(e){}}
+ else if(cam.fov!==60){cam.fov=60; cam.updateProjectionMatrix()}
+ if(useBloom)composer.render(); else R.render(scene,cam); if(!window.__probeCam)drawHUD()}
 const G='rgba(182,220,174,.9)',GF='600 11px ui-monospace,"SF Mono",Menlo,monospace';
 function txt(s,x,y,sz=11,al='center',c=G){hx.font=`600 ${sz}px ui-monospace,"SF Mono",Menlo,monospace`;hx.textAlign=al;hx.fillStyle=c;hx.fillText(s,x,y)}
 function drawTakeoffHUD(){const cx=W/2;hx.shadowColor='rgba(0,0,0,.85)';hx.shadowBlur=2;
@@ -2054,7 +2096,7 @@ function hudVis(key, live, hold=3.2){const now=performance.now()/1000; const s=_
 function calmLerp(key, target, rate){const now=performance.now()/1000; const s=_hud['L'+key]||(_hud['L'+key]={v:target,t:now}); const dt=Math.min(.08,Math.max(0,now-(s.t||now))); s.v+=(target-s.v)*(1-Math.exp(-(rate||4)*dt)); s.t=now; return s.v}
 function txtFit(s,x,y,sz,al,c){const str=String(s); hx.font=`700 ${sz}px ui-monospace,"SF Mono",Menlo,monospace`; hx.textAlign=al||'center'; const w=Math.max(12,hx.measureText(str).width); const left=al==='right'?x-w:al==='left'?x:x-w/2; hx.fillStyle='rgba(6,10,16,.82)'; hx.fillRect(left-12,y-sz-6,w+24,sz+16); hx.lineWidth=4; hx.strokeStyle='rgba(0,0,0,.92)'; hx.strokeText(str,x,y); hx.fillStyle=c||'#f4f7ef'; hx.fillText(str,x,y)}
 function instrumentAlpha(){const kcas=Math.round((S.spd||0)*1.94/5)*5; const aglN=S.agl||0; const step=aglN>800?50:10; const aglQ=Math.round(aglN/step)*step; if(_hud.kcas!==kcas){_hud.kcas=kcas; _hud.spdAt=performance.now()} const ph=(S.phase||'')+'|'+(S.reattack?1:0)+'|'+(S.fuelDone?1:0); if(_hud.ph!==ph){_hud.ph=ph; _hud.phAt=performance.now()} const live=aglN<200||performance.now()-(_hud.spdAt||0)<2000||performance.now()-(_hud.phAt||0)<3500||Math.abs(S.roll||0)>.5; return {a:hudVis('inst',live,2.2),kcas,aglN,aglQ}}
-function drawFuelGauge(cx, tk){const shown=calmLerp('fuel', tk.fuel||0, 5); const lbs=Math.round(shown*6400/50)*50; const per=tk.flow?490:0; const gy=Hh*.74, r=Math.max(54,Math.min(86,Math.min(W,Hh)*.16)); hx.save(); hx.fillStyle='rgba(6,10,16,.82)'; hx.fillRect(cx-r-28,gy-r-36,(r+28)*2,r+108); hx.strokeStyle='#f4f7ef'; hx.lineWidth=4; hx.beginPath(); hx.arc(cx,gy,r,Math.PI+.5,Math.PI*2-.5,false); hx.stroke(); const ang=(Math.PI+.5)+shown*((Math.PI*2-.5)-(Math.PI+.5)); hx.beginPath(); hx.moveTo(cx,gy); hx.lineTo(cx+Math.cos(ang)*(r-10),gy+Math.sin(ang)*(r-10)); hx.stroke(); hx.fillStyle='#f4f7ef'; hx.beginPath(); hx.arc(cx,gy,5,0,7); hx.fill(); const dir=tk.flow?'FLOW '+per+' LB/S':(tk.dir&&tk.dir!=='HOLD'?tk.dir:'FLOW 0'); txtFit(lbs.toLocaleString()+' LB',cx,gy+28,Math.max(20,Math.round(Math.min(W,Hh)*.048)),'center','#f7f3e4'); txtFit(dir,cx,gy+58,Math.max(16,Math.round(Math.min(W,Hh)*.038)),'center',tk.flow?'#c8f5d4':'#ffc9a4'); hx.restore()}
+function drawFuelGauge(cx, tk){const shown=calmLerp('fuel', tk.fuel||0, 5); const lbs=Math.round(shown*6400/50)*50; const per=tk.flow?490:0; const gy=Hh*.74, r=Math.max(54,Math.min(86,Math.min(W,Hh)*.16)); hx.save(); hx.fillStyle='rgba(6,10,16,.82)'; hx.fillRect(cx-r-28,gy-r-36,(r+28)*2,r+108); hx.strokeStyle='#f4f7ef'; hx.lineWidth=4; hx.beginPath(); hx.arc(cx,gy,r,Math.PI+.5,Math.PI*2-.5,false); hx.stroke(); const ang=(Math.PI+.5)+shown*((Math.PI*2-.5)-(Math.PI+.5)); hx.beginPath(); hx.moveTo(cx,gy); hx.lineTo(cx+Math.cos(ang)*(r-10),gy+Math.sin(ang)*(r-10)); hx.stroke(); hx.fillStyle='#f4f7ef'; hx.beginPath(); hx.arc(cx,gy,5,0,7); hx.fill(); const dir=tk.flow?'FLOW '+per+' LB/S':(tk.lock==='done'||(S&&S.fuelDone)?'FLOW 0':(tk.dir&&tk.dir!=='HOLD'?tk.dir:'FLOW 0')); txtFit(lbs.toLocaleString()+' LB',cx,gy+28,Math.max(20,Math.round(Math.min(W,Hh)*.048)),'center','#f7f3e4'); txtFit(dir,cx,gy+58,Math.max(16,Math.round(Math.min(W,Hh)*.038)),'center',tk.flow?'#c8f5d4':'#ffc9a4'); hx.restore()}
 function drawReattack(cx){const km=(Math.round(bDist()/100)/10).toFixed(1)+' KM'; drawBasketArrow(BUNK,cx,Hh*.5,'#ffe1a8'); txtFit('RE-ATTACK  '+km,cx,Math.max(72,Hh*.14),Math.max(26,Math.round(Math.min(W,Hh)*.055)),'center','#ffe7b8')}
 function dimControls(){if(!S)return; const warn=!!(S.missile&&!S.missile.decoy&&!S.missile.lost); const sam=!!(S.th&&S.th.anyTrk); const rel=dropCue()==='RELEASE'; const lk=!!(S.locked||(S.lockT||0)>0||canLock()); const gun=warn||sam||!!(S.bandit&&!S.bandit.dead); const map={flr:warn,brk:warn||sam,ecm:warn||sam,gun,lock:lk,rel}; for(const id of ['flr','brk','ecm','gun','lock','rel']){const el=$(id); if(!el)continue; const need=map[id]||el.classList.contains('hot')||el.classList.contains('warn'); el.style.opacity=need?'1':'.46'}}
 function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!running&&!S.dead){document.body.classList.remove('tanking');document.body.classList.remove('gridding');return}paintRelease();if(S)dimControls();if(takingOff()){document.body.classList.remove('tanking');document.body.classList.remove('gridding');drawTakeoffHUD();return}if(S.cine){document.body.classList.remove('tanking');document.body.classList.remove('gridding');drawCine();return}const cx=W/2,cy=Hh*.5;if(tankerAiming()){document.body.classList.remove('gridding');document.body.classList.add('tanking');if($('thrl'))$('thrl').textContent='THROTTLE';drawTankerAim(cx,cy);return}document.body.classList.remove('tanking');if(gridHudOn()){document.body.classList.add('gridding');if($('thrl'))$('thrl').textContent='THROTTLE';drawGridHud(cx,cy);return}document.body.classList.remove('gridding');hx.strokeStyle=G;hx.lineWidth=1;hx.shadowColor='rgba(0,0,0,.9)';hx.shadowBlur=3;
