@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17u — refuel above the peaks
+
+The tanker no longer rides the valley toward the bunker. After take-off the jet is on a high leg, above the snow, and the tanker is there. Fuel complete, the tanker breaks away, and the cue is DESCEND — VALLEY AHEAD. The valley, the lock, and the strike are the same. A ring of snow peaks and a cloud deck sit around the valley. They are drawn only. The ground you can hit is still the 17n valley.
+
+Stamp `s17 · 17u`.
+
 ## s17 · 17t — the air does not loop
 
 The engine and the wind no longer repeat every few seconds. The F-105 whine is played in long overlapping pieces from random places in the recording, and the wind is new filtered noise each time. It follows the throttle, swells in a turn, and whooshes near the ground. Nothing in that bed sits up in a piercing band.
@@ -231,4 +237,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17t. The in-flight engine and wind do not loop. The F-105 whine is the engine, kept low, and the wind is filtered noise that follows the flight. The release button still only says RELEASE when that press drops the bomb. An iPad is a touch tablet. Phones start in battery saver. The valley is the 17n scenery. The Mattertal commit remains in history as `4611f87`. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17u. The tanker meets the jet high over the peaks, then the jet descends into the same valley. The release button still only says RELEASE when that press drops the bomb. The engine and wind do not loop. An iPad is a touch tablet. Phones start in battery saver. The valley is the 17n scenery. The Mattertal commit remains in history as `4611f87`. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
