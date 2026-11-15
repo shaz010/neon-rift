@@ -22,7 +22,7 @@ html,body{margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;overscro
 canvas{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;display:block;touch-action:none}
 #gl,#hud{touch-action:none}
 #hud{pointer-events:none}
-.btn{position:fixed;border:1px solid var(--gd);color:var(--g);background:rgba(0,12,4,.18);display:flex;align-items:center;justify-content:center;font:600 12px var(--m);letter-spacing:2px;-webkit-tap-highlight-color:transparent;touch-action:none}
+.btn{position:fixed;z-index:30;border:1px solid var(--gd);color:var(--g);background:rgba(0,12,4,.18);display:flex;align-items:center;justify-content:center;font:600 12px var(--m);letter-spacing:2px;-webkit-tap-highlight-color:transparent;touch-action:none;pointer-events:auto}
 .btn::before,.btn::after{content:"";position:absolute;width:8px;height:8px;border:1px solid var(--g)}
 .btn::before{left:-3px;top:-3px;border-right:0;border-bottom:0}.btn::after{right:-3px;bottom:-3px;border-left:0;border-top:0}
 .btn.off{opacity:.28}

@@ -5,9 +5,17 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
-## s17 · 17v — mountains, not cones
+## s17 · 17v — mountains, and three fixes from the iPhone
 
-The high peaks are no longer cones. They grow out of the valley ridges: ridged rock, snow on the crests, dark faces on the steep side, lit by the sun. The sky at that height is blue and only the far ridges fade. The cloud deck has bright tops and shaded undersides. The refuel and the valley are unchanged.
+The high peaks are no longer cones. They grow out of the valley ridges: ridged rock, snow on the crests, dark faces on the steep side, lit by the sun. The sky at that height is blue and only the far ridges fade. The cloud deck has bright tops and shaded undersides. The valley, the lock, and the strike are unchanged.
+
+The same build answers three notes from the iPhone on 17u.
+
+The tanker used to give up after about two and a half minutes, or once the jet passed the old leave line, and then it was simply gone. It now stays on the high leg until the tank is full. While you are still looking for it, the HUD keeps a direction arrow and the distance. When the tank is full the line is TANKER BREAKING AWAY, then DESCEND — VALLEY AHEAD.
+
+FLARE did nothing because the combat buttons were hidden for the whole time the tanker was on screen. FLARE, BREAK, JAMS, GUN, LOCK, and RELEASE stay up until you are actually in the basket. A press flashes the button. If there is nothing to use, the line says NO FLARES, NO JAMS, BREAK — WAIT, OUT OF RANGE, or NO RELEASE. A second finger still reaches them while the stick is held.
+
+The scratch like a gramophone needle came from the wind and engine pieces starting loud, gains jumping, and too many pieces playing at once. Each piece now fades in and out, the noise starts and ends on silence, and only two of each play at once. A captured stretch of the bed had no clipped samples and no jump big enough to be that scratch. Not listened to by ear, and not on a real iPhone.
 
 Stamp `s17 · 17v`.
 
@@ -243,4 +251,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17v. The high country is ridged rock and snow under a blue sky, and the tanker still meets the jet there before the descent. The valley, the lock, and the strike are unchanged. The engine and wind do not loop. An iPad is a touch tablet. Phones start in battery saver. The Mattertal commit remains in history as `4611f87`. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17v. The high country is ridged rock and snow under a blue sky. The tanker stays until the tank is full, then breaks away with a descend cue. Combat buttons answer a press, including NO FLARES when the magazine is empty. The engine and wind fade between pieces so the bed does not click. The valley, the lock, and the strike are unchanged. An iPad is a touch tablet. Phones start in battery saver. The Mattertal commit remains in history as `4611f87`. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.

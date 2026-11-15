@@ -702,19 +702,20 @@ let bedDrift=0, bedNear=0, bedWhoosh=0, bedSide=0, bedSideT=0;
 function noiseGrain(seconds, brown){const sr=AC.sampleRate||44100, n=Math.max(1,sr*seconds|0), b=AC.createBuffer(1,n,sr), d=b.getChannelData(0); let pink=0, br=0, sum=0;
  for(let i=0;i<n;i++){const w=Math.random()*2-1; pink=pink*0.97+w*0.12; br=(br+w*0.015)*0.998; const s=brown?br:pink; d[i]=s; sum+=s}
  const mean=sum/n; let peak=1e-4; for(let i=0;i<n;i++){d[i]-=mean; const a=Math.abs(d[i]); if(a>peak)peak=a}
- const sc=0.32/peak; for(let i=0;i<n;i++)d[i]*=sc; return b}
-function playGrain(buf, dest, fade){const s=AC.createBufferSource(); s.buffer=buf; s.loop=false; const g=AC.createGain(); const t=AC.currentTime, len=buf.duration, f=Math.min(fade, len*0.4);
- g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(1,t+f); g.gain.setValueAtTime(1,t+len-f); g.gain.linearRampToValueAtTime(0,t+len); s.connect(g).connect(dest); s.start(t); try{s.stop(t+len+0.03)}catch(e){}
+ const sc=0.2/peak; const fade=Math.min(n>>1, (sr*1.15)|0);
+ for(let i=0;i<n;i++){let w=1; if(i<fade)w=Math.sin((i/fade)*Math.PI*0.5); else if(i>n-1-fade)w=Math.sin(((n-1-i)/fade)*Math.PI*0.5); d[i]*=sc*w}
+ d[0]=0; d[n-1]=0; return b}
+function playGrain(buf, dest){const s=AC.createBufferSource(); s.buffer=buf; s.loop=false; const g=AC.createGain(); const t=AC.currentTime, len=buf.duration;
+ g.gain.setValueAtTime(0.0008,t); g.gain.linearRampToValueAtTime(1,t+0.03); s.connect(g).connect(dest); s.start(t); try{s.stop(t+len)}catch(e){}
  const node={s,g,end:t+len}; s.onended=()=>{try{g.disconnect();s.disconnect()}catch(e){}}; return node}
-function pumpNoise(slot, dest, brown){if(!slot||!AC)return; const now=AC.currentTime; if(now<slot.next-0.03)return; const len=3.4+Math.random()*2.6, fade=1.2; const node=playGrain(noiseGrain(len, brown), dest, fade); slot.live.push(node); slot.next=node.end-fade;
- while(slot.live.length>3){const old=slot.live.shift(); try{old.s.stop()}catch(e){}}}
+function pumpNoise(slot, dest, brown){if(!slot||!AC)return; const now=AC.currentTime; if(slot.live.length>=2)return; if(now<slot.next-0.03)return; const len=4.2+Math.random()*1.6, fade=1.15; const node=playGrain(noiseGrain(len, brown), dest); slot.live.push(node); slot.next=node.end-fade;
+ slot.live=slot.live.filter(n=>n.end>now-0.05)}
 function stopLive(list){if(!list)return; for(const n of list){try{n.s.stop()}catch(e){}} list.length=0}
 function pumpWhine(jet){if(!jet||!jet.buf||!AC)return; const now=AC.currentTime; if(now<jet.next-0.03)return; const buf=jet.buf, trim=Math.min(jet.off||0, Math.max(0, buf.duration-1)), usable=Math.max(0.8, buf.duration-trim-0.04);
- const fade=1.45, want=6+Math.random()*4, play=Math.min(want, usable), off=trim+Math.random()*Math.max(0.04, usable-play), rate=jet.rate||0.8;
- const s=AC.createBufferSource(); s.buffer=buf; s.loop=false; s.playbackRate.value=rate; const eg=AC.createGain(); const heard=play/rate, f=Math.min(fade, heard*0.4);
- eg.gain.setValueAtTime(0,now); eg.gain.linearRampToValueAtTime(1,now+f); eg.gain.setValueAtTime(1,now+Math.max(f, heard-f)); eg.gain.linearRampToValueAtTime(0,now+heard); s.connect(eg).connect(jet.g); try{s.start(now, off, play)}catch(e){return} try{s.stop(now+heard+0.05)}catch(e){}
- const node={s,eg}; jet.slices.push(node); s.onended=()=>{const i=jet.slices.indexOf(node); if(i>=0)jet.slices.splice(i,1); try{eg.disconnect();s.disconnect()}catch(e){}}; jet.next=now+heard-f;
- while(jet.slices.length>3){const old=jet.slices.shift(); try{old.s.stop()}catch(e){}}}
+ if(jet.slices.length>=2)return; const fade=1.5, want=7+Math.random()*3, play=Math.min(want, usable), off=trim+Math.random()*Math.max(0.04, usable-play), rate=jet.rate||0.8;
+ const s=AC.createBufferSource(); s.buffer=buf; s.loop=false; s.playbackRate.value=rate; const eg=AC.createGain(); const heard=play/rate, f=Math.min(fade, heard*0.35);
+ eg.gain.setValueAtTime(0.0008,now); eg.gain.linearRampToValueAtTime(1,now+f); eg.gain.linearRampToValueAtTime(1,now+Math.max(f+0.05, heard-f)); eg.gain.linearRampToValueAtTime(0.0008,now+heard); s.connect(eg).connect(jet.g); try{s.start(now, off, play)}catch(e){return} try{s.stop(now+heard+0.02)}catch(e){}
+ const node={s,eg}; jet.slices.push(node); s.onended=()=>{const i=jet.slices.indexOf(node); if(i>=0)jet.slices.splice(i,1); try{eg.disconnect();s.disconnect()}catch(e){}}; jet.next=now+heard-f}
 function updateFlightBed(rdt, warnA){if(!AC||!AC.wind)return; const tt=AC.currentTime, hold=window.__bedHold||null;
  const thr=hold&&hold.thr!=null?hold.thr:clamp(S.thr||0,0,1);
  const spdN=hold&&hold.air!=null?hold.air:clamp(((S.spd||90)-70)/210,0,1);
@@ -1152,14 +1153,25 @@ function setThr(v){S&&(S.thr=v);$('thrk').style.bottom=(3+v*(130-12))+'px';const
 let relDown=false, gunDown=false, gunPid=null;
 function releaseControls(){gunDown=false; relDown=false; const g=$('gun'); if(g&&gunPid!=null){try{if(g.hasPointerCapture&&g.hasPointerCapture(gunPid))g.releasePointerCapture(gunPid)}catch(e){}} gunPid=null}
 let lockDown=false; window.__lockDown=v=>{lockDown=!!v};
-$('lock').addEventListener('pointerdown',e=>{e.stopPropagation(); lockDown=true; try{if(e.pointerId!=null)e.currentTarget.setPointerCapture(e.pointerId)}catch(err){}});
 $('lock').addEventListener('pointerup',()=>{lockDown=false});
 $('lock').addEventListener('pointercancel',()=>{lockDown=false});
-function armRelease(e){if(e.cancelable)e.preventDefault(); e.stopPropagation(); try{if(e.pointerId!=null&&e.currentTarget&&e.currentTarget.setPointerCapture)e.currentTarget.setPointerCapture(e.pointerId)}catch(err){} tryRelease()}
-$('rel').addEventListener('pointerdown',armRelease);
-addEventListener('pointerup',()=>relDown=false);
-$('flr').addEventListener('pointerdown',e=>{e.stopPropagation();fireFlares()});$('brk').addEventListener('pointerdown',e=>{e.stopPropagation();doBreak()});$('ecm').addEventListener('pointerdown',e=>{e.stopPropagation();doECM()});
-if($('gun')){$('gun').addEventListener('pointerdown',e=>{e.stopPropagation();gunDown=true;gunPid=e.pointerId;try{$('gun').setPointerCapture(e.pointerId)}catch(err){}fireCannon()});$('gun').addEventListener('pointerup',()=>{gunDown=false;gunPid=null});$('gun').addEventListener('pointercancel',()=>{gunDown=false;gunPid=null});$('gun').addEventListener('lostpointercapture',()=>{gunDown=false;gunPid=null})}
+function armRelease(e){if(e&&e.cancelable)e.preventDefault(); if(e)e.stopPropagation(); tryRelease()}
+const tapGate={};
+function tapOnce(key){const n=performance.now(); if(tapGate[key]&&n-tapGate[key]<320)return false; tapGate[key]=n; return true}
+function poke(el){if(!el)return; el.classList.add('hot'); setTimeout(()=>{if(el)el.classList.remove('hot')},220)}
+function actFlare(){if(!tapOnce('flr'))return; poke($('flr')); fireFlares()}
+function actBreak(){if(!tapOnce('brk'))return; poke($('brk')); doBreak()}
+function actEcm(){if(!tapOnce('ecm'))return; poke($('ecm')); doECM()}
+function actGun(e){if(!tapOnce('gun'))return; poke($('gun')); gunDown=true; gunPid=e&&e.pointerId; const g=$('gun'); if(g&&e&&e.pointerId!=null){try{g.setPointerCapture(e.pointerId)}catch(err){}} fireCannon()}
+function actLock(e){if(!tapOnce('lock'))return; poke($('lock')); lockDown=true; const el=$('lock'); if(el&&e&&e.pointerId!=null){try{el.setPointerCapture(e.pointerId)}catch(err){}}
+ if(!S||S.locked||canLock())return; const d=bDist(); msg(d<350?'TOO CLOSE':d>4500?'OUT OF RANGE':'LOCK — AIM THE BOX'); if(AC)blip(240,.05,.04)}
+function actRel(e){if(!tapOnce('rel'))return; poke($('rel')); tryRelease()}
+function bindTap(el, fn){if(!el)return; const go=e=>{if(e.cancelable)e.preventDefault(); e.stopPropagation(); fn(e)}; el.addEventListener('pointerdown', go); el.addEventListener('touchstart', go, {passive:false})}
+bindTap($('flr'), actFlare); bindTap($('brk'), actBreak); bindTap($('ecm'), actEcm); bindTap($('gun'), actGun); bindTap($('lock'), actLock); bindTap($('rel'), actRel);
+function combatAt(x,y){const ids=[['flr',actFlare],['brk',actBreak],['ecm',actEcm],['gun',actGun],['lock',actLock],['rel',actRel]];
+ for(const [id,fn] of ids){const el=$(id); if(!el)continue; const st=getComputedStyle(el); if(st.visibility==='hidden'||st.display==='none'||st.pointerEvents==='none')continue; const r=el.getBoundingClientRect(); if(x>=r.left-8&&x<=r.right+8&&y>=r.top-8&&y<=r.bottom+8)return fn} return null}
+document.addEventListener('touchstart', e=>{for(const t of e.changedTouches){const hit=document.elementFromPoint(t.clientX,t.clientY); if(hit&&hit.closest&&hit.closest('.btn'))continue; const fn=combatAt(t.clientX,t.clientY); if(fn){if(e.cancelable)e.preventDefault(); fn({pointerId:t.identifier})}}}, {capture:true, passive:false});
+if($('gun')){$('gun').addEventListener('pointerup',()=>{gunDown=false;gunPid=null});$('gun').addEventListener('pointercancel',()=>{gunDown=false;gunPid=null});$('gun').addEventListener('lostpointercapture',()=>{gunDown=false;gunPid=null}); $('gun').addEventListener('touchend',()=>{gunDown=false;gunPid=null}); $('lock').addEventListener('touchend',()=>{lockDown=false})}
 addEventListener('keydown',e=>{if(e.key==='l')lockDown=true;if(e.key==='f')fireFlares();if(e.key==='b')doBreak();if(e.key==='e')doECM();if(e.key===' '){e.preventDefault();armRelease(e)}if(e.key==='g'){gunDown=true;fireCannon()}});addEventListener('keyup',e=>{if(e.key==='g')gunDown=false; if(e.key==='l')lockDown=false});
 // ---------- gameplay ----------
 const V=new THREE.Vector3(),fwd=new THREE.Vector3(),tmp=new THREE.Vector3();
@@ -1188,14 +1200,14 @@ function paintRelease(){const plan=dropPlan(); const el=$('rel'); if(el){const s
 window.__cue=dropCue; window.__paint=paintRelease;
 function canLock(){return S&&S.phase==='ingress'&&!S.locked&&bDist()<=4500&&bDist()>=350&&inBox()>0}
 function grantLock(){if(!S||S.locked)return; S.lockT=0; S.locked=true; S.phase='release'; blip(560,.18,.07); setTimeout(()=>blip(740,.22,.06),120); msg('LOCKED'); S.msgT=1.8}
-function tryRelease(){const plan=dropPlan(); if(plan.cue!=='RELEASE')return; if(plan.act==='guided'||plan.act==='free'){release(); return} if(plan.act==='iron')dropIron(plan.site)}
+function tryRelease(){const plan=dropPlan(); if(plan.cue==='RELEASE'){if(plan.act==='guided'||plan.act==='free'){release(); return} if(plan.act==='iron'){dropIron(plan.site); return}} msg(plan.cue||'NO RELEASE'); if(AC)blip(220,.07,.05)}
 const flrWin=()=>S.samShots<=1?3200:2600;
 function defeat(m,why){if(m.def)return;m.def=1;S.defeated++;msg(why)}
-function doBreak(){if(S.dead||S.cine||S.brkCD>0||S.phase==='done')return;S.brkCD=3.5;S.brk=1.3;const m=S.missile;let dir=1;if(m){const rx=m.p.x-S.pos.x,rz=m.p.z-S.pos.z;const side=(-Math.cos(S.yaw))*rx-(-Math.sin(S.yaw))*rz;dir=side>0?1:-1}S.brkDir=dir;if(AC){thud(AC.out,.3,55,30,.5);nburst(AC.out,.12,600,.8)}
- if(m&&!m.decoy&&!m.lost){const d=m.p.distanceTo(S.pos),w=S.samShots<=1?1500:1100;if(d<w&&d>220){m.lost=true;m.over=1;defeat(m,'BREAK! MISSILE OVERSHOOT')}else msg(d>=w?'BREAK TOO EARLY — WAIT <'+(w/1000).toFixed(1)+' KM':'TOO LATE')}}
-function doECM(){if(S.dead||S.ecmCD>0||S.ecmN<=0||S.phase==='done')return;S.ecmN--;S.ecmCD=12;S.ecm=4;if(AC){for(let k=0;k<6;k++)blip(k%2?340:300,.12,.05);nburst(AC.out,.08,900,1.2)}
- const m=S.missile;if(m&&!m.decoy&&!m.lost){const d=m.p.distanceTo(S.pos);if(d>1600){m.lost=true;defeat(m,'ECM — MISSILE SEEKER JAMMED')}else msg('ECM ON — TOO CLOSE TO JAM, FLARE/BREAK')}else msg('ECM JAMMING — RADARS BLINDED 4 S')}
-function fireFlares(){if(S.flares<=0||S.flareCD>0||S.dead||S.phase==='done')return;S.flares--;S.flareCD=1;S.flareT=2.4;
+function doBreak(){if(!S||S.dead||S.phase==='done')return; if(S.cine){msg('BREAK'); if(AC)blip(300,.08,.05); return} if(S.brkCD>0){msg('BREAK — WAIT'); if(AC)blip(240,.06,.04); return} S.brkCD=3.5;S.brk=1.3;const m=S.missile;let dir=1;if(m){const rx=m.p.x-S.pos.x,rz=m.p.z-S.pos.z;const side=(-Math.cos(S.yaw))*rx-(-Math.sin(S.yaw))*rz;dir=side>0?1:-1}S.brkDir=dir;if(AC){thud(AC.out,.3,55,30,.5);nburst(AC.out,.12,600,.8)}
+ if(m&&!m.decoy&&!m.lost){const d=m.p.distanceTo(S.pos),w=S.samShots<=1?1500:1100;if(d<w&&d>220){m.lost=true;m.over=1;defeat(m,'BREAK! MISSILE OVERSHOOT')}else msg(d>=w?'BREAK TOO EARLY — WAIT <'+(w/1000).toFixed(1)+' KM':'TOO LATE')} else msg('BREAK')}
+function doECM(){if(!S||S.dead||S.phase==='done')return; if(S.ecmN<=0&&S.ecmCD<=0){msg('NO JAMS'); if(AC)blip(220,.08,.05); return} if(S.ecmCD>0){msg('JAMS — WAIT'); if(AC)blip(240,.06,.04); return} S.ecmN--;S.ecmCD=12;S.ecm=4;if(AC){for(let k=0;k<6;k++)blip(k%2?340:300,.12,.05);nburst(AC.out,.08,900,1.2)}
+ const m=S.missile;if(m&&!m.decoy&&!m.lost){const d=m.p.distanceTo(S.pos);if(d>1600){m.lost=true;defeat(m,'ECM — MISSILE SEEKER JAMMED')}else msg('ECM ON — TOO CLOSE TO JAM, FLARE/BREAK')}else msg('JAMS '+S.ecmN)}
+function fireFlares(){if(!S||S.dead||S.phase==='done')return; if(S.flares<=0){msg('NO FLARES'); if(AC)blip(180,.1,.06); const el=$('flr'); if(el)el.textContent='NO FLARES'; return} if(S.flareCD>0){msg('FLARE — WAIT'); if(AC)blip(260,.05,.04); return} S.flares--;S.flareCD=1;S.flareT=2.4; msg('FLARE'); const el=$('flr'); if(el)el.textContent=S.flares>0?('FLR '+S.flares):'NO FLARES';
  for(let i=0;i<8;i++){const v=new THREE.Vector3(rnd(22),-8-Math.random()*18,rnd(22)).add(fwd.clone().multiplyScalar(-42));spr(S.pos,0xffe8b0,6,3.4,v,{g:7,fog:false,add:true,tex:glowTex,must:1,grow:4});spr(S.pos,0xc8c4bc,4,5.5,v.clone().multiplyScalar(.55),{grow:14,o:.55,drag:.25,must:1,fadeIn:.08,c1:new THREE.Color(0x6a6660)});spr(S.pos,0x9a968e,3,7,v.clone().multiplyScalar(.35),{grow:18,o:.4,drag:.35,must:1,fadeIn:.15})}
  flareSfx();
  const m=S.missile;if(m&&!m.decoy){const d=m.p.distanceTo(S.pos);if(d<flrWin()){m.decoy=S.pos.clone();m.decoyV=fwd.clone().multiplyScalar(-30);m.dt=1.3;defeat(m,'MISSILE DECOYED')}else msg('FLARE EARLY — WAIT FOR <'+(flrWin()/1000).toFixed(1)+' KM')}}
@@ -1742,8 +1754,8 @@ function placeDrogue(bx,by,bz,fx,fz){ ensureTankerRig(); tankerRig.visible=true;
  tankerHose.position.copy(_tkTail).addScaledVector(_tkDir,len*.5);
  tankerHose.quaternion.setFromUnitVectors(_tkUp.set(0,1,0),_tkDir);
  tankerHose.scale.set(1,len,1) }
-function failFuel(){if(!S||S.fuelFail||S.fuelDone)return; S.fuelFail=1; S.score=Math.max(0,(S.score||0)-1500); if(S.calmLeft==null)S.calmLeft=4; msg('LOW FUEL — PRESS ON'); if(tankerMesh)tankerMesh.visible=false; hideTankerRig()}
-function breakTanker(why){if(!S||S.fuelFail||S.fuelDone)return; S.fuelFail=1; if(S.calmLeft==null)S.calmLeft=3; S.descendCue=1; if(S.tanker){S.tanker.lock=''; S.tanker.contact=0} msg(why||'TANKER BREAKING AWAY — PRESS ON'); if(tankerMesh)tankerMesh.visible=false; hideTankerRig()}
+function failFuel(){if(!S||S.fuelFail||S.fuelDone)return; S.fuelFail=1; S.score=Math.max(0,(S.score||0)-1500); if(S.calmLeft==null)S.calmLeft=4; S.descendCue=1; msg('TANKER BREAKING AWAY — DESCEND'); if(tankerMesh)tankerMesh.visible=false; hideTankerRig()}
+function breakTanker(why){if(!S||S.fuelFail||S.fuelDone)return; S.fuelFail=1; if(S.calmLeft==null)S.calmLeft=3; S.descendCue=1; if(S.tanker){S.tanker.lock=''; S.tanker.contact=0} msg(why||'TANKER BREAKING AWAY — DESCEND'); if(tankerMesh)tankerMesh.visible=false; hideTankerRig()}
 function lockClick(){if(!AC)return; sfxLog('lockclick'); blip(860,.05,.14); thud(AC.tone||AC.out,.22,150,24,.16)}
 function lockClunk(){if(!AC)return; sfxLog('lockclunk'); thud(AC.out,.6,68,26,.32); thud(AC.out,.35,40,16,.48)}
 function tankerLearned(){try{if(localStorage.ds17j_tanker==='1')return true}catch(e){} try{if(/(?:^|; )ds17jt=1/.test(document.cookie))return true}catch(e){} return false}
@@ -1794,12 +1806,9 @@ function updTanker(dt,rdt){if(!S||S.fuelFail||S.phase!=='ingress'||S.cine||takin
  const ship=Math.hypot(S.pos.x-x,S.pos.y-y,S.pos.z-tk.z);
  if(!tk.called){tk.called=1; tk.t0=S.t; tk.shout=S.t; radio('Tanker ahead, join up'); msg('TANKER AHEAD — JOIN UP')}
  else if(!tk.contact&&!tk.rejoin&&S.t-(tk.shout||-10)>6){tk.shout=S.t; msg('TANKER AHEAD — JOIN UP  '+(ship/1000).toFixed(1)+' KM')}
- if(tk.called&&!tk.rejoin&&S.t-tk.t0>150&&tk.fuel<1){failFuel(); return}
  const closing=playerSpd-tk.spd;
  tk.cue=closing>8?'FAST':closing<-8?'SLOW':'STABLE';
  tk.dist=dist; tk.dy=dy; tk.closing=closing; tk.along=along; tk.ship=ship; tk.ahead=(bx-S.pos.x)*fx+(bz-S.pos.z)*fz;
- const pastLeave=S.pos.z<TANKER_LEAVE_Z, pastHard=S.pos.z<TANKER_LEAVE_Z-3000;
- if(pastHard||(pastLeave&&tk.lock!=='hold')){breakTanker('TANKER BREAKING AWAY — PRESS ON'); refreshCalm(0); return}
  aimTankerCam();
  const view=tankerScreen(); tk.view=view;
  const bubble=view&&view.cs&&view.fp&&view.sep<=view.rad*2.6;
@@ -1818,7 +1827,7 @@ function updTanker(dt,rdt){if(!S||S.fuelFail||S.phase!=='ingress'||S.cine||takin
  }
  refreshCalm(0);
 }
-function tankerAiming(){const tk=S&&S.tanker; return !!(S&&S.phase==='ingress'&&!S.fuelFail&&!S.cine&&tk&&tk.basket&&tankerMesh&&tankerMesh.visible&&(!S.fuelDone||tk.lock==='done'))}
+function tankerAiming(){const tk=S&&S.tanker; if(!(S&&S.phase==='ingress'&&!S.fuelFail&&!S.cine&&tk&&tk.basket&&tankerMesh&&tankerMesh.visible&&(!S.fuelDone||tk.lock==='done')))return false; if(tk.lock==='hold'||tk.lock==='arm'||tk.lock==='done')return true; return (tk.dist!=null?tk.dist:1e9)<480&&!tk.rejoin}
 function probePoint(){return tmp.copy(S.pos).addScaledVector(fwd,8)}
 function tankerScreen(){const tk=S&&S.tanker, b=tk&&tk.basket; if(!b)return null;
  const cs=scr(b); const yaw=tk.yaw||0, rx=Math.cos(yaw), rz=-Math.sin(yaw);
@@ -2080,6 +2089,7 @@ function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!r
  else if(S.phase==='penetrate')o='PENETRATING  '+Math.min(60,Math.round(S.penT*38))+' M';
  else if(S.phase==='egress')o=S.boomT<2?'TARGET DESTROYED':(S.bandit&&!S.bandit.dead?'BANDIT '+(S.pos.distanceTo(S.bandit.p)/1000).toFixed(1)+' KM — GUNS':(S.gridOn&&S.grids&&S.grids.some(g=>!g.done)?'GRID AHEAD':'EGRESS  EXFIL '+(S.pos.distanceTo(EXIT)/1000).toFixed(1)+' KM'));
  const loud=o==='LOCKED'||o==='LOCKING'||o==='GUIDED'||o==='RELEASE'||o==='DESCEND — VALLEY AHEAD'; txt(o,cx,loud?Hh*.18:70,loud?26:14,'center',o==='LOCKED'||o==='GUIDED'?'rgba(190,245,190,1)':o==='RELEASE'||o==='DESCEND — VALLEY AHEAD'?'rgba(255,214,140,1)':o==='LOCKING'?'rgba(255,220,150,1)':G);
+ if(S.tanker&&S.tanker.basket&&tankerMesh&&tankerMesh.visible&&!S.fuelDone&&!S.fuelFail)drawBasketArrow(S.tanker.basket,cx,cy,'rgba(255,214,140,.95)');
  const thr=[];if(S.missile&&!S.missile.decoy&&!S.missile.lost)thr.push([S.missile.p,threatBehind(S.missile.p)?'SIX':'MSL',1]);if(S.bandit&&!S.bandit.dead&&threatBehind(S.bandit.p))thr.push([S.bandit.p,'SIX',1]);SITES.forEach((st,i)=>{if(S.sites[i].st==='track')thr.push([st.p,'SAM',0])});
  for(const [P,lab,isM] of thr){V.copy(P).applyMatrix4(cam.matrixWorldInverse);let dx=V.x,dy=-V.y;if(V.z>0){dx=V.x;dy=Math.abs(V.y)+Math.abs(V.x)*.2}const n=Math.hypot(dx,dy)||1;dx/=n;dy/=n;const r=Hh*.3,ax=cx+dx*r,ay=cy+dy*r;
   const c=isM?((S.t*6|0)%2?'rgba(255,70,60,1)':'rgba(255,200,180,1)'):'rgba(255,140,90,.95)';hx.fillStyle=c;hx.beginPath();hx.moveTo(ax+dx*16,ay+dy*16);hx.lineTo(ax-dy*8,ay+dx*8);hx.lineTo(ax+dy*8,ay-dx*8);hx.closePath();hx.fill();txt(lab,ax-dx*14,ay-dy*14+4,9,'center',c)}
@@ -2111,7 +2121,7 @@ function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!r
  hx.strokeStyle=G;if(S.hp<2)txt('DMG',L-26,cy+68,10,'center','rgba(255,120,90,1)');
  // missile edge arrow with range (bigger, always for missile)
  if(act){V.copy(M.p).applyMatrix4(cam.matrixWorldInverse);const on=V.z<0&&Math.abs(V.x/-V.z)<1.2&&Math.abs(V.y/-V.z)<.7;if(!on){let dx=V.x,dy=-V.y;if(V.z>0)dy=Math.abs(dy)+Math.abs(dx)*.1+1;const n=Math.hypot(dx,dy)||1;dx/=n;dy/=n;const k=Math.min((W/2-30)/Math.abs(dx||1e-3),(Hh/2-30)/Math.abs(dy||1e-3)),ax=cx+dx*k,ay=Hh/2+dy*k,c=(S.t*6|0)%2?'rgba(255,60,50,1)':'rgba(255,200,180,1)';hx.fillStyle=c;hx.beginPath();hx.moveTo(ax+dx*22,ay+dy*22);hx.lineTo(ax-dy*13,ay+dx*13);hx.lineTo(ax+dy*13,ay-dx*13);hx.closePath();hx.fill();txt((V.z>0?'BEHIND ':'')+(md/1000).toFixed(1),ax-dx*16,ay-dy*16+4,10,'center',c)}}}
- $('flr').classList.toggle('warn',!!(S.missile&&!S.missile.decoy));$('flr').classList.toggle('off',S.flares<=0)}
+ $('flr').classList.toggle('warn',!!(S.missile&&!S.missile.decoy));$('flr').classList.toggle('off',S.flares<=0); if(S.flareCD<=0)$('flr').textContent=S.flares>0?('FLR '+S.flares):'NO FLARES'}
 // ---------- briefing map ----------
 function drawMap(){const c=$('map'),r=c.getBoundingClientRect(),w=Math.max(200,r.width|0),h=Math.max(80,r.height|0),k=Math.min(devicePixelRatio,2);c.width=w*k;c.height=h*k;const x=c.getContext('2d');x.scale(k,k);
  const z0=900,z1=-15900,X0=-1900,X1=1900;const tz=u=>z0+(z1-z0)*u,tx=v=>X1-(X1-X0)*v; const px=z=>(z-z0)/(z1-z0)*w,py=X=>(X1-X)/(X1-X0)*h;
