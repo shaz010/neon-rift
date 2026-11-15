@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17v — mountains, not cones
+
+The high peaks are no longer cones. They grow out of the valley ridges: ridged rock, snow on the crests, dark faces on the steep side, lit by the sun. The sky at that height is blue and only the far ridges fade. The cloud deck has bright tops and shaded undersides. The refuel and the valley are unchanged.
+
+Stamp `s17 · 17v`.
+
 ## s17 · 17u — refuel above the peaks
 
 The tanker no longer rides the valley toward the bunker. After take-off the jet is on a high leg, above the snow, and the tanker is there. Fuel complete, the tanker breaks away, and the cue is DESCEND — VALLEY AHEAD. The valley, the lock, and the strike are the same. A ring of snow peaks and a cloud deck sit around the valley. They are drawn only. The ground you can hit is still the 17n valley.
@@ -237,4 +243,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17u. The tanker meets the jet high over the peaks, then the jet descends into the same valley. The release button still only says RELEASE when that press drops the bomb. The engine and wind do not loop. An iPad is a touch tablet. Phones start in battery saver. The valley is the 17n scenery. The Mattertal commit remains in history as `4611f87`. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17v. The high country is ridged rock and snow under a blue sky, and the tanker still meets the jet there before the descent. The valley, the lock, and the strike are unchanged. The engine and wind do not loop. An iPad is a touch tablet. Phones start in battery saver. The Mattertal commit remains in history as `4611f87`. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
