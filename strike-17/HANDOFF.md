@@ -5,6 +5,18 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17w — a photographed sky, the jet stays in frame, the tanker stays up
+
+The high sky is a real photograph: Alps Field, a bright day over snowy Alpine peaks, from Poly Haven, CC0. The paper clouds and the stripy rock skirt are gone. The same picture is the sky in the valley. The valley's far ridges fade into that photo's haze.
+
+The chase camera keeps the player's jet fully on screen, low and centred, in portrait and landscape, including while banking and while joining the tanker. The join may show the tanker as well, and it does not push the jet off the edge.
+
+The tanker stays until the tank is full. It is not culled, fog does not swallow it, and if it is past the old draw distance the far plane opens up and a marker plus the distance stay on the HUD. The page asks the browser not to keep an old copy, and the script is `main.mjs?v=17w`.
+
+The 17v fixes stay: combat buttons answer, and the engine bed fades instead of clicking.
+
+Stamp `s17 · 17w`.
+
 ## s17 · 17v — mountains, and three fixes from the iPhone
 
 The high peaks are no longer cones. They grow out of the valley ridges: ridged rock, snow on the crests, dark faces on the steep side, lit by the sun. The sky at that height is blue and only the far ridges fade. The cloud deck has bright tops and shaded undersides. The valley, the lock, and the strike are unchanged.
@@ -251,4 +263,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17v. The high country is ridged rock and snow under a blue sky. The tanker stays until the tank is full, then breaks away with a descend cue. Combat buttons answer a press, including NO FLARES when the magazine is empty. The engine and wind fade between pieces so the bed does not click. The valley, the lock, and the strike are unchanged. An iPad is a touch tablet. Phones start in battery saver. The Mattertal commit remains in history as `4611f87`. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17w. The sky is the Poly Haven Alps Field photograph, CC0, in the high leg and in the valley. The chase camera keeps the jet on screen. The tanker stays visible until the tank is full, with a distance marker when it is far. Combat buttons still answer, and the engine bed still fades. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.

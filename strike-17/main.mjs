@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17v'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17w'])[1];
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -179,7 +179,7 @@ let PR=pickPR(); R.setPixelRatio(PR*renderScale);
 R.toneMapping=THREE.ACESFilmicToneMapping; R.toneMappingExposure=.88; R.shadowMap.enabled=!MOB; R.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene(); scene.fog=null;
 const cam=new THREE.PerspectiveCamera(60,1,1,16000); cam.rotation.order='YXZ';
-const SCEN={turbidity:2.6,rayleigh:.95,mie:.0025,mieG:.78,sunEl:21,sunAz:.62,sunInt:4.5,hemi:1.15,exposure:.88,env:.75,fogDen:0,fogFar:14000,snowAlt0:490,snowAlt1:700,snowAmt:1,warmth:0,clouds:0};
+const SCEN={turbidity:2.6,rayleigh:.95,mie:.0025,mieG:.78,sunEl:42.35,sunAz:2.198,sunInt:4.5,hemi:1.15,exposure:.88,env:.9,fogDen:0,fogFar:14000,snowAlt0:490,snowAlt1:700,snowAmt:1,warmth:0,clouds:0};
 const SCEN_DEFAULT={...SCEN};
 let NIGHT_ON=false, expPulse=0, nvOn=false, nightBase=SCEN.exposure, nightId='current';
 function nightKick(a){if(!NIGHT_ON)return; expPulse=Math.min(.26, expPulse+(a||.16))}
@@ -187,11 +187,13 @@ function toggleNV(){nvOn=!nvOn; const g=$('nvg'); if(g)g.classList.toggle('on',n
 const SUN=new THREE.Vector3().setFromSphericalCoords(1,(90-SCEN.sunEl)*D2R,SCEN.sunAz);
 const sky=new Sky(); sky.scale.setScalar(14000); const su=sky.material.uniforms;
 su.turbidity.value=SCEN.turbidity; su.rayleigh.value=SCEN.rayleigh; su.mieCoefficient.value=SCEN.mie; su.mieDirectionalG.value=SCEN.mieG; su.sunPosition.value.copy(SUN);
-let hemiL=new THREE.HemisphereLight(0xb8c8dc,0x5a5040,SCEN.hemi); scene.add(hemiL);
+let hemiL=new THREE.HemisphereLight(0x9bb6d4,0x5c584e,SCEN.hemi); scene.add(hemiL);
 const sun=new THREE.DirectionalLight(0xfff0dc,SCEN.sunInt); sun.position.copy(SUN).multiplyScalar(1000); scene.add(sun); scene.add(sun.target);
 scene.add(sky); sky.material.fog=false;
-let envPM=null;
-function rebuildEnv(){const es=new THREE.Scene(); const s2=new Sky(); s2.scale.setScalar(1000); Object.assign(s2.material.uniforms.sunPosition.value,SUN); for(const k of['turbidity','rayleigh','mieCoefficient','mieDirectionalG'])s2.material.uniforms[k].value=su[k].value; es.add(s2);
+let envPM=null, wantPhotoEnv=true, photoEnvMap=null;
+function rebuildEnv(){const es=new THREE.Scene(); const usePhoto=!!(photoEnvMap&&photoEnvMap.image&&wantPhotoEnv&&!NIGHT_ON);
+ if(usePhoto){const ball=new THREE.Mesh(new THREE.SphereGeometry(50,28,16), new THREE.MeshBasicMaterial({map:photoEnvMap,side:THREE.BackSide,toneMapped:false,depthWrite:false,fog:false})); es.add(ball)}
+ else {const s2=new Sky(); s2.scale.setScalar(1000); Object.assign(s2.material.uniforms.sunPosition.value,SUN); for(const k of['turbidity','rayleigh','mieCoefficient','mieDirectionalG'])s2.material.uniforms[k].value=su[k].value; es.add(s2)}
  if(!envPM)envPM=new THREE.PMREMGenerator(R); if(scene.environment)scene.environment.dispose?.(); scene.environment=envPM.fromScene(es).texture; scene.environmentIntensity=SCEN.env}
 rebuildEnv();
 const uSnowAlt0={value:SCEN.snowAlt0},uSnowAlt1={value:SCEN.snowAlt1},uSnowAmt={value:SCEN.snowAmt},uWarmth={value:SCEN.warmth};
@@ -327,72 +329,24 @@ function bombCast(from,to){
   const s=.7+Math.random()*.9; q.setFromEuler(e.set(rnd(.05),Math.random()*6,rnd(.05))); M.compose(new THREE.Vector3(x,y-.5,z),q,new THREE.Vector3(s,s*(.85+Math.random()*.5),s)); m.setMatrixAt(k,M); m.setColorAt(k,C.setHSL(.25+rnd(.05),.18+Math.random()*.1,.55+Math.random()*.45)); k++} m.count=k; m.castShadow=false; scene.add(m); (window.__farBits=window.__farBits||[]).push(m);
  const bg=new THREE.DodecahedronGeometry(1,0), bm=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0x8a847c,roughness:1,map:(()=>{const t=new THREE.TextureLoader().load('tex/rocky_terrain_02_diff.jpg');t.colorSpace=THREE.SRGBColorSpace;return t})(),normalMap:new THREE.TextureLoader().load('tex/rocky_terrain_02_nor_gl.jpg')}),MOB?140:1100); k=0;bm.castShadow=!MOB;bm.receiveShadow=true;
  for(let i=0;i<(MOB?140:1100);i++){const z=1000-Math.random()*17000, x=vx(z)+rnd(500), y=H(x,z); const s=1+Math.random()*4; q.setFromEuler(e.set(Math.random()*3,Math.random()*3,0)); M.compose(new THREE.Vector3(x,y-s*.3,z),q,new THREE.Vector3(s,s*(.45+Math.random()*.35),s*(.9+Math.random()*.6))); bm.setMatrixAt(k++,M)} scene.add(bm); window.__farBits.push(bm);}
-// High country around the valley. The inner edge is the valley mesh itself, so the
-// ridges continue outward instead of sitting on cones. Drawn only — H() is unchanged.
-{const srcP=window.__tmesh.geometry.attributes.position;
- const xSeg=MOB?96:160, zSeg=MOB?380:760, nx=xSeg+1, nz=zSeg+1;
- const rings=MOB?5:7, step=MOB?700:560;
- const SUMMITS=[{z:10400,side:1,h:4300,r:3600,out:1700},{z:6100,side:-1,h:3700,r:2800,out:1400},{z:1500,side:1,h:4600,r:4000,out:2100},{z:-2800,side:-1,h:4000,r:3200,out:1600},{z:-8200,side:1,h:3800,r:3000,out:1900},{z:-12800,side:-1,h:3400,r:2500,out:1500}];
- function ridged(x,z){let amp=1,f=.00016,sum=0,w=0; for(let o=0;o<4;o++){const n=fbm(x*f+3.1,z*f-2.4); let r=1-Math.abs(n*2-1); r*=r; sum+=r*amp; w+=amp; amp*=.5; f*=2.25} return sum/w}
- function targetY(x,z){let peak=0; for(const s of SUMMITS){const cx=vx(s.z)+s.side*(3200+s.out); const d=Math.hypot(x-cx,(z-s.z)*.72); const u=Math.max(0,1-d/s.r); const bell=u*u*(3-2*u); peak=Math.max(peak,s.h*bell)} const n=ridged(x,z); return Math.max(peak, 1100+n*1500)}
- const pos=[], col=[], ix=[];
- function pushV(x,y,z){pos.push(x,y,z); col.push(1,1,1); return (pos.length/3)-1}
- for(const edge of [0, nx-1]){
-  const row0=pos.length/3;
-  for(let iz=0;iz<nz;iz++){const i=iz*nx+edge; const ez=srcP.getZ(i), ex=srcP.getX(i), ey=srcP.getY(i); const out=Math.sign(ex-vx(ez))||1;
-   for(let r=0;r<rings;r++){const t=r/(rings-1); const x=ex+out*step*r; const y=r===0?ey:(ey*(1-t*t)+Math.max(ey,targetY(x,ez))*t*t); pushV(x,y,ez)}}
-  for(let iz=0;iz<nz-1;iz++)for(let r=0;r<rings-1;r++){const a=row0+iz*rings+r, b=a+rings, c=a+1, d=b+1; ix.push(a,b,c,c,b,d)}}
- const pg=new THREE.BufferGeometry();
- pg.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
- pg.setIndex(ix); pg.computeVertexNormals();
- const nrm=pg.attributes.normal, sunN=SUN.clone().normalize();
- for(let i=0;i<pos.length/3;i++){const y=pos[i*3+1], ny=nrm.getY(i), nx=nrm.getX(i), nz=nrm.getZ(i);
-  const snow=sstep(2100,2750,y)*sstep(.42,.78,ny);
-  const lit=clamp(nx*sunN.x+ny*sunN.y+nz*sunN.z,0,1);
-  const shade=.34+.66*lit;
-  const rockR=.38, rockG=.34, rockB=.31, snR=.86, snG=.89, snB=.93;
-  col[i*3]= (rockR*(1-snow)+snR*snow)*shade;
-  col[i*3+1]=(rockG*(1-snow)+snG*snow)*shade;
-  col[i*3+2]=(rockB*(1-snow)+snB*snow)*shade*(1+ (1-lit)*.08)}
- pg.setAttribute('color', new THREE.Float32BufferAttribute(col,3));
- const peaks=new THREE.Mesh(pg, new THREE.MeshLambertMaterial({vertexColors:true, flatShading:true, side:THREE.DoubleSide}));
- peaks.frustumCulled=false; peaks.castShadow=false; peaks.receiveShadow=false; scene.add(peaks);
- (window.__farBits=window.__farBits||[]).push(peaks); window.__peaks=peaks;
- const puff=new THREE.IcosahedronGeometry(1,1), pp=puff.attributes.position, pn=puff.attributes.normal;
- const cpos=[], ccol=[], cix=[]; const puffN=pp.count;
- const blobs=MOB?16:32;
- for(let i=0;i<blobs;i++){const z=12800-i*(MOB?1700:860); const tower=i%8===0; const side=i%2?1:-1;
-  const y=(tower?2200:1760)+hash(i,6)*(tower?420:340);
-  const parts=tower?5:4;
-  for(let k=0;k<parts;k++){const base=cpos.length/3; const sx=(tower?380:460)+hash(i,k)*(tower?260:520); const sy=sx*(tower?0.5:0.38)+hash(i,k+3)*40; const sz=sx*(.7+hash(z,k)*.4);
-   const ox=(hash(i,k+1)-.5)*sx*.9, oz=(hash(i,k+2)-.5)*sz*.7, oy=k*(tower?90:28);
-   const cx=vx(z)+side*(1500+hash(i,4)*2400)+ox;
-   for(let v=0;v<puffN;v++){const x=pp.getX(v)*sx+cx, yy=pp.getY(v)*sy+y+oy, zz=pp.getZ(v)*sz+z+oz;
-    cpos.push(x,yy,zz); const up=pn.getY(v); const lit=clamp(up*.85+.15,0,1); const g=.55+.45*lit; ccol.push(.93*g,.95*g,1*g)}
-   if(puff.index){for(let t=0;t<puff.index.count;t++)cix.push(puff.index.getX(t)+base)}
-   else {for(let v=0;v<puffN;v++)cix.push(base+v)}}}
- const cg=new THREE.BufferGeometry();
- cg.setAttribute('position', new THREE.Float32BufferAttribute(cpos,3));
- cg.setAttribute('color', new THREE.Float32BufferAttribute(ccol,3));
- cg.setIndex(cix); cg.computeVertexNormals();
- const clouds=new THREE.Mesh(cg, new THREE.MeshLambertMaterial({vertexColors:true}));
- clouds.frustumCulled=false; scene.add(clouds); window.__farBits.push(clouds);
- window.__faceClouds=null;
- window.__hiScenery={skirt:(ix.length/3)|0, clouds:blobs, peaks:SUMMITS.length}}
-const sunGlare=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex, color:0xfff6e4, transparent:true, depthWrite:false, depthTest:false, blending:THREE.AdditiveBlending, fog:false, opacity:.18}));
-sunGlare.scale.set(360,360,1); sunGlare.renderOrder=2; scene.add(sunGlare); window.__glare=sunGlare;
-const hiSky=new THREE.Mesh(new THREE.SphereGeometry(9000,28,18), new THREE.ShaderMaterial({side:THREE.BackSide, depthWrite:false, fog:false,
- uniforms:{uSun:{value:SUN}},
- vertexShader:'varying vec3 vD; void main(){vD=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
- fragmentShader:`varying vec3 vD; uniform vec3 uSun;
-  void main(){vec3 d=normalize(vD); float up=clamp(d.y,0.,1.);
-   vec3 zen=vec3(.07,.24,.58); vec3 hor=vec3(.55,.70,.84);
-   float k=smoothstep(0.,.22,up);
-   vec3 col=mix(hor,zen,k);
-   float s=clamp(dot(d,normalize(uSun)),0.,1.);
-   col+=vec3(1.,.94,.82)*pow(s,80.)*.28;
-   gl_FragColor=vec4(col,1.);}`}));
-hiSky.frustumCulled=false; hiSky.renderOrder=-2; hiSky.visible=false; scene.add(hiSky); window.__hiSky=hiSky;
+// Photographic sky. Alps Field, Poly Haven, CC0. The photo's meadow is faded
+// to the same haze as the valley fog, so the ridges meet the picture.
+const HAZE_HEX=0x616c76, HAZE_DEN=0.0002;
+const skyFile=PHONE?'tex/sky/alps-field-2k.jpg':'tex/sky/alps-field-4k.jpg';
+const skyTex=new THREE.TextureLoader().load(skyFile);
+skyTex.colorSpace=THREE.SRGBColorSpace; skyTex.anisotropy=4;
+const skyMat=new THREE.MeshBasicMaterial({map:skyTex,side:THREE.BackSide,fog:false,toneMapped:false,depthWrite:false});
+skyMat.onBeforeCompile=sh=>{
+ sh.uniforms.uHaze={value:new THREE.Color(HAZE_HEX)};
+ sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nuniform vec3 uHaze;').replace('#include <map_fragment>',`#include <map_fragment>
+  float g=smoothstep(0.60,0.50,vMapUv.y);
+  diffuseColor.rgb=mix(diffuseColor.rgb,uHaze,g);`)};
+const photoSky=new THREE.Mesh(new THREE.SphereGeometry(12000,PHONE?32:48,PHONE?16:24),skyMat);
+photoSky.frustumCulled=false; photoSky.renderOrder=-2; scene.add(photoSky); window.__photoSky=photoSky;
+new THREE.TextureLoader().load('tex/sky/alps-field-env.jpg', t=>{photoEnvMap=t; t.colorSpace=THREE.SRGBColorSpace; if(wantPhotoEnv&&!NIGHT_ON)rebuildEnv()});
+const tankerBeacon=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffc14a,transparent:true,depthWrite:false,depthTest:false,fog:false,blending:THREE.AdditiveBlending}));
+tankerBeacon.visible=false; tankerBeacon.renderOrder=4; tankerBeacon.frustumCulled=false; scene.add(tankerBeacon);
+window.__hiScenery={skirt:0,clouds:0,peaks:0,photo:1};
 // ---------- materials ----------
 const concrete=new THREE.MeshStandardMaterial({color:0x8d8a83,roughness:.95,map:detail.clone()}); concrete.map.repeat.set(2,2);
 const steel=new THREE.MeshStandardMaterial({color:0x4a4d4e,roughness:.6,metalness:.6});
@@ -626,17 +580,17 @@ function enterMission(){
  seaLight(false); carrier.visible=false; if(CVN.sea)CVN.sea.visible=false; stopIntroMusic(); stopDeckAmbience(); if(JET){startBed(); ambS=bedS} startMood(); if(CVN.fill)CVN.fill.intensity=0;
  if(window.__tmesh)window.__tmesh.visible=true;
  if(window.__farBits)window.__farBits.forEach(o=>o.visible=true);
- scene.fog=SCEN.fogDen>0.00001?scene.fog:null;
+ if(!(SCEN.fogDen>0.00001))scene.fog=new THREE.FogExp2(HAZE_HEX,HAZE_DEN);
  const f=$('tofade'); if(f)f.classList.add('on');
  S.to.fade=1.05;
 }
 let seaLit=false;
 function seaLight(on){
- if(on&&!seaLit){seaLit=1; CVN._lit={scen:{...SCEN}, sun:sun.color.getHex(), hemi:hemiL.color.getHex(), ground:hemiL.groundColor.getHex(), bloom:bloom.strength, thr:bloom.threshold, sh:sun.castShadow};
+ if(on&&!seaLit){seaLit=1; wantPhotoEnv=false; CVN._lit={scen:{...SCEN}, sun:sun.color.getHex(), hemi:hemiL.color.getHex(), ground:hemiL.groundColor.getHex(), bloom:bloom.strength, thr:bloom.threshold, sh:sun.castShadow};
   const go=()=>{if(!seaLit)return; Object.assign(SCEN,{turbidity:8,rayleigh:2.1,mie:.012,mieG:.86,sunEl:3.4,sunAz:1.35,sunInt:2.8,hemi:.72,exposure:1.08,env:.95,warmth:.85,fogDen:0,clouds:0});
    sun.color.set(0xffb15e); hemiL.color.set(0xffd0a0); hemiL.groundColor.set(0x3e3830); bloom.strength=.42; bloom.threshold=.8; sun.castShadow=!MOB; applyScen()};
   requestAnimationFrame(()=>requestAnimationFrame(go))}
- else if(!on&&seaLit){seaLit=0; const L=CVN._lit; Object.assign(SCEN,L.scen); sun.color.setHex(L.sun); hemiL.color.setHex(L.hemi); hemiL.groundColor.setHex(L.ground); bloom.strength=L.bloom; bloom.threshold=L.thr; sun.castShadow=L.sh; applyScen()}
+ else if(!on&&seaLit){seaLit=0; wantPhotoEnv=true; const L=CVN._lit; Object.assign(SCEN,L.scen); sun.color.setHex(L.sun); hemiL.color.setHex(L.hemi); hemiL.groundColor.setHex(L.ground); bloom.strength=L.bloom; bloom.threshold=L.thr; sun.castShadow=L.sh; applyScen()}
 }
 function updateTakeoff(rdt){
  S.t+=rdt; if(S.msgT>0)S.msgT-=rdt;
@@ -1723,7 +1677,7 @@ function ensureTanker(){if(tankerMesh)return tankerMesh; const g=new THREE.Group
  for(const x of [-14,-6,6,14]){const pod=new THREE.Mesh(new THREE.CylinderGeometry(.7,.7,4.2,10),dark); pod.rotation.x=Math.PI/2; pod.position.set(x,-1.15,-2); g.add(pod)}
  const lamp=(x,y,z,color)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.28,8,8), new THREE.MeshBasicMaterial({color})); m.position.set(x,y,z); g.add(m)};
  lamp(-21,.3,-2,0xff4040); lamp(21,.3,-2,0x40ff68); lamp(0,4.2,20,0xfff2cc);
- g.scale.setScalar(2.6); scene.add(g); g.visible=false; return tankerMesh=g}
+ g.scale.setScalar(2.6); g.frustumCulled=false; g.traverse(o=>{o.frustumCulled=false; const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[]; ms.forEach(m=>{if(m)m.fog=false})}); scene.add(g); g.visible=false; return tankerMesh=g}
 let tankerRig=null, tankerHose=null;
 const _tkTail=new THREE.Vector3(), _tkB=new THREE.Vector3(), _tkDir=new THREE.Vector3(), _tkUp=new THREE.Vector3(0,1,0);
 function hideTankerRig(){ if(tankerRig)tankerRig.visible=false; if(tankerHose)tankerHose.visible=false }
@@ -1741,7 +1695,7 @@ function ensureTankerRig(){ if(tankerRig)return;
  scene.add(tankerRig);
  tankerHose=new THREE.Mesh(new THREE.CylinderGeometry(.55,.48,1,10), new THREE.MeshBasicMaterial({color:0x24180e,toneMapped:false,fog:false}));
  const stripe=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,1,6), new THREE.MeshBasicMaterial({color:0xffe7a8,toneMapped:false,fog:false}));
- tankerHose.add(stripe); scene.add(tankerHose); tankerRig.visible=false; tankerHose.visible=false }
+ tankerHose.add(stripe); tankerRig.frustumCulled=false; tankerHose.frustumCulled=false; scene.add(tankerHose); tankerRig.visible=false; tankerHose.visible=false }
 function placeDrogue(bx,by,bz,fx,fz){ ensureTankerRig(); tankerRig.visible=true; tankerHose.visible=true;
  tankerRig.position.set(bx,by,bz); tankerRig.up.set(0,1,0); tankerRig.lookAt(bx-fx,by,bz-fz);
  const flash=(Math.sin((S&&S.t||0)*14)>0.15)?0xffffff:0xff8a1e;
@@ -1754,8 +1708,8 @@ function placeDrogue(bx,by,bz,fx,fz){ ensureTankerRig(); tankerRig.visible=true;
  tankerHose.position.copy(_tkTail).addScaledVector(_tkDir,len*.5);
  tankerHose.quaternion.setFromUnitVectors(_tkUp.set(0,1,0),_tkDir);
  tankerHose.scale.set(1,len,1) }
-function failFuel(){if(!S||S.fuelFail||S.fuelDone)return; S.fuelFail=1; S.score=Math.max(0,(S.score||0)-1500); if(S.calmLeft==null)S.calmLeft=4; S.descendCue=1; msg('TANKER BREAKING AWAY — DESCEND'); if(tankerMesh)tankerMesh.visible=false; hideTankerRig()}
-function breakTanker(why){if(!S||S.fuelFail||S.fuelDone)return; S.fuelFail=1; if(S.calmLeft==null)S.calmLeft=3; S.descendCue=1; if(S.tanker){S.tanker.lock=''; S.tanker.contact=0} msg(why||'TANKER BREAKING AWAY — DESCEND'); if(tankerMesh)tankerMesh.visible=false; hideTankerRig()}
+function failFuel(){if(!S||S.fuelFail||S.fuelDone)return; S.fuelFail=1; S.score=Math.max(0,(S.score||0)-1500); if(S.calmLeft==null)S.calmLeft=4; S.descendCue=1; msg('TANKER BREAKING AWAY — DESCEND'); hideTankerRig()}
+function breakTanker(why){if(!S||S.fuelFail||S.fuelDone)return; S.fuelFail=1; if(S.calmLeft==null)S.calmLeft=3; S.descendCue=1; if(S.tanker){S.tanker.lock=''; S.tanker.contact=0} msg(why||'TANKER BREAKING AWAY — DESCEND'); hideTankerRig()}
 function lockClick(){if(!AC)return; sfxLog('lockclick'); blip(860,.05,.14); thud(AC.tone||AC.out,.22,150,24,.16)}
 function lockClunk(){if(!AC)return; sfxLog('lockclunk'); thud(AC.out,.6,68,26,.32); thud(AC.out,.35,40,16,.48)}
 function tankerLearned(){try{if(localStorage.ds17j_tanker==='1')return true}catch(e){} try{if(/(?:^|; )ds17jt=1/.test(document.cookie))return true}catch(e){} return false}
@@ -1774,7 +1728,7 @@ function refreshCalm(rdt){if(!S||takingOff()){if(S)S.calm=''; return}
  S.calm=on?(S.tankerLesson?'light':'off'):'';
  if(S.calm)clearCombat();
  if(S.calm==='light'){if(S.farPress==null)S.farPress=48; if(!S._farSaid){S._farSaid=1; msg('BANDIT, FAR'); radio('Bandit, far')} S._farT=(S._farT||0)-(rdt||0); if(S._farT<=0){S._farT=5.5; if(AC)blip(420,.1,.035)} S.farPress-=rdt||0; if(S.farPress<=0){S.farPress=48; msg('BANDIT STILL FAR — NO LOCK')}} else if(!on)S.farPress=null}
-function updTanker(dt,rdt){if(!S||S.fuelFail||S.phase!=='ingress'||S.cine||takingOff()){hideTankerRig();return}
+function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(!S.fuelDone&&S.phase!=='ingress'){hideTankerRig();return}
  if(S.fuelDone){const tk=S.tanker; if(tk&&tk.lock==='done'&&S.t<(tk.hideAt||0)&&tankerMesh&&tankerMesh.visible){refreshCalm(0); return} if(tk&&!tk.away){tk.away=1; S.descendCue=1; msg('TANKER BREAKING AWAY'); S.msgT=3.2} hideTankerRig(); if(tankerMesh)tankerMesh.visible=false; return}
  if(!S.tanker)S.tanker={z:TANKER_Z,fuel:0,fails:0,called:0,contact:0,t0:0,fast:0,shout:-10,spd:220,rejoin:0,lock:'',lockT:0};
  const tk=S.tanker;
@@ -1837,13 +1791,33 @@ function tankerScreen(){const tk=S&&S.tanker, b=tk&&tk.basket; if(!b)return null
  const fp=scr(probePoint());
  const sep=cs&&fp?Math.hypot(fp.x-cs.x,fp.y-cs.y):1e9;
  return {cs,fp,rad,sep,dpr,W:viewW,H:viewH}}
-function aimTankerCam(){const tk=S&&S.tanker; if(!tk||!tk.basket||S.fuelFail||S.cine||!tankerMesh||!tankerMesh.visible)return false;
- if(S.fuelDone&&tk.lock!=='done')return false;
- const b=tk.basket, dist=Math.hypot(b.x-S.pos.x,b.y-S.pos.y,b.z-S.pos.z);
- const ahead=(b.x-S.pos.x)*(-Math.sin(S.yaw))+(b.z-S.pos.z)*(-Math.cos(S.yaw));
- if(dist>480||tk.rejoin)return false; if(ahead<8&&dist>24)return false;
- cam.position.set(S.pos.x+Math.sin(S.yaw)*36, S.pos.y+11, S.pos.z+Math.cos(S.yaw)*36);
- cam.up.set(0,1,0); cam.lookAt(b.x, b.y-Math.min(10,3+dist*.03), b.z); return true}
+const _chasePts=[0,1,2,3,4,5].map(()=>new THREE.Vector3()), _chaseLook=new THREE.Vector3(), _chaseTry=new THREE.Vector3(), _chaseTmp=new THREE.Vector3();
+function fillJetPts(){const span=(jet.userData&&jet.userData.span)||11, jh=(jet.userData&&jet.userData.jetH)||3.2;
+ const loc=[[0,.35,-8],[0,.15,7],[-span*.5,.1,.4],[span*.5,.1,.4],[0,jh*.55,-1.2],[0,-1.15,1]];
+ jet.position.copy(S.pos); jet.rotation.set(S.pitch||0,S.yaw||0,S.roll||0); jet.updateMatrixWorld(true);
+ for(let i=0;i<6;i++){_chaseTmp.set(loc[i][0],loc[i][1],loc[i][2]); jet.localToWorld(_chaseTmp); _chasePts[i].copy(_chaseTmp)}}
+function jetInFrame(centered){cam.updateMatrixWorld(true); let sx=0,n=0; for(let i=0;i<_chasePts.length;i++){_chaseTmp.copy(_chasePts[i]).project(cam); if(_chaseTmp.z>1||Math.abs(_chaseTmp.x)>.82||_chaseTmp.y>.40||_chaseTmp.y<-.86)return false; if(i!==2&&i!==3){sx+=_chaseTmp.x; n++}} return !centered||Math.abs(sx/Math.max(1,n))<.18}
+function placeChaseCam(){if(!S)return; const span=(jet.userData&&jet.userData.span)||11, jh=(jet.userData&&jet.userData.jetH)||3.2, roll=Math.abs(S.roll||0);
+ const vFov=cam.fov*Math.PI/180, aspect=Math.max(.42,cam.aspect||1), hFov=2*Math.atan(Math.tan(vFov*.5)*aspect);
+ const halfW=span*.5*Math.abs(Math.cos(roll))+jh*Math.abs(Math.sin(roll))+1.8;
+ const halfH=span*.5*Math.abs(Math.sin(roll))+jh*Math.abs(Math.cos(roll))+1.6;
+ let dist=Math.max(22, halfW/(Math.tan(hFov*.5)*.70), halfH/(Math.tan(vFov*.5)*.36));
+ const yaw=S.yaw||0, sx=Math.sin(yaw), cx=Math.cos(yaw); fillJetPts();
+ let basket=null; const tk=S.tanker;
+ if(tk&&tk.basket&&tankerMesh&&tankerMesh.visible&&!S.fuelDone&&S.phase==='ingress'&&!S.cine){const b=tk.basket,d=Math.hypot(b.x-S.pos.x,b.y-S.pos.y,b.z-S.pos.z); if(d<2400)basket=b}
+ function seat(d,bias){cam.position.set(S.pos.x+sx*d,S.pos.y+d*.32,S.pos.z+cx*d); const lift=Math.tan(vFov*.16)*d; _chaseLook.set(S.pos.x-sx*5,S.pos.y+lift,S.pos.z-cx*5);
+  if(basket&&bias>0){_chaseTry.set(basket.x,basket.y,basket.z); _chaseLook.lerp(_chaseTry,bias)} cam.up.set(0,1,0); cam.lookAt(_chaseLook)}
+ seat(dist,0); for(let n=0;n<5&&!jetInFrame();n++){dist*=1.16; seat(dist,0)}
+ if(basket){let lo=0,hi=.7,best=0; for(let i=0;i<7;i++){const mid=(lo+hi)*.5; seat(dist,mid); if(jetInFrame(true)){best=mid; lo=mid}else hi=mid} seat(dist,best)}}
+function aimTankerCam(){placeChaseCam(); return true}
+window.__jetBox=()=>{placeChaseCam(); cam.updateMatrixWorld(true); return _chasePts.map(p=>{const q=_chaseTmp.copy(p).project(cam); return {x:+q.x.toFixed(3),y:+q.y.toFixed(3)}})};
+window.__tankerVis=()=>({vis:!!(tankerMesh&&tankerMesh.visible), far:+cam.far.toFixed(0), beacon:!!(tankerBeacon&&tankerBeacon.visible), fuelFail:!!(S&&S.fuelFail), fuelDone:!!(S&&S.fuelDone), z:tankerMesh?Math.round(tankerMesh.position.z):null});
+function placeTankerBeacon(){const show=!!(S&&!takingOff()&&!S.fuelDone&&tankerMesh&&tankerMesh.visible); tankerBeacon.visible=show; if(!show)return;
+ const dist=Math.max(1,cam.position.distanceTo(tankerMesh.position)); if(dist<1400){tankerBeacon.visible=false; return}
+ const dir=_chaseTmp.copy(tankerMesh.position).sub(cam.position); const hold=Math.min(dist,10800);
+ tankerBeacon.position.copy(cam.position).addScaledVector(dir.normalize(), hold);
+ const px=dist>2500?42:28, world=hold*Math.tan((cam.fov*Math.PI/180)*.5)*(px/Math.max(320,Hh||800))*2;
+ tankerBeacon.scale.set(world,world,1)}
 function drawBasketArrow(p,cx,cy,col){const s=scr(p); const on=s&&s.x>30&&s.x<W-30&&s.y>30&&s.y<Hh-30;
  if(on){hx.fillStyle=col; hx.beginPath(); hx.moveTo(s.x,s.y-6); hx.lineTo(s.x-16,s.y-34); hx.lineTo(s.x+16,s.y-34); hx.closePath(); hx.fill(); return s}
  V.copy(p).applyMatrix4(cam.matrixWorldInverse); let dx=V.x,dy=-V.y; if(V.z>0){dx=V.x; dy=Math.abs(V.y)+Math.abs(V.x)*.2+1}
@@ -1977,9 +1951,10 @@ function render(){jet.position.copy(S.pos);sun.target.position.copy(S.pos);sun.p
    CVN._cam2.set(sh.x+5.2,sh.y+1.7,sh.z+2.2); CVN._look2.set(sh.x,sh.y+.85,sh.z-.4);
    cam.position.copy(CVN._cam2).lerp(CVN._cam,k); cam.lookAt(CVN._look2.lerp(CVN._look,k))}
   else if(S.phase==='deck'||S.phase==='cat'){cam.position.copy(CVN._cam); cam.lookAt(CVN._look)}
-  else{const k=clamp((S.to.climb||0)/3.2,0,1);const b=lerp(36,24,k),h=lerp(12,6.5,k);
-   cam.position.set(S.pos.x+Math.sin(S.yaw)*b,S.pos.y+h,S.pos.z+Math.cos(S.yaw)*b);
-   if(k<1)cam.lookAt(S.pos.x,S.pos.y+1.2,S.pos.z-60);else cam.rotation.set(-.07,S.yaw,0)}
+  else{const k=clamp((S.to.climb||0)/3.2,0,1);
+   if(k>0.85)placeChaseCam(); else {const b=lerp(40,28,k),h=lerp(16,11,k);
+    cam.position.set(S.pos.x+Math.sin(S.yaw)*b,S.pos.y+h,S.pos.z+Math.cos(S.yaw)*b); cam.up.set(0,1,0);
+    cam.lookAt(S.pos.x-Math.sin(S.yaw)*6,S.pos.y+2.4,S.pos.z-Math.cos(S.yaw)*6)}}
   if(CVN.detail)CVN.detail.visible=(S.phase==='deck'||S.phase==='signal'||S.phase==='cat')&&cam.position.distanceTo(CVN._hub)<360;
   if((S.phase==='climb'||S.phase==='hand')&&(S.to.climb||0)>1.2)carrier.visible=false}
  else if(useBombCam){const b=S.bomb,dv=tmp.copy(b.v).normalize();if(dv.lengthSq()<.01)dv.set(0,-1,0);cam.position.copy(b.p).addScaledVector(dv,-18).y+=5;cam.lookAt(b.p);S.cineA=null}
@@ -1987,12 +1962,15 @@ function render(){jet.position.copy(S.pos);sun.target.position.copy(S.pos);sun.p
  else if(S.cine&&!S.bomb){if(!S.cineA){const dh=new THREE.Vector3(cam.position.x-BUNK.x,0,cam.position.z-BUNK.z);if(dh.lengthSq()<.01)dh.set(0,0,1);dh.normalize();const nk=S.boomT>=0,a=BUNK.clone().addScaledVector(dh,nk?1900:780);a.y=nk?Math.max(BUNK.y+380,H(a.x,a.z)+200):Math.max(BUNK.y+170,H(a.x,a.z)+60);S.cineA=a}cam.position.copy(S.cineA);cam.lookAt(tmp.copy(BUNK).setY(BUNK.y+(S.boomT>=0?(NK?250+Math.min(950,NK.t*160):300):10)))}
  else if(!aimTankerCam()){cam.position.set(S.pos.x+Math.sin(S.yaw)*24,S.pos.y+6.5,S.pos.z+Math.cos(S.yaw)*24);cam.rotation.set(-.07,S.yaw,0)}
  if(S.shake>0){const a=S.cine?2.2:.25;cam.position.y+=Math.sin(tt*43)*S.shake*a;cam.position.x+=Math.sin(tt*31+1)*S.shake*a*.6}
- sky.position.copy(cam.position);grade.u.uT.value=performance.now()/1000;
- const hiAir=!takingOff()&&S&&S.pos.y>1600;
- if(window.__hiSky){window.__hiSky.visible=hiAir; sky.visible=!hiAir; if(hiAir)window.__hiSky.position.copy(cam.position)}
- if(window.__glare){window.__glare.visible=hiAir; if(hiAir)window.__glare.position.copy(cam.position).addScaledVector(SUN,6400)}
- if(hiAir){if(!scene.fog)scene.fog=new THREE.FogExp2(0x7fa4c4,0.0000045); scene.fog.density=0.0000045; scene.fog.color.setRGB(.45,.58,.72)}
- else if(!(SCEN.fogDen>0.00001))scene.fog=null;
+ grade.u.uT.value=performance.now()/1000;
+ const showPhoto=!takingOff()&&!NIGHT_ON;
+ if(photoSky){photoSky.visible=showPhoto; if(showPhoto)photoSky.position.copy(cam.position)}
+ sky.visible=!showPhoto; if(!showPhoto)sky.position.copy(cam.position);
+ if(showPhoto&&!(SCEN.fogDen>0.00001)){if(!scene.fog)scene.fog=new THREE.FogExp2(HAZE_HEX,HAZE_DEN); scene.fog.color.set(HAZE_HEX); scene.fog.density=HAZE_DEN}
+ else if(!showPhoto&&!NIGHT_ON&&!(SCEN.fogDen>0.00001))scene.fog=null;
+ placeTankerBeacon();
+ let far=16000; if(S&&tankerMesh&&tankerMesh.visible&&!S.fuelDone){const td=cam.position.distanceTo(tankerMesh.position); if(td>11000)far=Math.min(100000,td+6000)}
+ if(Math.abs(cam.far-far)>400){cam.far=far; cam.updateProjectionMatrix()}
  if(sun.castShadow){sun.shadow.needsUpdate=(shadowN++%4)===0}
  if(useBloom)composer.render(); else R.render(scene,cam); drawHUD()}
 const G='rgba(182,220,174,.9)',GF='600 11px ui-monospace,"SF Mono",Menlo,monospace';
@@ -2082,14 +2060,14 @@ function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!r
  else if(cue==='TOO CLOSE'||cue==='OUT OF RANGE')o=cue;
  else if(cue==='RELEASE'&&!S.locked)o='RELEASE';
  else if(S.descendCue&&S.pos.y>980)o='DESCEND — VALLEY AHEAD';
- else if(S.phase==='ingress'&&S.tanker&&!S.fuelDone&&!S.fuelFail&&tankerMesh&&tankerMesh.visible){const td=Math.hypot(S.pos.x-tankerMesh.position.x,S.pos.z-tankerMesh.position.z); o='TANKER AHEAD — JOIN UP  '+(td/1000).toFixed(1)+' KM'+(S.calm==='light'?'  ·  BANDIT, FAR':'')}
+ else if(S.phase==='ingress'&&S.tanker&&!S.fuelDone&&tankerMesh&&tankerMesh.visible){const td=Math.hypot(S.pos.x-tankerMesh.position.x,S.pos.z-tankerMesh.position.z); o='TANKER AHEAD — JOIN UP  '+(td/1000).toFixed(1)+' KM'+(S.calm==='light'?'  ·  BANDIT, FAR':'')}
  else if(S.phase==='ingress')o=d<4500?'TGT '+(d/1000).toFixed(1)+' KM':'FLY TO BUNKER  '+(d/1000).toFixed(1)+' KM';
  else if(S.phase==='egress')o='';
  else if(S.phase==='bombfall')o=(S.bomb&&S.bomb.guided)?'GUIDED':'WPN AWAY  TTI '+(S.bomb?S.bomb.tti.toFixed(1):'0.0');
  else if(S.phase==='penetrate')o='PENETRATING  '+Math.min(60,Math.round(S.penT*38))+' M';
  else if(S.phase==='egress')o=S.boomT<2?'TARGET DESTROYED':(S.bandit&&!S.bandit.dead?'BANDIT '+(S.pos.distanceTo(S.bandit.p)/1000).toFixed(1)+' KM — GUNS':(S.gridOn&&S.grids&&S.grids.some(g=>!g.done)?'GRID AHEAD':'EGRESS  EXFIL '+(S.pos.distanceTo(EXIT)/1000).toFixed(1)+' KM'));
  const loud=o==='LOCKED'||o==='LOCKING'||o==='GUIDED'||o==='RELEASE'||o==='DESCEND — VALLEY AHEAD'; txt(o,cx,loud?Hh*.18:70,loud?26:14,'center',o==='LOCKED'||o==='GUIDED'?'rgba(190,245,190,1)':o==='RELEASE'||o==='DESCEND — VALLEY AHEAD'?'rgba(255,214,140,1)':o==='LOCKING'?'rgba(255,220,150,1)':G);
- if(S.tanker&&S.tanker.basket&&tankerMesh&&tankerMesh.visible&&!S.fuelDone&&!S.fuelFail)drawBasketArrow(S.tanker.basket,cx,cy,'rgba(255,214,140,.95)');
+ if(S.tanker&&S.tanker.basket&&tankerMesh&&tankerMesh.visible&&!S.fuelDone){const b=S.tanker.basket, km=(Math.hypot(S.pos.x-b.x,S.pos.y-b.y,S.pos.z-b.z)/1000).toFixed(1)+' KM'; const s=drawBasketArrow(b,cx,cy,'rgba(255,214,140,.95)'); if(s)txt(km,s.x,s.y-42,12,'center','rgba(255,214,140,.95)'); else txt('TANKER  '+km,cx,96,14,'center','rgba(255,214,140,.95)')}
  const thr=[];if(S.missile&&!S.missile.decoy&&!S.missile.lost)thr.push([S.missile.p,threatBehind(S.missile.p)?'SIX':'MSL',1]);if(S.bandit&&!S.bandit.dead&&threatBehind(S.bandit.p))thr.push([S.bandit.p,'SIX',1]);SITES.forEach((st,i)=>{if(S.sites[i].st==='track')thr.push([st.p,'SAM',0])});
  for(const [P,lab,isM] of thr){V.copy(P).applyMatrix4(cam.matrixWorldInverse);let dx=V.x,dy=-V.y;if(V.z>0){dx=V.x;dy=Math.abs(V.y)+Math.abs(V.x)*.2}const n=Math.hypot(dx,dy)||1;dx/=n;dy/=n;const r=Hh*.3,ax=cx+dx*r,ay=cy+dy*r;
   const c=isM?((S.t*6|0)%2?'rgba(255,70,60,1)':'rgba(255,200,180,1)'):'rgba(255,140,90,.95)';hx.fillStyle=c;hx.beginPath();hx.moveTo(ax+dx*16,ay+dy*16);hx.lineTo(ax-dy*8,ay+dx*8);hx.lineTo(ax+dy*8,ay-dx*8);hx.closePath();hx.fill();txt(lab,ax-dx*14,ay-dy*14+4,9,'center',c)}
