@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17s'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17t'])[1];
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -614,23 +614,64 @@ function deckBusy(rdt){S.to.steam=(S.to.steam||0)-rdt;
  if(CVN.taxi){CVN.taxiT=(CVN.taxiT||0)+rdt; CVN.taxi.position.x=CVN.taxiBase+((CVN.taxiT*1.4)%12)}
  if(CVN.tug)CVN.tug.position.x=250+Math.sin((S.t||0)*.5)*1.5
  if(CVN.heli){CVN.heli.position.y=(CVN.heliY||CVN.deckY+7)+Math.sin((S.t||0)*.8)*.55; if(CVN.rotor)CVN.rotor.rotation.y+=rdt*22; if(CVN.tailRotor)CVN.tailRotor.rotation.x+=rdt*36}}
-// Same mix the valley sortie uses. Take-off does not add a noise layer.
+// Same mix the valley sortie uses. The engine and the wind are built in updateFlightBed.
 function mixFlightAudio(rdt){if(!AC||!eng)return; const tt=AC.currentTime;
  startJet();flyCD=Math.max(0,flyCD-rdt);const warnA=S.missile&&!S.missile.decoy&&!S.missile.lost;
- if(JET){const wob=Math.sin((S.t||0)*.65)*.02; const pr=(JET.plain?0.74:0.7)+S.thr*(JET.plain?0.14:0.2)+wob; const nodes=JET.a?[JET.a]:(JET.playbackRate?[JET]:[]); nodes.forEach((n)=>{try{n.playbackRate.setTargetAtTime(pr,tt,.35)}catch(e){}}); const lv=(S.cine?0.06:0.08+S.thr*.22)*(1+Math.sin((S.t||0)*1.7)*.06)*(warnA?0.6:1); if(JET.plain&&JET.g)JET.g.gain.setTargetAtTime(lv,tt,.35); else AC.jet.gain.setTargetAtTime(lv,tt,.35); const lp=S.cine?420:(460+S.thr*380); if(AC.engWhineLP)AC.engWhineLP.frequency.setTargetAtTime(lp,tt,.4); if(AC.jlp)AC.jlp.frequency.setTargetAtTime(lp,tt,.4)}AC.sub.gain.setTargetAtTime(JET&&JET.plain?0:(S.cine?.03:.05+S.thr*.12),tt,.35);AC.subO&&AC.subO.forEach((o,k)=>o.frequency.setTargetAtTime((36+S.thr*14)*(k+1),tt,.4));updListener();
- AC.wind.g.gain.setTargetAtTime(S.cine?.004:.014+S.thr*.008+Math.min(1,Math.abs(S.roll))*.008,tt,.6);AC.wind.bp.frequency.setTargetAtTime(380+S.thr*420,tt,.6);
+ updateFlightBed(rdt,warnA);AC.sub.gain.setTargetAtTime(JET&&JET.plain?0:(S.cine?.03:.05+S.thr*.12),tt,.35);AC.subO&&AC.subO.forEach((o,k)=>o.frequency.setTargetAtTime((36+S.thr*14)*(k+1),tt,.4));updListener();
  const tense=S.th&&(S.th.anyTrk||S.th.anySrch);AC.mus.gain.setTargetAtTime(warnA?.45:1,tt,.15);
  const bedOn=!takingOff()&&BED!=='off';AC.amb.gain.setTargetAtTime(bedOn?MUSIC_CAP:0,tt,takingOff()?.3:.4);
  if(AC.deckJetG){const hold=takingOff()&&(S.phase==='deck'||S.phase==='signal'||S.phase==='cat'); const fade=takingOff()&&!hold; AC.deckJetG.gain.setTargetAtTime(hold?.1:fade?.03:0,tt,.35); AC.deckRotorG.gain.setTargetAtTime(hold?.15:fade?.04:0,tt,.35); if(CVN.heli&&AC.rotorPan){CVN.heli.updateWorldMatrix(true,false); const e=CVN.heli.matrixWorld.elements; setP(AC.rotorPan,{x:e[12],y:e[13],z:e[14]})} if(CVN.taxi&&AC.jetIdlePan){CVN.taxi.updateWorldMatrix(true,false); const e=CVN.taxi.matrixWorld.elements; setP(AC.jetIdlePan,{x:e[12],y:e[13],z:e[14]})}}
  const moodId=musicChoice('mood'); const moodOn=moodId!=='current'&&moodId!=='off'&&!takingOff()&&!(S&&S.quiet); if(moodOn)AC.amb.gain.setTargetAtTime(0,tt,.4); if((moodId==='off'||(S&&S.quiet))&&moodHandle)stopMood(true);
- if(S&&S.quiet){if(!S._bedHeld){try{stopBed()}catch(e){} S._bedHeld=1} stopMood(true); AC.amb.gain.cancelScheduledValues(tt); AC.amb.gain.value=0; if(AC.moodG){AC.moodG.gain.cancelScheduledValues(tt); AC.moodG.gain.value=0} AC.wind.g.gain.cancelScheduledValues(tt); AC.wind.g.gain.value=.005; const eg=JET&&JET.plain&&JET.g?JET.g:AC.jet; if(eg){eg.gain.cancelScheduledValues(tt); eg.gain.value=.04} AC.sub.gain.cancelScheduledValues(tt); AC.sub.gain.value=.01}
+ if(S&&S.quiet){if(!S._bedHeld){try{stopBed()}catch(e){} S._bedHeld=1} stopMood(true); AC.amb.gain.cancelScheduledValues(tt); AC.amb.gain.value=0; if(AC.moodG){AC.moodG.gain.cancelScheduledValues(tt); AC.moodG.gain.value=0} AC.sub.gain.cancelScheduledValues(tt); AC.sub.gain.value=.01}
  else if(S&&S._bedHeld){S._bedHeld=0; if(!takingOff()&&BED!=='off')startBed()}
  const warn=S.missile&&!S.missile.decoy&&!S.missile.lost; const trkOn=!warn&&S.th&&S.th.anyTrk; if(trkOn)trkG.gain.setTargetAtTime(.018,tt,.03); else {trkG.gain.cancelScheduledValues(tt); trkG.gain.value=0} S.srchT-=rdt;if(S.th&&S.th.anySrch&&!S.th.anyTrk&&S.srchT<=0){S.srchT=1.3;blip(380,.09,.03,'sine')}
  {const md=warn?S.missile.p.distanceTo(S.pos):9e3,rate=warn?4+18*clamp(1-md/6000,0,1):8;S.wph=(S.wph||0)+rdt*rate; if(warn){warnG.gain.setTargetAtTime((S.wph|0)%2?.04:0,tt,.02); tone.frequency.setTargetAtTime((S.wph|0)%2?480:560,tt,.02)} else {warnG.gain.cancelScheduledValues(tt); warnG.gain.value=0}}
  const seek=S.phase==='ingress'&&bDist()<4500&&inBox()>0; const seekOn=seek&&((S.t*5|0)%2); if(S.phase==='release')seekG.gain.setTargetAtTime(.012,tt,.03); else if(seekOn)seekG.gain.setTargetAtTime(.016,tt,.02); else {seekG.gain.cancelScheduledValues(tt); seekG.gain.value=0} if(seekG.o)seekG.o.frequency.setTargetAtTime(S.phase==='release'?420:380,tt,.05); syncWindBed()}
-window.__tones=()=>{if(!AC)return {ready:0}; const gv=n=>n&&n.gain?+n.gain.value.toFixed(4):0; const fv=n=>n&&n.frequency?+n.frequency.value.toFixed(1):0; return {ready:1, whineHz:fv(AC.engWhineLP), jlpHz:fv(AC.jlp), tone:{type:tone&&tone.type, hz:fv(tone), gain:gv(warnG)}, trackGain:gv(trkG), seek:{hz:fv(seekG&&seekG.o), gain:gv(seekG)}, wind:{hz:fv(AC.wind&&AC.wind.bp), gain:gv(AC.wind&&AC.wind.g)}, jet:JET?{plain:JET.plain?1:0, rate:JET.a?+JET.a.playbackRate.value.toFixed(3):0, gain:JET.g?gv(JET.g):gv(AC.jet)}:null, subGain:gv(AC.sub)}};
+window.__tones=()=>{if(!AC)return {ready:0}; const gv=n=>n&&n.gain?+n.gain.value.toFixed(4):0; const fv=n=>n&&n.frequency?+n.frequency.value.toFixed(1):0; return {ready:1, whineHz:fv(AC.engWhineLP), jlpHz:fv(AC.jlp), tone:{type:tone&&tone.type, hz:fv(tone), gain:gv(warnG)}, trackGain:gv(trkG), seek:{hz:fv(seekG&&seekG.o), gain:gv(seekG)}, wind:{hz:fv(AC.wind&&AC.wind.bp), gain:gv(AC.wind&&AC.wind.g)}, jet:JET?{plain:JET.plain?1:0, rate:+((JET.rate!=null?JET.rate:(JET.a&&JET.a.playbackRate.value))||0).toFixed(3), gain:JET.g?gv(JET.g):gv(AC.jet), slices:JET.slices?JET.slices.length:0}:null, subGain:gv(AC.sub)}};
 let windBed=null;
-function syncWindBed(){if(!AC)return; const spec=nbSpec('wind'); const low=!!(spec&&S&&!takingOff()&&!S.dead&&!S.cine&&(S.agl||0)<140); if(!low){if(windBed){try{windBed.g.gain.setTargetAtTime(0,AC.currentTime,.25)}catch(e){} if(!spec){try{windBed.stop()}catch(e){} windBed=null}} return} const k=spec.layers[0].k; if(!SB[k]){SB.get(k); return} if(!windBed||windBed.k!==k){if(windBed){try{windBed.stop()}catch(e){}} windBed=plainLoop(SB[k],(spec.layers[0].v||.04)*(nbLevel()/0.8),AC.out,{tag:'sn:wind',id:spec.id}); if(windBed)windBed.k=k} else if(windBed.g)windBed.g.gain.setTargetAtTime((spec.layers[0].v||.04)*(nbLevel()/0.8),AC.currentTime,.4)}
+function syncWindBed(){if(windBed){try{windBed.stop()}catch(e){} windBed=null}}
+// In-flight air only. Fresh noise each piece, and the F-105 whine in random
+// overlapping slices, so nothing repeats on a few-second clock.
+let bedDrift=0, bedNear=0, bedWhoosh=0, bedSide=0, bedSideT=0;
+function noiseGrain(seconds, brown){const sr=AC.sampleRate||44100, n=Math.max(1,sr*seconds|0), b=AC.createBuffer(1,n,sr), d=b.getChannelData(0); let pink=0, br=0, sum=0;
+ for(let i=0;i<n;i++){const w=Math.random()*2-1; pink=pink*0.97+w*0.12; br=(br+w*0.015)*0.998; const s=brown?br:pink; d[i]=s; sum+=s}
+ const mean=sum/n; let peak=1e-4; for(let i=0;i<n;i++){d[i]-=mean; const a=Math.abs(d[i]); if(a>peak)peak=a}
+ const sc=0.32/peak; for(let i=0;i<n;i++)d[i]*=sc; return b}
+function playGrain(buf, dest, fade){const s=AC.createBufferSource(); s.buffer=buf; s.loop=false; const g=AC.createGain(); const t=AC.currentTime, len=buf.duration, f=Math.min(fade, len*0.4);
+ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(1,t+f); g.gain.setValueAtTime(1,t+len-f); g.gain.linearRampToValueAtTime(0,t+len); s.connect(g).connect(dest); s.start(t); try{s.stop(t+len+0.03)}catch(e){}
+ const node={s,g,end:t+len}; s.onended=()=>{try{g.disconnect();s.disconnect()}catch(e){}}; return node}
+function pumpNoise(slot, dest, brown){if(!slot||!AC)return; const now=AC.currentTime; if(now<slot.next-0.03)return; const len=3.4+Math.random()*2.6, fade=1.2; const node=playGrain(noiseGrain(len, brown), dest, fade); slot.live.push(node); slot.next=node.end-fade;
+ while(slot.live.length>3){const old=slot.live.shift(); try{old.s.stop()}catch(e){}}}
+function stopLive(list){if(!list)return; for(const n of list){try{n.s.stop()}catch(e){}} list.length=0}
+function pumpWhine(jet){if(!jet||!jet.buf||!AC)return; const now=AC.currentTime; if(now<jet.next-0.03)return; const buf=jet.buf, trim=Math.min(jet.off||0, Math.max(0, buf.duration-1)), usable=Math.max(0.8, buf.duration-trim-0.04);
+ const fade=1.45, want=6+Math.random()*4, play=Math.min(want, usable), off=trim+Math.random()*Math.max(0.04, usable-play), rate=jet.rate||0.8;
+ const s=AC.createBufferSource(); s.buffer=buf; s.loop=false; s.playbackRate.value=rate; const eg=AC.createGain(); const heard=play/rate, f=Math.min(fade, heard*0.4);
+ eg.gain.setValueAtTime(0,now); eg.gain.linearRampToValueAtTime(1,now+f); eg.gain.setValueAtTime(1,now+Math.max(f, heard-f)); eg.gain.linearRampToValueAtTime(0,now+heard); s.connect(eg).connect(jet.g); try{s.start(now, off, play)}catch(e){return} try{s.stop(now+heard+0.05)}catch(e){}
+ const node={s,eg}; jet.slices.push(node); s.onended=()=>{const i=jet.slices.indexOf(node); if(i>=0)jet.slices.splice(i,1); try{eg.disconnect();s.disconnect()}catch(e){}}; jet.next=now+heard-f;
+ while(jet.slices.length>3){const old=jet.slices.shift(); try{old.s.stop()}catch(e){}}}
+function updateFlightBed(rdt, warnA){if(!AC||!AC.wind)return; const tt=AC.currentTime, hold=window.__bedHold||null;
+ const thr=hold&&hold.thr!=null?hold.thr:clamp(S.thr||0,0,1);
+ const spdN=hold&&hold.air!=null?hold.air:clamp(((S.spd||90)-70)/210,0,1);
+ const turn=hold&&hold.turn!=null?hold.turn:clamp(Math.abs(S.roll||0)*1.3+Math.abs(inp.x||0)*0.55+Math.abs(inp.y||0)*0.35,0,1);
+ let close=hold&&hold.close!=null?hold.close:0;
+ if(!(hold&&hold.close!=null)&&!takingOff()&&S.pos){const agl=S.agl==null?400:S.agl; const ground=agl<260?clamp(1-agl/260,0,1):0; bedSideT-=rdt; if(bedSideT<=0){bedSideT=0.3; const gy=groundY(S.pos.x,S.pos.z), left=groundY(S.pos.x-110,S.pos.z), right=groundY(S.pos.x+110,S.pos.z); const clearance=S.pos.y-Math.max(left,right); bedSide=clearance<170?clamp(1-clearance/170,0,1):0}
+  close=Math.max(ground, bedSide)}
+ if(close>bedNear+0.07)bedWhoosh=Math.min(1, bedWhoosh+0.6);
+ bedWhoosh=Math.max(0, bedWhoosh-rdt*0.75); bedNear=close;
+ bedDrift+=(Math.random()-0.5)*rdt*0.45; bedDrift*=Math.exp(-rdt*0.28); bedDrift=clamp(bedDrift,-1,1);
+ const air=Math.max(spdN, thr*0.8);
+ let wind=(0.012+air*0.026+turn*0.02+close*0.032+bedWhoosh*0.02)*(1+bedDrift*0.05);
+ if(S.cine)wind*=0.35; if(takingOff())wind*=0.35; if(S.quiet)wind=0.004; wind=Math.min(0.08, wind);
+ const cut=Math.min(1100, 280+air*460+close*160+turn*70+bedWhoosh*90);
+ AC.wind.g.gain.setTargetAtTime(wind,tt,.45); if(AC.wind.lp)AC.wind.lp.frequency.setTargetAtTime(cut,tt,.5);
+ pumpNoise(AC.wind, AC.wind.hp, false);
+ const rate=(0.72+thr*0.16)+bedDrift*0.012;
+ const lv=(S.quiet?0.028:(S.cine?0.04:0.05+thr*0.1))*(1+bedDrift*0.04)*(warnA?0.65:1);
+ const lp=S.cine?400:Math.min(900, 460+thr*380);
+ if(JET&&JET.g){JET.rate=rate; JET.g.gain.setTargetAtTime(lv,tt,.4); for(const n of JET.slices){try{n.s.playbackRate.setTargetAtTime(rate,tt,.45)}catch(e){}} pumpWhine(JET)}
+ if(AC.engWhineLP)AC.engWhineLP.frequency.setTargetAtTime(lp,tt,.4); if(AC.jlp)AC.jlp.frequency.setTargetAtTime(lp,tt,.4);
+ let rum=S.quiet?0.006:(S.cine?0.015:0.02+thr*0.055); rum*=1+turn*0.2; if(AC.rumble){AC.rumble.g.gain.setTargetAtTime(Math.min(0.09,rum),tt,.4); if(AC.rumble.lp)AC.rumble.lp.frequency.setTargetAtTime(Math.min(220, 110+thr*80),tt,.5); pumpNoise(AC.rumble, AC.rumble.lp, true)}
+ window.__bed=()=>({wind:+wind.toFixed(4), windHz:+cut.toFixed(0), eng:JET&&JET.g?+lv.toFixed(4):0, engHz:+lp.toFixed(0), rumble:+Math.min(0.09,rum).toFixed(4), rate:+rate.toFixed(3), slices:JET&&JET.slices?JET.slices.length:0, windPieces:AC.wind.live.length, drift:+bedDrift.toFixed(3), close:+close.toFixed(2), turn:+turn.toFixed(2)})}
 // ---------- particles ----------
 const parts=[],_pool=[];
 function _mkSpr(add,tex){const m=new THREE.Sprite(new THREE.SpriteMaterial({map:tex||smokeTex,color:0xffffff,transparent:true,depthWrite:false,blending:add?THREE.AdditiveBlending:THREE.NormalBlending,fog:true,rotation:0}));m.visible=false;scene.add(m);return m}
@@ -706,8 +747,8 @@ function initAudio(){if(AC){kickAudio();return}const ACC=window.AudioContext||wi
 
  AC.jet=AC.createGain();AC.jet.gain.value=0;AC.jlp=AC.createBiquadFilter();AC.jlp.type='lowpass';AC.jlp.frequency.value=700;AC.jlp.Q.value=.5;AC.jet.connect(AC.jlp).connect(AC.engB).connect(AC.dk);
  AC.engWhineLP=AC.createBiquadFilter();AC.engWhineLP.type='lowpass';AC.engWhineLP.frequency.value=640;AC.engWhineLP.Q.value=.4;AC.engWhineLP.connect(AC.engB);
- {const wb=mkSeamless(noiseBuf(2),.6);const w=AC.createBufferSource();w.buffer=wb;w.loop=true;w.playbackRate.value=.92;const bp=AC.createBiquadFilter();bp.type='bandpass';bp.Q.value=.55;bp.frequency.value=480;const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1300;
-  const g=AC.createGain();g.gain.value=0;w.connect(bp).connect(lp).connect(g).connect(AC.mus);w.start(0,Math.random()*6);AC.wind={g,bp}}
+ {const hp=AC.createBiquadFilter();hp.type='highpass';hp.frequency.value=160;hp.Q.value=.7; const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=420;lp.Q.value=.45; const g=AC.createGain();g.gain.value=0; hp.connect(lp).connect(g).connect(AC.mus); AC.wind={g,hp,lp,bp:lp,live:[],next:0}}
+ {const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=140;lp.Q.value=.5; const g=AC.createGain();g.gain.value=0; lp.connect(g).connect(AC.engB); AC.rumble={g,lp,live:[],next:0}}
  SB.load();prewarmAudio(); kickAudio();
  warnG=AC.createGain();warnG.gain.value=0;tone=AC.createOscillator();tone.type='sine';tone.frequency.value=520;const tf=AC.createGain();tf.gain.value=.05;tone.connect(tf).connect(warnG).connect(AC.tone);tone.start();
  trkG=AC.createGain();trkG.gain.value=0;{const o=AC.createOscillator();o.type='sine';o.frequency.value=440;o.connect(trkG).connect(AC.tone);o.start()}
@@ -926,17 +967,16 @@ function startDeckAmbience(){if(!AC||!takingOff())return;
  if(!deckRotor&&SB.deck_rotor)deckRotor=plainLoop(SB.deck_rotor,1,AC.deckRotorG,{tag:'deck:rotor'})}
 function stopDeckAmbience(){if(deckJet){try{deckJet.stop()}catch(e){} deckJet=null} if(deckRotor){try{deckRotor.stop()}catch(e){} deckRotor=null}
  if(AC&&AC.deckJetG){const t=AC.currentTime; AC.deckJetG.gain.setTargetAtTime(0,t,.15); AC.deckRotorG.gain.setTargetAtTime(0,t,.15)}}
+function armJet(buf, off, meta){if(!buf||JET)return; const g=AC.createGain(); g.gain.value=0; g.connect(AC.engWhineLP||AC.engB); JET={plain:1, g, buf, off:off||0, slices:[], next:0, rate:0.8, stop(){stopLive(this.slices); try{g.gain.setTargetAtTime(0,AC.currentTime,.08)}catch(e){}}}; sfxLog('nb', meta||{cat:'engine'}); if(!takingOff()){startBed(); ambS=bedS}}
 function startJet(){
- const nbE=nbSpec('engine'); if(nbE){const k=nbE.layers[0].k; if(!SB[k]){SB.get(k); return} if(!JET){JET=plainLoop(SB[k],(nbE.layers[0].v||.3)*(nbLevel()/0.8),AC.engWhineLP||AC.engB,{tag:'nb:engine',id:nbE.id}); sfxLog('nb',{cat:'engine',id:nbE.id,k}); if(!takingOff()){startBed(); ambS=bedS}} return}
+ const nbE=nbSpec('engine'); if(nbE){const k=nbE.layers[0].k; if(!SB[k]){SB.get(k); return} if(!JET)armJet(SB[k], nbE.layers[0].off||0, {cat:'engine',id:nbE.id,k}); return}
  const engC=sndChoice('engine');
  if(engC.id!=='current'){
   if(!SB[engC.key]){SB.get(engC.key); return}
-  if(!JET){JET=plainLoop(SB[engC.key],.22,AC.engWhineLP||AC.engB,{sec:'engine',id:engC.id}); if(!takingOff()){startBed(); ambS=bedS}}
+  if(!JET)armJet(SB[engC.key], 0, {sec:'engine',id:engC.id});
   return}
  if(JET||!(SB.jet8||SB.jet))return;
- if(SB.jet8){JET=startSmoothLoop(SB.jet8,1.15,AC.jet,{tag:'jet',xf:.4,detune:1.0025,fadeIn:.9})}
- else{JET=startSmoothLoop(SB.jet,1,AC.jet,{tag:'jet',xf:.4,detune:1.002,fadeIn:.9})}
- if(!takingOff()){startBed();ambS=bedS}}
+ armJet(SB.jet8||SB.jet, 0, {tag:'jet'})}
 function briefMusic(){if(!AC)return;const go=()=>{if(!$('brief')||$('brief').classList.contains('hide'))return;if(SB.ambient&&!briefSrc){briefSrc=src(mkSeamless(SB.ambient,.45),0,AC.mus,{loop:true,off:Math.random()*2,tag:'brief'});briefSrc.g.gain.cancelScheduledValues(AC.currentTime);briefSrc.g.gain.setValueAtTime(0,AC.currentTime);briefSrc.g.gain.linearRampToValueAtTime(.16,AC.currentTime+2)}};
  if(briefT)return;briefT=1;SB.get('ambient').then(()=>go())}
 let winSrc=null;function stopBrief(){briefT=1;if(briefSrc){const b=briefSrc;b.g.gain.setTargetAtTime(0,AC.currentTime,.4);setTimeout(()=>{try{b.stop()}catch(e){}},2500);briefSrc=null}stopWin()}
@@ -1182,7 +1222,7 @@ const NB={
  ],
  engine:[
   {id:'current',name:'Current',desc:'The engine loop already chosen on the sound tester.'},
-  {id:'whine',name:'F-105 Whine',desc:'A sustained jet whine, looped.',layers:[{k:'nb_eng_whine',off:.45,v:.28,loop:1}]},
+  {id:'whine',name:'F-105 Whine',desc:'The F-105 whine, heard in long overlapping pieces rather than a short loop.',layers:[{k:'nb_eng_whine',off:.45,v:.28,loop:1}]},
   {id:'idle',name:'Jet Idle',desc:'An idling jet, looped under the sortie.',layers:[{k:'nb_eng_idle',off:0,v:.4,loop:1}]},
   {id:'sn_blast',name:'Jet Blast Off',desc:'',layers:[{k:'sn_jet_blast_off',off:0,v:.22,loop:1}]},
   {id:'sn_flyc',name:'Jet Flyby Close',desc:'',layers:[{k:'sn_jet_flyby_close',off:0,v:.2,loop:1}]},
@@ -1833,7 +1873,7 @@ function release(){if(window.__ft)window.__ft.markRel();S.relHold=0;S._relT0=0; 
  const spd=Math.max(40,S.spd||(85+(S.thr||0)*195));
  S.bomb={p:S.pos.clone().add(new THREE.Vector3(0,-2,0)),v:fwd.clone().multiplyScalar(spd),tti:99,age:0,guided};bomb.visible=true;jet.visible=true;
  S.quiet=1; S.graceHold=8; S.safe=1; stopMood(true); riser(false); S.msg=guided?'GUIDED':'BOMB AWAY'; S.msgT=guided?2.4:1.4; paintRelease()}
-function silenceScore(){stopMood(true); stopIntroMusic(); stopDeckAmbience(); try{stopBed()}catch(e){} stopWin(); riser(false); if(typeof endHandle!=='undefined'&&endHandle){try{endHandle.stop()}catch(e){} endHandle=null} try{if(JET){JET.stop(0.05); JET=null}}catch(e){} try{if(windBed){windBed.stop(); windBed=null}}catch(e){} try{gridHumSet(false)}catch(e){} if(!AC)return; const t=AC.currentTime; [AC.amb,AC.moodG,AC.mus,AC.introG,AC.wind&&AC.wind.g,AC.jet,AC.sub,AC.engB,AC.deckJetG,AC.deckRotorG,eng&&eng.g,warnG,trkG,seekG].forEach(g=>{if(g&&g.gain){try{g.gain.cancelScheduledValues(t); g.gain.value=0}catch(e){}}})}
+function silenceScore(){stopMood(true); stopIntroMusic(); stopDeckAmbience(); try{stopBed()}catch(e){} stopWin(); riser(false); if(typeof endHandle!=='undefined'&&endHandle){try{endHandle.stop()}catch(e){} endHandle=null} try{if(JET){JET.stop(0.05); JET=null}}catch(e){} try{if(windBed){windBed.stop(); windBed=null}}catch(e){} try{if(AC&&AC.wind)stopLive(AC.wind.live)}catch(e){} try{if(AC&&AC.rumble)stopLive(AC.rumble.live)}catch(e){} try{gridHumSet(false)}catch(e){} if(!AC)return; const t=AC.currentTime; [AC.amb,AC.moodG,AC.mus,AC.introG,AC.wind&&AC.wind.g,AC.jet,AC.sub,AC.engB,AC.deckJetG,AC.deckRotorG,AC.rumble&&AC.rumble.g,eng&&eng.g,warnG,trkG,seekG].forEach(g=>{if(g&&g.gain){try{g.gain.cancelScheduledValues(t); g.gain.value=0}catch(e){}}})}
 function showEnd(win){running=false;releaseControls();clearTimeout(endTimer);silenceScore();if(AC){const t=AC.currentTime;riser(false);AC.jet.gain.setTargetAtTime(0,t,.05);AC.amb.gain.setTargetAtTime(0,t,.05);try{stopBed()}catch(e){};eng.g.gain.setTargetAtTime(0,t,.05);warnG.gain.setTargetAtTime(0,t,.05);trkG.gain.setTargetAtTime(0,t,.05);AC.sub.gain.setTargetAtTime(0,t,.05);if(S.missile)mslAudioStop(S.missile);$('vig').style.opacity=0;$('teach').style.display='none';seekG.gain.setTargetAtTime(0,t,.05);
  }const prec=win?Math.round(clamp(100-S.err*5,0,100)):0,st=Math.round(clamp(100-S.detT/Math.max(1,S.t)*100-S.samShots*10,0,100)),tm=S.t;
  const stars=win?1+(prec>=80)+(st>=75&&tm<170):0;$('et').textContent=win?'MISSION COMPLETE // ESCAPED':'MISSION FAILED // KILLED BY: '+killText();$('es').textContent='★'.repeat(stars)+'☆'.repeat(3-stars);
