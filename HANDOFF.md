@@ -5,6 +5,14 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x3 — the drogue looks like a drogue
+
+Visual only. The connect, the hose motion, and the sounds are unchanged from 17x2.
+
+The basket is a flared fabric cone: off-white gores with stitched seams, thin ribs, a thin metal rim at the mouth, and a dark coupler where the hose meets it. The hose is dark rubber with faint collars. The probe is a slimmer nozzle. The tanker fuselage has smoother shading and a few panel lines.
+
+Stamp `s17 · 17x3`.
+
 ## s17 · 17x2 — the dot in the ring connects, and the hose is a drogue
 
 The aim dot is the refuelling probe. The ring is the drogue basket. If the dot sits in the ring and the closure is gentle, the probe locks in about half a second. A phone gets a wider ring. There is no hidden speed, depth, or throttle gate. If the picture is right but the join is not, the line is one word: SLOW, FAST, or CLOSER. Once fuel is flowing, a small drift pauses with DISCONNECT and keeps the lock for a moment, so it does not flicker. A real gap drops the lock.
@@ -283,4 +291,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17x2. The sky is still the Poly Haven Alps Field photograph. The refuel is a probe and drogue: the dot in the ring connects, the hose hangs from the tanker, and the gauge is the fuel cue. A missed bunker can be re-attacked. The HUD fades idle detail. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17x3. The sky is still the Poly Haven Alps Field photograph. The refuel is a probe and drogue: the dot in the ring connects, and the basket is a fabric cone with a metal rim and coupler. A missed bunker can be re-attacked. The HUD fades idle detail. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.

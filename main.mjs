@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17x2'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17x3'])[1];
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -445,10 +445,12 @@ function slab(pts,depth=.12){const s=new THREE.Shape();s.moveTo(...pts[0]);pts.s
  // nav lights
  for(const [x,c] of[[-5.55,0xff2a20],[5.55,0x30ff50]]){const l=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:c,blending:THREE.AdditiveBlending,depthWrite:false}));l.scale.setScalar(.6);l.position.set(x,-.15,2.7);jet.add(l)}
  const probeG=new THREE.Group(); probeG.name='probe';
- const pMat=new THREE.MeshStandardMaterial({color:0xd5dbe0,metalness:.84,roughness:.26});
- const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.075,.1,3.1,8), pMat); shaft.rotation.x=Math.PI/2; shaft.position.set(.95,-.28,-7.4);
- const tip=new THREE.Mesh(new THREE.SphereGeometry(.14,8,6), pMat); tip.position.set(.95,-.28,-9.05); tip.name='tip';
- probeG.add(shaft,tip); jet.add(probeG); jet.userData.probe=probeG;}
+ const pMat=new THREE.MeshStandardMaterial({color:0xc5ccd2,metalness:.82,roughness:.3,envMapIntensity:.85});
+ const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.04,.056,2.85,16), pMat); shaft.rotation.x=Math.PI/2; shaft.position.set(.95,-.28,-7.52);
+ const neck=new THREE.Mesh(new THREE.CylinderGeometry(.05,.04,.34,16), pMat); neck.rotation.x=Math.PI/2; neck.position.set(.95,-.28,-8.9);
+ const tip=new THREE.Mesh(new THREE.SphereGeometry(.052,16,12), pMat); tip.position.set(.95,-.28,-9.05); tip.name='tip';
+ const band=new THREE.Mesh(new THREE.TorusGeometry(.064,.011,6,18), pMat); band.position.set(.95,-.28,-8.68);
+ probeG.add(shaft,neck,tip,band); jet.add(probeG); jet.userData.probe=probeG;}
 bunker.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});sam.traverse(o=>{if(o.isMesh)o.castShadow=true});
 // ---------- GLB jet (F-35 Lightning II by bohmerang, Sketchfab) ----------
 jet.traverse(o=>{if(o.isMesh&&o!==jet.userData.sh)o.castShadow=true});
@@ -1680,10 +1682,10 @@ function updHug(dt,rdt){
 }
 let tankerMesh=null;
 function ensureTanker(){if(tankerMesh)return tankerMesh; const g=new THREE.Group();
- const skin=new THREE.MeshStandardMaterial({color:0x8d98a4,metalness:.46,roughness:.34,emissive:0x3a2c18,emissiveIntensity:.22});
+ const skin=new THREE.MeshStandardMaterial({color:0xa7b0b8,metalness:.52,roughness:.48,emissive:0x1a1e24,emissiveIntensity:.05,envMapIntensity:.85});
  const dark=new THREE.MeshStandardMaterial({color:0x5c636b,metalness:.4,roughness:.5});
- const body=new THREE.Mesh(new THREE.CylinderGeometry(2.35,2.35,46,16),skin); body.rotation.x=Math.PI/2;
- const nose=new THREE.Mesh(new THREE.ConeGeometry(2.35,8,16),skin); nose.rotation.x=-Math.PI/2; nose.position.z=-26;
+ const body=new THREE.Mesh(new THREE.CylinderGeometry(2.35,2.35,46,28),skin); body.rotation.x=Math.PI/2;
+ const nose=new THREE.Mesh(new THREE.ConeGeometry(2.35,8,28),skin); nose.rotation.x=-Math.PI/2; nose.position.z=-26;
  const wing=new THREE.Mesh(new THREE.BoxGeometry(42,.55,8),skin); wing.position.set(0,.2,-2);
  const tail=new THREE.Mesh(new THREE.BoxGeometry(14,.4,5),skin); tail.position.set(0,1.2,18);
  const fin=new THREE.Mesh(new THREE.BoxGeometry(.45,6.2,5),skin); fin.position.set(0,3.4,18);
@@ -1691,7 +1693,13 @@ function ensureTanker(){if(tankerMesh)return tankerMesh; const g=new THREE.Group
  const boom=new THREE.Mesh(new THREE.CylinderGeometry(.18,.12,16,8),dark); boom.rotation.x=Math.PI/2.4; boom.position.set(0,-2.2,28);
  const basket=new THREE.Mesh(new THREE.TorusGeometry(1.35,.16,8,18), new THREE.MeshStandardMaterial({color:0xe7ebef,metalness:.5,roughness:.35})); basket.name='basket'; basket.visible=false;
  g.add(body,nose,wing,tail,fin,stripe,boom,basket);
- for(const x of [-14,-6,6,14]){const pod=new THREE.Mesh(new THREE.CylinderGeometry(.7,.7,4.2,10),dark); pod.rotation.x=Math.PI/2; pod.position.set(x,-1.15,-2); g.add(pod)}
+ const seamM=new THREE.MeshStandardMaterial({color:0x7a848e,metalness:.4,roughness:.62});
+ const seams=new THREE.InstancedMesh(new THREE.BoxGeometry(.03,.018,34), seamM, 6);
+ const seamQ=new THREE.Quaternion(), seamM4=new THREE.Matrix4(), seamP=new THREE.Vector3(), seamS=new THREE.Vector3(1,1,1);
+ for(let i=0;i<6;i++){const a=-2.15+i*0.86; seamP.set(Math.cos(a)*2.38,Math.sin(a)*2.38,1); seamQ.setFromAxisAngle(new THREE.Vector3(0,0,1),a); seamM4.compose(seamP,seamQ,seamS); seams.setMatrixAt(i,seamM4)}
+ g.add(seams);
+ for(const z of [-10,6,16]){const band=new THREE.Mesh(new THREE.TorusGeometry(2.37,.028,6,28), seamM); band.position.z=z; g.add(band)}
+ for(const x of [-14,-6,6,14]){const pod=new THREE.Mesh(new THREE.CylinderGeometry(.7,.7,4.2,12),dark); pod.rotation.x=Math.PI/2; pod.position.set(x,-1.15,-2); g.add(pod)}
  const lamp=(x,y,z,color)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.28,8,8), new THREE.MeshBasicMaterial({color})); m.position.set(x,y,z); g.add(m)};
  lamp(-21,.3,-2,0xff4040); lamp(21,.3,-2,0x40ff68); lamp(0,4.2,20,0xfff2cc);
  const dir=new THREE.Group(); dir.name='director';
@@ -1700,27 +1708,51 @@ function ensureTanker(){if(tankerMesh)return tankerMesh; const g=new THREE.Group
  const drum=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,1.15,12), dark); drum.rotation.z=Math.PI/2; drum.position.set(0,-1.55,20); g.add(drum);
  g.scale.setScalar(2.6); g.frustumCulled=false; g.traverse(o=>{o.frustumCulled=false; const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[]; ms.forEach(m=>{if(m)m.fog=false})}); scene.add(g); g.visible=false; return tankerMesh=g}
 let tankerRig=null, tankerHose=null;
-const HOSE_N=MOB?10:14;
+const HOSE_N=MOB?16:22;
 const _pod=new THREE.Vector3(), _h0=new THREE.Vector3(), _h1=new THREE.Vector3(), _ha=new THREE.Vector3(), _hb=new THREE.Vector3(), _sc=new THREE.Vector3();
 const _hoseQ=new THREE.Quaternion(), _hoseUp=new THREE.Vector3(0,1,0), _hoseS=new THREE.Vector3(), _hoseM=new THREE.Matrix4();
 const _probeTip=new THREE.Vector3();
 function hideTankerRig(){ if(tankerRig)tankerRig.visible=false; if(tankerHose)tankerHose.visible=false }
+function drogueGore(){
+ const rings=[{z:.02,r:.46},{z:.28,r:.78},{z:.56,r:1.16},{z:.84,r:1.58},{z:1.08,r:1.96},{z:1.24,r:2.12}];
+ const cols=5, half=Math.PI/20*1.42, pos=[], uv=[], idx=[];
+ for(let i=0;i<rings.length;i++){
+  for(let j=0;j<cols;j++){
+   const t=j/(cols-1), ang=-half+t*half*2, edge=Math.sin(Math.min(t,1-t)*Math.PI);
+   const r=rings[i].r+edge*.04*(rings[i].r/2.1);
+   pos.push(Math.cos(ang)*r, Math.sin(ang)*r, rings[i].z); uv.push(t, i/(rings.length-1));
+  }
+ }
+ for(let i=0;i<rings.length-1;i++)for(let j=0;j<cols-1;j++){const a=i*cols+j; idx.push(a,a+cols,a+1, a+1,a+cols,a+cols+1)}
+ const g=new THREE.BufferGeometry();
+ g.setAttribute('position', new THREE.Float32BufferAttribute(pos,3));
+ g.setAttribute('uv', new THREE.Float32BufferAttribute(uv,2));
+ g.setIndex(idx); g.computeVertexNormals(); return g}
+function hoseGeom(){
+ const geo=new THREE.CylinderGeometry(.088,.088,1,16,8,true);
+ const p=geo.attributes.position;
+ for(let i=0;i<p.count;i++){const y=p.getY(i), ay=Math.abs(y); let k=1; if(ay>.4)k=1.14; else if(Math.abs(ay-.16)<.035)k=1.07; p.setX(i,p.getX(i)*k); p.setZ(i,p.getZ(i)*k)}
+ geo.computeVertexNormals(); return geo}
 function ensureTankerRig(){ if(tankerRig)return;
  tankerRig=new THREE.Group(); tankerRig.name='drogue'; tankerRig.frustumCulled=false;
- const metal=new THREE.MeshStandardMaterial({color:0xb8b3ab,metalness:.74,roughness:.36});
- const cloth=new THREE.MeshStandardMaterial({color:0x8a4a32,metalness:.04,roughness:.88});
- const couplerM=new THREE.MeshStandardMaterial({color:0x2a2e32,metalness:.82,roughness:.3});
- const ring=new THREE.Mesh(new THREE.TorusGeometry(2.15,.13,8,24), metal);
- const chute=new THREE.Mesh(new THREE.TorusGeometry(1.45,.38,8,18), cloth); chute.scale.z=.42;
- const coupler=new THREE.Mesh(new THREE.CylinderGeometry(.26,.2,.62,10), couplerM); coupler.rotation.x=Math.PI/2;
- const lip=new THREE.Mesh(new THREE.TorusGeometry(.36,.05,6,12), metal);
- tankerRig.add(ring,chute,coupler,lip);
- const ribG=new THREE.InstancedMesh(new THREE.BoxGeometry(.05,1.55,.05), new THREE.MeshStandardMaterial({color:0x9a948c,metalness:.5,roughness:.46}), 8);
- ribG.frustumCulled=false;
- for(let i=0;i<8;i++){const a=i*Math.PI/4; _h0.set(Math.cos(a)*1.2,Math.sin(a)*1.2,-.1); _h1.set(Math.cos(a),Math.sin(a),0).normalize(); _hoseQ.setFromUnitVectors(_hoseUp,_h1); _hoseM.compose(_h0,_hoseQ,_hoseS.set(1,1,1)); ribG.setMatrixAt(i,_hoseM)}
+ const metal=new THREE.MeshStandardMaterial({color:0xc5ccd2,metalness:.78,roughness:.3,envMapIntensity:.9});
+ const cloth=new THREE.MeshStandardMaterial({color:0xe7e2d6,metalness:.02,roughness:.92,envMapIntensity:.35,transparent:true,opacity:.92,depthWrite:false,side:THREE.DoubleSide});
+ const couplerM=new THREE.MeshStandardMaterial({color:0x16181b,metalness:.88,roughness:.32,envMapIntensity:1});
+ const ribM=new THREE.MeshStandardMaterial({color:0x8d969e,metalness:.66,roughness:.4,envMapIntensity:.8});
+ const gores=new THREE.InstancedMesh(drogueGore(), cloth, 20); gores.frustumCulled=false; gores.renderOrder=2;
+ for(let i=0;i<20;i++){_hoseM.makeRotationZ(i*Math.PI*2/20); gores.setMatrixAt(i,_hoseM)}
+ const coupler=new THREE.Mesh(new THREE.CylinderGeometry(.15,.2,1.08,28), couplerM); coupler.rotation.x=Math.PI/2; coupler.position.z=-.32;
+ const lip=new THREE.Mesh(new THREE.TorusGeometry(.22,.028,8,32), metal); lip.position.z=.2;
+ const collar=new THREE.Mesh(new THREE.TorusGeometry(.24,.032,8,32), couplerM); collar.position.z=-.84;
+ const rim=new THREE.Mesh(new THREE.TorusGeometry(2.15,.028,8,64), metal); rim.position.z=1.24;
+ tankerRig.add(coupler,lip,collar,rim,gores);
+ const ribG=new THREE.InstancedMesh(new THREE.BoxGeometry(.022,1,.012), ribM, 20); ribG.frustumCulled=false;
+ const z0=.24, r0=.36, z1=1.18, r1=2.04, dz=z1-z0, dr=r1-r0, ribLen=Math.hypot(dr,dz);
+ for(let i=0;i<20;i++){const a=i*Math.PI*2/20; _h0.set(Math.cos(a)*(r0+r1)*.5, Math.sin(a)*(r0+r1)*.5, (z0+z1)*.5); _h1.set(Math.cos(a)*dr, Math.sin(a)*dr, dz).normalize(); _hoseQ.setFromUnitVectors(_hoseUp,_h1); _hoseM.compose(_h0,_hoseQ,_hoseS.set(1,ribLen,1)); ribG.setMatrixAt(i,_hoseM)}
  tankerRig.add(ribG);
+ tankerRig.traverse(o=>{o.frustumCulled=false});
  scene.add(tankerRig);
- tankerHose=new THREE.InstancedMesh(new THREE.CylinderGeometry(.1,.1,1,6), new THREE.MeshStandardMaterial({color:0x3c3834,metalness:.22,roughness:.74}), HOSE_N);
+ tankerHose=new THREE.InstancedMesh(hoseGeom(), new THREE.MeshStandardMaterial({color:0x241f1c,roughness:.86,metalness:.06,envMapIntensity:.35}), HOSE_N);
  tankerHose.frustumCulled=false; tankerHose.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(tankerHose);
  tankerRig.visible=false; tankerHose.visible=false }
 function podPoint(){const yaw=tankerMesh.rotation.y, sc=2.6, lz=20, ly=-1.55;
