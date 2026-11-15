@@ -5,6 +5,16 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x — the fuel transfer, a second pass, a quieter HUD
+
+The refuel is no longer an autopilot. Once the boom locks there is a clunk and a shake, fuel runs down the hose, and a gauge counts the pounds. Lights under the tanker say up, down, forward, or aft. Drift out and the flow stops with DISCONNECT until you reconnect. Full says TANK FULL, the hose pulls away, then CLEARED.
+
+A miss or a fly-by sets RE-ATTACK, with an arrow and the distance back to the bunker. Climbing out of the valley to turn is forgiven, and the lock and the guided release work on the way back in.
+
+The HUD keeps only what the moment needs. Idle numbers fade. What stays is large, on a dark plate, and updates in calm steps. Buttons dim until they matter, and they still take a press.
+
+Stamp `s17 · 17x`.
+
 ## s17 · 17w — a photographed sky, the jet stays in frame, the tanker stays up
 
 The high sky is a real photograph: Alps Field, a bright day over snowy Alpine peaks, from Poly Haven, CC0. The paper clouds and the stripy rock skirt are gone. The same picture is the sky in the valley. The valley's far ridges fade into that photo's haze.
@@ -263,4 +273,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17w. The sky is the Poly Haven Alps Field photograph, CC0, in the high leg and in the valley. The chase camera keeps the jet on screen. The tanker stays visible until the tank is full, with a distance marker when it is far. Combat buttons still answer, and the engine bed still fades. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17x. The sky is still the Poly Haven Alps Field photograph. Refuelling is flown by hand, with a gauge, hose flow, and director lights. A missed bunker can be re-attacked. The HUD fades idle detail and keeps the live numbers large. Deployed to `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
