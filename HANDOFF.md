@@ -5,6 +5,14 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x9 — buttons stay up, and the first join connects
+
+After the tank is full, GUN, FLR, JAMS, BREAK, LOCK, and RELEASE stay on the screen for the rest of the flight. They can dim when nothing is threatening, and they hide only while you are actually on the basket. Killing a bandit does not put the refuel screen back. A retry after you have taken fuel keeps the fuel and the buttons.
+
+The first refuel used to turn the ring green while the probe was still short of the drogue, so you could sit in that picture for a long time with no fuel. The ring is green only when the dot is inside it and the probe is close enough to connect. That contact starts within about a second. If something is in the way, the ring stays amber and the line says CLOSER, SLOW, FAST, or WAIT.
+
+Stamp `s17 · 17x9`.
+
 ## s17 · 17x8 — banners stay off the buttons
 
 Once the tank is full, the join-up line, the tanker arrow, and the distance stop. They come back only if the tanker is needed again. Prompt text sits above the control buttons. The top banner is kept left of the radar so it does not cover the RWR circle. Checked in phone portrait, phone landscape, and an iPad-sized page.
@@ -323,4 +331,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17x8. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17x9. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
