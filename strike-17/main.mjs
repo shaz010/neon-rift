@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17x9'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17x10'])[1];
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -1807,58 +1807,37 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(S.phas
  if(S.tanker&&S.tanker.lock==='done'){const tk=S.tanker; if(S.t<(tk.hideAt||0)&&tankerMesh&&tankerMesh.visible){const u=clamp((S.t-(tk.fullAt||S.t))/1.45,0,1); const pod=podPoint(); const o=tk.reelFrom||{x:0,y:0,z:0}; const bx=pod.x+o.x*(1-u), by=pod.y+o.y*(1-u), bz=pod.z+o.z*(1-u); layHose(bx,by,bz,.3*(1-u),0); tk.basket={x:bx,y:by,z:bz}; if(u>0.55&&!tk.cleared){tk.cleared=1; msg('CLEARED'); S.msgT=1.6; fuelClunk()} hideFuelFx(); refreshCalm(0); return} if(!tk.away){tk.away=1; S.descendCue=1; msg('TANKER BREAKING AWAY'); S.msgT=2.2} releaseContact(tk); tk.fuel=0; if(tankerMesh)tankerMesh.visible=true}
  if(!S.tanker)S.tanker={z:TANKER_Z,fuel:0,fails:0,called:0,contact:0,t0:0,fast:0,shout:-10,spd:220,rejoin:0,lock:'',lockT:0};
  const tk=S.tanker;
- const playerSpd=Math.max(85, S.spd||(85+(S.thr||0)*195));
- let x=vx(tk.z), y=HIGH_Y;
- let yaw=Math.atan2(-(vx(tk.z-40)-x), 40);
- let fx=-Math.sin(yaw), fz=-Math.cos(yaw);
- let along=(S.pos.x-x)*fx+(S.pos.z-tk.z)*fz;
- const ship0=Math.hypot(S.pos.x-x,S.pos.y-y,S.pos.z-tk.z);
- const bPrev=tk.basket, nearB=!!(bPrev&&Math.hypot(S.pos.x-bPrev.x,S.pos.y-bPrev.y,S.pos.z-bPrev.z)<80);
- if((S.refuelSafe||0)>0&&S.fuelDone&&tk.lock!=='hold'&&tk.lock!=='arm'){tk.spd=playerSpd+55; tk.breakSide=Math.min(260,(tk.breakSide||0)+70*Math.max(dt,.016))}
- else if(tk.lock==='hold'||nearB)tk.spd=playerSpd;
- else if(along>40){tk.rejoin=1; tk.spd=playerSpd+55; if(!tk._ov||S.t-tk._ov>4){tk._ov=S.t; msg('OVERSHOOT, REJOIN')}}
- else if(tk.rejoin&&along<-220){tk.rejoin=0; tk.spd=playerSpd; if(!S.fuelDone)msg('TANKER AHEAD — JOIN UP')}
- else if(!tk.rejoin&&along<-350)tk.spd=Math.max(85, playerSpd-35);
- else if(!tk.rejoin&&along<-140)tk.spd=Math.max(85, playerSpd-10);
- else tk.spd=playerSpd;
- tk.z-=tk.spd*dt;
- x=vx(tk.z)+(tk.breakSide||0); y=HIGH_Y;
- yaw=Math.atan2(-(vx(tk.z-40)-vx(tk.z)), 40);
- fx=-Math.sin(yaw); fz=-Math.cos(yaw);
- ensureTanker(); tankerMesh.visible=true; tankerMesh.position.set(x,y,tk.z); tankerMesh.rotation.set(0,yaw,Math.sin(S.t*.55)*.02);
- const aftX=Math.sin(yaw), aftZ=Math.cos(yaw);
- const calmB=(tk.lock==='hold'||tk.lock==='arm'||(tk.dist!=null&&tk.dist<70));
- const wob=Math.sin(S.t*.55)*.7*(calmB?.12:1);
+ if(tk.hdg==null){const z0=tk.z, x0=vx(z0); tk.hdg=Math.atan2(-(vx(z0-40)-x0), 40); tk.px=x0; tk.pz=z0; tk.cruise=200}
+ const breaking=(S.refuelSafe||0)>0&&S.fuelDone&&tk.lock!=='hold'&&tk.lock!=='arm';
+ tk.spd=breaking?(tk.cruise||200)+40:(tk.cruise||200);
+ tk.breakSide=0; tk.rejoin=0;
+ const yaw=tk.hdg, fx=-Math.sin(yaw), fz=-Math.cos(yaw);
+ tk.px+=fx*tk.spd*dt; tk.pz+=fz*tk.spd*dt; tk.z=tk.pz;
+ const x=tk.px, y=HIGH_Y;
+ ensureTanker(); tankerMesh.visible=true; tankerMesh.position.set(x,y,tk.z); tankerMesh.rotation.set(0,yaw,0);
+ const aftX=Math.sin(yaw), aftZ=Math.cos(yaw), rightX=-aftZ, rightZ=aftX;
+ const damp=(tk.lock==='hold'||tk.lock==='arm'||tk._allow)?0.22:1;
+ const bob=Math.sin(S.t*(Math.PI*2/6))*0.32*damp, bobY=Math.cos(S.t*(Math.PI*2/8)+1.1)*0.18*damp;
  const podAft=20*2.6, reel=24;
- const restx=x+aftX*(podAft+reel)+(-aftZ)*wob, restz=tk.z+aftZ*(podAft+reel)+aftX*wob, resty=y-1.55*2.6-2.4;
- const seated=tk.lock==='hold';
- const rightX=-aftZ, rightZ=aftX;
- let lx=0, ly=0, lz=0;
- if(seated){const p=probeTipWorld(); const iy=S.yaw||0, seat=.55; const dx=p.x+Math.sin(iy)*seat-restx, dy=p.y-resty, dz=p.z+Math.cos(iy)*seat-restz; lx=dx*aftX+dz*aftZ; ly=dx*rightX+dz*rightZ; lz=dy; const mag=Math.hypot(lx,ly,lz); if(mag>16){const s=16/mag; lx*=s; ly*=s; lz*=s} tk._held=1; tk.wave=tk.wave==null?1:Math.max(0,tk.wave-dt*1.3)}
- else { if(tk._held){tk._held=0; tk.swing=1.15} tk.wave=0 }
- tk.swing=Math.max(0,(tk.swing||0)-dt*.65);
- const pull=1-Math.exp(-(seated?14:6)*Math.max(dt,.016));
- if(tk.ox==null){tk.ox=0; tk.oy=0; tk.oz=0}
- tk.ox+=(lx-tk.ox)*pull; tk.oy+=(ly-tk.oy)*pull; tk.oz+=(lz-tk.oz)*pull;
- const sw=Math.sin(S.t*2.3)*(tk.swing||0)*2.2;
- const bx=restx+aftX*tk.ox+rightX*(tk.oy+sw), by=resty+tk.oz, bz=restz+aftZ*tk.ox+rightZ*(tk.oy+sw);
- layHose(bx,by,bz, seated?0.7:2.7, seated?(tk.wave||0):(tk.swing||0)*.35*(calmB?.2:1));
+ const bx=x+aftX*(podAft+reel)+rightX*bob, by=y-1.55*2.6-2.4+bobY, bz=tk.z+aftZ*(podAft+reel)+rightZ*bob;
+ layHose(bx,by,bz, tk.lock==='hold'?0.45:0.7, 0.08*damp);
  tk.basket={x:bx,y:by,z:bz}; tk.yaw=yaw; tk.alt=y; tk.x=x; tk.y=y;
+ let along=(S.pos.x-x)*fx+(S.pos.z-tk.z)*fz;
  if(tk.lock!=='done'){
   const pre=tankerScreen(); const tip=probeTipWorld();
   const pd0=Math.hypot(tip.x-bx,tip.y-by,tip.z-bz);
-  const zone=!!(pre&&pre.cs&&pre.fp&&pre.sep<=pre.rad)||pd0<28||tk.lock==='hold'||tk.lock==='arm';
+  const zone=!!(pre&&pre.cs&&pre.fp&&pre.sep<=pre.rad)||pd0<22||tk.lock==='hold'||tk.lock==='arm';
   const grace=(S.refuelSafe||0)>2&&tk.lock!=='hold'&&tk.lock!=='arm';
   if(tk.lock==='hold'&&Math.hypot(inp.x,inp.y)>.88) tk._leave=(tk._leave||0)+Math.max(dt,.016); else tk._leave=Math.max(0,(tk._leave||0)-Math.max(dt,.016));
   const hard=tk.lock==='hold'?(tk._leave||0)>.7:Math.hypot(inp.x,inp.y)>.97;
-  if(zone&&!hard&&!grace&&Math.hypot(S.pos.x-bx,S.pos.y-by,S.pos.z-bz)<110){
+  if(zone&&!hard&&!grace&&Math.hypot(S.pos.x-bx,S.pos.y-by,S.pos.z-bz)<42){
    const tx=S.pos.x+(bx-tip.x), ty=S.pos.y+(by-tip.y), tz=S.pos.z+(bz-tip.z);
-   const k=1-Math.exp(-Math.max(dt,.016)/(tk.lock==='hold'?.7:1.25));
-   let mx=tx-S.pos.x, my=ty-S.pos.y, mz=tz-S.pos.z; const ml=Math.hypot(mx,my,mz)||1; const step=Math.min(ml*k, tk.lock==='hold'?.55:.4);
+   const k=1-Math.exp(-Math.max(dt,.016)/(tk.lock==='hold'?1.05:1.35));
+   let mx=tx-S.pos.x, my=ty-S.pos.y, mz=tz-S.pos.z; const ml=Math.hypot(mx,my,mz)||1; const step=Math.min(ml*k, tk.lock==='hold'?.28:.16);
    S.pos.x+=mx/ml*step; S.pos.y+=my/ml*step; S.pos.z+=mz/ml*step;
-   S.roll*=1-k; S.pitch*=1-k;
+   S.roll*=1-k*.45; S.pitch*=1-k*.45;
    const dyaw=Math.atan2(Math.sin((yaw||0)-S.yaw),Math.cos((yaw||0)-S.yaw));
-   S.yaw+=dyaw*k*.65; tk.spd=playerSpd;
+   S.yaw+=dyaw*k*.28;
   }
  }
  let dx=S.pos.x-bx, dy=S.pos.y-by, dz=S.pos.z-bz, dist=Math.hypot(dx,dy,dz);
@@ -1907,7 +1886,7 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(S.phas
   hideFuelFx(); setDirLights(allow?mode:'');
   const stepT=Math.max(1/60, rdt||dt||1/30);
   if(allow){ tk._gap=0; tk.lockT=(tk.lockT||0)+stepT; tk.lock='arm'; tk.why='HOLD STEADY'; if(tk.lockT>=.65){tk.lock='hold'; tk.contact=1; tk.outT=0; tk.wave=1; tk.why=''; tk.flow=0.55; fuelClunk(); S.shake=Math.max(S.shake,.04); msg('CONTACT'); S.msgT=1.6} }
-  else { tk._gap=(tk._gap||0)+stepT; if(tk.lock==='arm'&&tk._gap<0.4){tk.lockT=(tk.lockT||0)+stepT*0.5; tk.why='HOLD STEADY'} else { tk.lockT=Math.max(0,(tk.lockT||0)-stepT); if(tk.lockT<=0)tk.lock=''; tk.why=block||'CLOSER' } }
+  else { tk._gap=(tk._gap||0)+stepT; if(tk.lock==='arm'&&tk._gap<0.85){tk.lockT=(tk.lockT||0)+stepT*0.35; tk.why='HOLD STEADY'} else { tk.lockT=Math.max(0,(tk.lockT||0)-stepT*0.5); if(tk.lockT<=0)tk.lock=''; tk.why=block||'CLOSER' } }
  }
  refreshCalm(0);
 }
@@ -1940,7 +1919,7 @@ function placeChaseCam(){if(!S)return; const span=(jet.userData&&jet.userData.sp
  function seat(d,bias){cam.position.set(S.pos.x+sx*d,S.pos.y+d*.32,S.pos.z+cx*d); const lift=Math.tan(vFov*.16)*d; _chaseLook.set(S.pos.x-sx*5,S.pos.y+lift,S.pos.z-cx*5);
   if(basket&&bias>0){_chaseTry.set(basket.x,basket.y,basket.z); _chaseLook.lerp(_chaseTry,bias)} cam.up.set(0,1,0); cam.lookAt(_chaseLook)}
  seat(dist,0); for(let n=0;n<5&&!jetInFrame();n++){dist*=1.16; seat(dist,0)}
- if(basket){let lo=0,hi=.7,best=0; for(let i=0;i<7;i++){const mid=(lo+hi)*.5; seat(dist,mid); if(jetInFrame(true)){best=mid; lo=mid}else hi=mid} seat(dist,best)}}
+ if(basket) seat(dist, 0.16)}
 function aimTankerCam(){placeChaseCam(); return true}
 window.__jetBox=()=>{placeChaseCam(); cam.updateMatrixWorld(true); return _chasePts.map(p=>{const q=_chaseTmp.copy(p).project(cam); return {x:+q.x.toFixed(3),y:+q.y.toFixed(3)}})};
 window.__tankerVis=()=>({vis:!!(tankerMesh&&tankerMesh.visible), far:+cam.far.toFixed(0), beacon:!!(tankerBeacon&&tankerBeacon.visible), fuelFail:!!(S&&S.fuelFail), fuelDone:!!(S&&S.fuelDone), z:tankerMesh?Math.round(tankerMesh.position.z):null});
