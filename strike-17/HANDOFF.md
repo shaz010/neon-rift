@@ -5,6 +5,14 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x4 — the dot stays up, and a near join connects
+
+The aim dot is drawn last, in yellow on a black disc, and it stays on the screen. If the basket is off the screen, an arrow points at it and the dot stays too. It is not faded with the other instruments.
+
+Once the dot is inside about twice the ring, or the probe is near the basket, the jet eases into the drogue over about a second. The line says CLOSER, then HOLD STEADY, then CONTACT. Near the basket the stick is softer, the basket sways less, and the camera shake is cut down, including at 30 fps. A small drift after contact only slows the fuel. The lock drops when the jet clearly flies away.
+
+Stamp `s17 · 17x4`.
+
 ## s17 · 17x3 — the drogue looks like a drogue
 
 Visual only. The connect, the hose motion, and the sounds are unchanged from 17x2.
@@ -291,4 +299,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17x3. The sky is still the Poly Haven Alps Field photograph. The refuel is a probe and drogue: the dot in the ring connects, and the basket is a fabric cone with a metal rim and coupler. A missed bunker can be re-attacked. The HUD fades idle detail. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17x4. The sky is still the Poly Haven Alps Field photograph. The refuel dot stays on screen, and a near join eases into the drogue. A missed bunker can be re-attacked. The HUD fades idle detail. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
