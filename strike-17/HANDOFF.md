@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x6 — the fuel gauge stays out of the picture
+
+The gauge is smaller and sits in the lower-right corner, with a light backing. The ring and the aim dot are drawn after it, so they stay on top. Portrait, landscape, and an iPad-sized page keep the basket, the ring, the dot, and the jet clear of it.
+
+Stamp `s17 · 17x6`.
+
 ## s17 · 17x5 — a second refuel is a fresh refuel
 
 The first tank-full used to stick. The hose stayed reeled in, the tanker hid, and the aim ring never came back, so the next attempt had nothing to line up with. After CLEARED the basket pays out to the trail again, the lock and the magnet reset, and another join works. A disconnect does the same: the basket leaves the probe and trails. Having already taken fuel no longer turns the join off. The ease-in is capped so it does not snap, and the dot and the ring are smoothed on screen.
@@ -305,4 +311,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17x5. The sky is still the Poly Haven Alps Field photograph. A finished or broken refuel resets, and the basket trails again for the next join. A missed bunker can be re-attacked. The HUD fades idle detail. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17x6. The sky is still the Poly Haven Alps Field photograph. The fuel gauge sits in the lower-right and does not cover the basket. A finished refuel still resets for the next join. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
