@@ -1,6 +1,6 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17x3'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17x4'])[1];
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
@@ -1758,8 +1758,10 @@ function ensureTankerRig(){ if(tankerRig)return;
 function podPoint(){const yaw=tankerMesh.rotation.y, sc=2.6, lz=20, ly=-1.55;
  _pod.set(tankerMesh.position.x+Math.sin(yaw)*lz*sc, tankerMesh.position.y+ly*sc, tankerMesh.position.z+Math.cos(yaw)*lz*sc); return _pod}
 function hoseAt(out, pod, basket, t, sag, wave){
- const wob=Math.sin((S&&S.t||0)*.7+t*5.4)*(0.22+wave)*Math.sin(Math.PI*t);
- const wob2=Math.cos((S&&S.t||0)*.5+t*3.1)*0.16*Math.sin(Math.PI*t);
+ const calm=S&&S.tanker&&(S.tanker.lock==='hold'||S.tanker.lock==='arm'||(S.tanker.dist!=null&&S.tanker.dist<70));
+ const s=calm?.18:1;
+ const wob=Math.sin((S&&S.t||0)*.7+t*5.4)*(0.22+wave)*Math.sin(Math.PI*t)*s;
+ const wob2=Math.cos((S&&S.t||0)*.5+t*3.1)*0.16*Math.sin(Math.PI*t)*s;
  out.set(pod.x+(basket.x-pod.x)*t+wob, pod.y+(basket.y-pod.y)*t-Math.sin(Math.PI*t)*sag, pod.z+(basket.z-pod.z)*t+wob2); return out}
 function layHose(bx,by,bz,sag,wave){ensureTankerRig(); tankerHose.visible=true; tankerRig.visible=true;
  const pod=podPoint(); const basket=_h1.set(bx,by,bz);
@@ -1806,7 +1808,7 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(!S.fue
  let fx=-Math.sin(yaw), fz=-Math.cos(yaw);
  let along=(S.pos.x-x)*fx+(S.pos.z-tk.z)*fz;
  const ship0=Math.hypot(S.pos.x-x,S.pos.y-y,S.pos.z-tk.z);
- const bPrev=tk.basket, nearB=!!(bPrev&&Math.hypot(S.pos.x-bPrev.x,S.pos.y-bPrev.y,S.pos.z-bPrev.z)<48);
+ const bPrev=tk.basket, nearB=!!(bPrev&&Math.hypot(S.pos.x-bPrev.x,S.pos.y-bPrev.y,S.pos.z-bPrev.z)<80);
  if(tk.lock==='hold'||nearB)tk.spd=playerSpd;
  else if(along>40){tk.rejoin=1; tk.spd=playerSpd+55; if(!tk._ov||S.t-tk._ov>4){tk._ov=S.t; msg('OVERSHOOT, REJOIN')}}
  else if(tk.rejoin&&along<-220){tk.rejoin=0; tk.spd=playerSpd; msg('TANKER AHEAD — JOIN UP')}
@@ -1819,7 +1821,8 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(!S.fue
  fx=-Math.sin(yaw); fz=-Math.cos(yaw);
  ensureTanker(); tankerMesh.visible=true; tankerMesh.position.set(x,y,tk.z); tankerMesh.rotation.set(0,yaw,Math.sin(S.t*.55)*.02);
  const aftX=Math.sin(yaw), aftZ=Math.cos(yaw);
- const wob=Math.sin(S.t*.55)*.7;
+ const calmB=(tk.lock==='hold'||tk.lock==='arm'||(tk.dist!=null&&tk.dist<70));
+ const wob=Math.sin(S.t*.55)*.7*(calmB?.12:1);
  const podAft=20*2.6, reel=24;
  const restx=x+aftX*(podAft+reel)+(-aftZ)*wob, restz=tk.z+aftZ*(podAft+reel)+aftX*wob, resty=y-1.55*2.6-2.4;
  const seated=tk.lock==='hold';
@@ -1832,8 +1835,23 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(!S.fue
  tk.ox+=(wx-tk.ox)*pull; tk.oy+=(wy-tk.oy)*pull; tk.oz+=(wz-tk.oz)*pull;
  const sw=Math.sin(S.t*2.3)*(tk.swing||0)*2.6;
  const bx=restx+tk.ox+(-aftZ)*sw, by=resty+tk.oy, bz=restz+tk.oz+aftX*sw;
- layHose(bx,by,bz, seated?0.7:2.7, seated?(tk.wave||0):(tk.swing||0)*.35);
+ layHose(bx,by,bz, seated?0.7:2.7, seated?(tk.wave||0):(tk.swing||0)*.35*(calmB?.2:1));
  tk.basket={x:bx,y:by,z:bz}; tk.yaw=yaw; tk.alt=y; tk.x=x; tk.y=y;
+ if(tk.lock!=='done'){
+  const pre=tankerScreen(); const tip=probeTipWorld();
+  const pd0=Math.hypot(tip.x-bx,tip.y-by,tip.z-bz);
+  const zone=!!(pre&&pre.cs&&pre.fp&&pre.sep<=pre.rad*2.15)||pd0<22||tk.lock==='hold';
+  if(tk.lock==='hold'&&Math.hypot(inp.x,inp.y)>.88) tk._leave=(tk._leave||0)+Math.max(dt,.016); else tk._leave=Math.max(0,(tk._leave||0)-Math.max(dt,.016));
+  const hard=tk.lock==='hold'?(tk._leave||0)>.7:Math.hypot(inp.x,inp.y)>.92;
+  if(zone&&!hard&&Math.hypot(S.pos.x-bx,S.pos.y-by,S.pos.z-bz)<120){
+   const tx=S.pos.x+(bx-tip.x), ty=S.pos.y+(by-tip.y), tz=S.pos.z+(bz-tip.z);
+   const k=1-Math.exp(-Math.max(dt,.016)/(tk.lock==='hold'?.4:.8));
+   S.pos.x+=(tx-S.pos.x)*k; S.pos.y+=(ty-S.pos.y)*k; S.pos.z+=(tz-S.pos.z)*k;
+   S.roll*=1-k; S.pitch*=1-k;
+   const dyaw=Math.atan2(Math.sin((yaw||0)-S.yaw),Math.cos((yaw||0)-S.yaw));
+   S.yaw+=dyaw*k*.65; tk.spd=playerSpd;
+  }
+ }
  let dx=S.pos.x-bx, dy=S.pos.y-by, dz=S.pos.z-bz, dist=Math.hypot(dx,dy,dz);
  along=(S.pos.x-x)*fx+(S.pos.z-tk.z)*fz;
  const ship=Math.hypot(S.pos.x-x,S.pos.y-y,S.pos.z-tk.z);
@@ -1846,9 +1864,8 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(!S.fue
  tk.dist=dist; tk.dy=dy; tk.closing=closing; tk.along=along; tk.ship=ship; tk.ahead=(bx-S.pos.x)*fx+(bz-S.pos.z)*fz;
  aimTankerCam();
  const view=tankerScreen(); tk.view=view;
- const slop=MOB?1.4:1.12, staySlop=MOB?2.25:1.85;
- const dotIn=!!(view&&view.cs&&view.fp&&view.sep<=view.rad*slop);
- const stay=!!(view&&view.cs&&view.fp&&view.sep<=view.rad*staySlop&&dist<(MOB?520:420));
+ const tipNow=probeTipWorld(); const pd=Math.hypot(tipNow.x-bx,tipNow.y-by,tipNow.z-bz);
+ const capture=!!(view&&view.cs&&view.fp&&view.sep<=view.rad*2.15)||pd<22;
  const relx=S.pos.x-bx, relz=S.pos.z-bz, fore=relx*aftX+relz*aftZ, side=relx*(-aftZ)+relz*aftX;
  let mode='HOLD';
  if(Math.abs(side)>Math.abs(dy)&&Math.abs(side)>Math.abs(fore)&&Math.abs(side)>8) mode=side>0?'RIGHT':'LEFT';
@@ -1856,30 +1873,28 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(!S.fue
  else if(Math.abs(fore)>8) mode=fore>0?'FWD':'AFT';
  tk.dir=mode; tk.dy=dy; tk.fore=fore; tk.side=side;
  if(tk.lock==='hold'){
-  setDirLights(stay&&mode==='HOLD'?'HOLD':(mode==='LEFT'||mode==='RIGHT'?'OFF':mode));
-  if(stay){
-    tk.outT=0; tk.contact=1; tk.flow=1; tk.fuel=Math.min(1,(tk.fuel||0)+dt/13); fuelRumble();
+  setDirLights(pd<14&&mode==='HOLD'?'HOLD':(mode==='LEFT'||mode==='RIGHT'?'OFF':mode));
+  const flown=dist>200||pd>48;
+  const snug=pd<14;
+  if(!flown){
+    tk.outT=0; tk.contact=1; tk.flow=snug?1:0.5; tk.why=''; tk.fuel=Math.min(1,(tk.fuel||0)+(dt/13)*tk.flow); fuelRumble();
     fuelGlow.visible=true; fuelGlow.material.opacity=.05; fuelGlow.position.set(bx+(podPoint().x-bx)*.45, by+(podPoint().y-by)*.45, bz+(podPoint().z-bz)*.45); fuelGlow.scale.setScalar(1.15);
     fuelMist.visible=false;
-    if(tk.fuel>=1){S.fuelDone=1; S.calmLeft=4; tk.lock='done'; tk.fullAt=S.t; tk.hideAt=S.t+3.6; tk.flow=0; const _rp=podPoint(); tk.reelFrom={x:bx-_rp.x,y:by-_rp.y,z:bz-_rp.z}; if(practice!=='tanker')rememberTanker(); S.score=(S.score||0)+4000; fuelClunk(); S.shake=Math.max(S.shake,.28); hideFuelFx(); setDirLights('HOLD'); msg('TANK FULL'); S.msgT=2.4}
+    if(tk.fuel>=1){S.fuelDone=1; S.calmLeft=4; tk.lock='done'; tk.fullAt=S.t; tk.hideAt=S.t+3.6; tk.flow=0; const _rp=podPoint(); tk.reelFrom={x:bx-_rp.x,y:by-_rp.y,z:bz-_rp.z}; if(practice!=='tanker')rememberTanker(); S.score=(S.score||0)+4000; fuelClunk(); S.shake=Math.max(S.shake,.06); hideFuelFx(); setDirLights('HOLD'); msg('TANK FULL'); S.msgT=2.4}
   } else {
-    tk.flow=0; tk.contact=0; hideFuelFx(); tk.outT=(tk.outT||0)+(rdt||dt);
-    if(!tk._disc||S.t-tk._disc>1.6){tk._disc=S.t; msg('DISCONNECT'); S.msgT=1.4}
-    if(tk.outT>1.8||dist>(MOB?640:520)){tk.lock=''; tk.lockT=0; tk.outT=0; tk.dir=''; fuelClunk(); S.shake=Math.max(S.shake,.16); setDirLights(''); msg('DISCONNECT')}
+    tk.flow=Math.max(0,(tk.flow||0)-dt*.5); tk.contact=1; hideFuelFx(); tk.outT=(tk.outT||0)+(rdt||dt);
+    if(tk.outT>2.4&&flown){tk.lock=''; tk.lockT=0; tk.outT=0; tk.dir=''; tk.flow=0; fuelClunk(); S.shake=Math.max(S.shake,.06); setDirLights(''); msg('DISCONNECT')}
   }
  } else {
-  hideFuelFx(); setDirLights(dotIn?mode:'');
-  let why='';
-  if(dotIn&&dist>(MOB?360:240)) why='CLOSER';
-  else if(dotIn&&closing>(MOB?26:18)) why='FAST';
-  else if(dotIn&&closing<(MOB?-16:-12)) why='SLOW';
-  tk.why=why;
-  if(dotIn&&!why){ tk.miss=0; tk.lockT=(tk.lockT||0)+(rdt||dt); tk.lock='arm'; if(tk.lockT>=.45){tk.lock='hold'; tk.contact=1; tk.outT=0; tk.wave=1; tk.why=''; fuelClunk(); S.shake=Math.max(S.shake,.24); msg('CONTACT'); S.msgT=1.6} }
-  else { tk.miss=(tk.miss||0)+(rdt||dt); if(tk.miss>.32) tk.lockT=Math.max(0,(tk.lockT||0)-(rdt||dt)); if((tk.lockT||0)<=0) tk.lock=''; if(why&&(!tk._whyT||S.t-tk._whyT>.9)){tk._whyT=S.t; msg(why); S.msgT=1.2} }
+  hideFuelFx(); setDirLights(capture?mode:'');
+  const near=capture&&dist<130;
+  tk.why=near?'HOLD STEADY':'CLOSER';
+  if(near){ tk.miss=0; tk.lockT=(tk.lockT||0)+(rdt||dt); tk.lock='arm'; if(tk.lockT>=.75){tk.lock='hold'; tk.contact=1; tk.outT=0; tk.wave=1; tk.why=''; fuelClunk(); S.shake=Math.max(S.shake,.04); msg('CONTACT'); S.msgT=1.6} }
+  else { tk.miss=(tk.miss||0)+(rdt||dt); if(tk.miss>1) tk.lockT=Math.max(0,(tk.lockT||0)-(rdt||dt)*.35); if((tk.lockT||0)<=0) tk.lock=''; }
  }
  refreshCalm(0);
 }
-function tankerAiming(){const tk=S&&S.tanker; if(!(S&&S.phase==='ingress'&&!S.fuelFail&&!S.cine&&tk&&tk.basket&&tankerMesh&&tankerMesh.visible&&(!S.fuelDone||tk.lock==='done')))return false; if(tk.lock==='hold'||tk.lock==='arm'||tk.lock==='done')return true; return (tk.dist!=null?tk.dist:1e9)<480&&!tk.rejoin}
+function tankerAiming(){const tk=S&&S.tanker; if(!(S&&S.phase==='ingress'&&!S.fuelFail&&!S.cine&&tk&&tk.basket&&tankerMesh&&tankerMesh.visible))return false; if(S.fuelDone&&tk.lock!=='done')return false; return true}
 function probePoint(){return probeTipWorld()}
 function tankerScreen(){const tk=S&&S.tanker, b=tk&&tk.basket; if(!b)return null;
  const cs=scr(b); const yaw=tk.yaw||0, rx=Math.cos(yaw), rz=-Math.sin(yaw);
@@ -1921,31 +1936,35 @@ function drawBasketArrow(p,cx,cy,col){const s=scr(p); const on=s&&s.x>30&&s.x<W-
  V.copy(p).applyMatrix4(cam.matrixWorldInverse); let dx=V.x,dy=-V.y; if(V.z>0){dx=V.x; dy=Math.abs(V.y)+Math.abs(V.x)*.2+1}
  const n=Math.hypot(dx,dy)||1; dx/=n; dy/=n; const k=Math.min((W/2-36)/Math.abs(dx||1e-3),(Hh/2-36)/Math.abs(dy||1e-3));
  const ax=cx+dx*k, ay=cy+dy*k; hx.fillStyle=col; hx.beginPath(); hx.moveTo(ax+dx*30,ay+dy*30); hx.lineTo(ax-dy*14,ay+dx*14); hx.lineTo(ax+dy*14,ay-dx*14); hx.closePath(); hx.fill(); return null}
+function scrClamp(p){V.copy(p).project(cam); if(!isFinite(V.x)||!isFinite(V.y))return {x:W*.5,y:Hh*.5,off:true}; let x=V.x,y=V.y; if(V.z>1){x=-x; y=-y} const m=Math.max(Math.abs(x),Math.abs(y),1e-4); const lim=.9; const off=V.z>1||m>lim; if(off){x=x/m*lim; y=y/m*lim} return {x:(x*.5+.5)*(W||innerWidth), y:(-y*.5+.5)*(Hh||innerHeight), off}}
+function drawProbeDot(fp){if(!fp)return; hx.save(); hx.shadowBlur=0; hx.globalAlpha=1; hx.beginPath(); hx.arc(fp.x,fp.y,13,0,7); hx.fillStyle='rgba(0,0,0,.9)'; hx.fill(); hx.beginPath(); hx.arc(fp.x,fp.y,7,0,7); hx.fillStyle='#ffe14a'; hx.fill(); hx.lineWidth=2; hx.strokeStyle='#1a1204'; hx.stroke(); hx.restore()}
 function drawTankerAim(cx,cy){const tk=S.tanker, b=tk.basket; const dist=tk.dist!=null?tk.dist:Math.hypot(b.x-S.pos.x,b.y-S.pos.y,b.z-S.pos.z);
- const view=tankerScreen()||tk.view; const far=!!(tk.rejoin||dist>230||((tk.ahead!=null&&tk.ahead<8)&&dist>40));
+ const view=tankerScreen()||tk.view;
  hx.shadowColor='rgba(0,0,0,.85)'; hx.shadowBlur=3; hx.lineWidth=2;
  const hot=tk.lock==='hold'||tk.lock==='done'||tk.lock==='arm';
- const col=hot?'rgba(130,240,160,1)':(view&&view.sep<=view.rad*2.6?'rgba(150,230,140,1)':'rgba(255,186,70,1)');
- if(far&&tk.lock!=='hold'&&tk.lock!=='done'){drawBasketArrow(b,cx,cy,col); hx.shadowBlur=0; return}
- const cs=view&&view.cs; const fp=view&&view.fp; const rad=view?view.rad:42;
- if(!cs){drawBasketArrow(b,cx,cy,col); txt('PUT THE DOT IN THE RING',cx,52,16,'center','rgba(255,246,226,1)'); hx.shadowBlur=0; return}
- hx.strokeStyle='rgba(0,0,0,.8)'; hx.lineWidth=8; hx.beginPath(); hx.arc(cs.x,cs.y,rad,0,7); hx.stroke();
- hx.strokeStyle=col; hx.lineWidth=5; hx.beginPath(); hx.arc(cs.x,cs.y,rad,0,7); hx.stroke();
- if(fp){hx.strokeStyle='rgba(0,0,0,.9)'; hx.lineWidth=5; hx.beginPath(); hx.arc(fp.x,fp.y,8,0,7); hx.stroke(); hx.strokeStyle='#fff'; hx.lineWidth=2; hx.beginPath(); hx.arc(fp.x,fp.y,8,0,7); hx.stroke(); hx.fillStyle='#fff'; hx.fillRect(fp.x-2,fp.y-2,4,4)}
- const label=tk.lock==='done'||S.fuelDone?'TANK FULL':tk.lock==='hold'?(tk.flow?'FLOW':'DISCONNECT'):tk.lock==='arm'?'LOCKING':(tk.why||'');
- if(label)txtFit(label,cx,Math.max(64,Hh*.12),Math.max(22,Math.round(Math.min(W,Hh)*.05)),'center',tk.flow?'#d8ffe4':'#ffe1a8');
+ const col=hot?'rgba(130,240,160,1)':(view&&view.sep<=view.rad*2.1?'rgba(150,230,140,1)':'rgba(255,186,70,1)');
+ const cs=view&&view.cs; const rad=view?view.rad:42;
+ const on=cs&&cs.x>18&&cs.x<W-18&&cs.y>18&&cs.y<Hh-18;
+ if(on){hx.strokeStyle='rgba(0,0,0,.8)'; hx.lineWidth=8; hx.beginPath(); hx.arc(cs.x,cs.y,rad,0,7); hx.stroke(); hx.strokeStyle=col; hx.lineWidth=5; hx.beginPath(); hx.arc(cs.x,cs.y,rad,0,7); hx.stroke()}
+ else drawBasketArrow(b,cx,cy,col);
+ const label=tk.lock==='done'||S.fuelDone?'TANK FULL':tk.lock==='hold'?'CONTACT':(tk.why||'CLOSER');
+ if(label)txtFit(label,cx,Math.max(64,Hh*.12),Math.max(22,Math.round(Math.min(W,Hh)*.05)),'center',tk.lock==='hold'||tk.flow?'#d8ffe4':'#ffe1a8');
  if(tk.lock==='hold'||tk.lock==='done'||tk.contact)drawFuelGauge(cx,tk);
- else if(!label) txtFit('PUT THE DOT IN THE RING',cx,Math.max(64,Hh*.12),Math.max(18,Math.round(Math.min(W,Hh)*.042)),'center','#fff6e2');
- hx.shadowBlur=0}
+ hx.shadowBlur=0;
+ drawProbeDot(scrClamp(probePoint()));
+ if(dist>80&&label==='CLOSER')txtFit((dist/1000).toFixed(1)+' KM',cx,Math.max(108,Hh*.18),Math.max(16,Math.round(Math.min(W,Hh)*.038)),'center','#ffe7b8')}
 function update(rdt){
  if(S.to&&S.to.fade>0){S.to.fade-=rdt;if(S.to.fade<=0){S.to.fade=0;const f=$('tofade');if(f)f.classList.remove('on')}}
  if(takingOff()){updateTakeoff(rdt);mixFlightAudio(rdt);return}
  let target=1;if(S.phase==='bombfall')target=.45;if(S.bomb&&S.bomb.tti<1.8)target=.25;if(S.phase==='penetrate')target=.5;if(S.boomT>=0&&S.boomT<1.5)target=.5;if(S.teachT>0)target=.55;if((S.gridSlow||0)>0)target=Math.min(target,.32);
  S.cine=S.phase==='bombfall'||S.phase==='penetrate'||(S.boomT>=0&&S.boomT<8); S.safe=!!(S.cine||(S.graceHold||0)>0); if(!S.cine&&(S.graceHold||0)>0)S.graceHold-=rdt; if(S.phase==='ingress'&&!S.cine&&!takingOff()&&!S.fuelDone&&!S.fuelFail&&!S.tanker)S.tanker={z:TANKER_Z,fuel:0,fails:0,called:0,contact:0,t0:0,fast:0,shout:-10,spd:220,rejoin:0,ship:0,lock:'',lockT:0}; refreshCalm(rdt); S.gridSafe=!!(S.gridOn&&S.grids&&(practice==='grid'||(S.boomT>8&&!(S.bandit&&!S.bandit.dead)))&&S.grids.some(g=>!g.done)); S.ts=lerp(S.ts,target,clamp(rdt*6,0,1));const dt=rdt*S.ts;S.t+=rdt;
- const tR=S.cine?0:S.brk>0?-S.brkDir*78*D2R:-inp.x*45*D2R,tP=S.cine?0:-inp.y*30*D2R;
+ const tkNear=S.tanker&&S.tanker.basket&&!S.fuelDone&&S.phase==='ingress'&&Math.hypot(S.pos.x-S.tanker.basket.x,S.pos.y-S.tanker.basket.y,S.pos.z-S.tanker.basket.z)<60;
+ const sens=tkNear?(S.tanker.lock==='arm'||S.tanker.lock==='hold'?.18:.34):1;
+ const tR=S.cine?0:S.brk>0?-S.brkDir*78*D2R:-inp.x*45*D2R*sens,tP=S.cine?0:-inp.y*30*D2R*sens;
  const released=!steer&&!(S.brk>0)&&!S.cine;
- const rk=released?50:8.5, pk=released?50:7.5;
- S.roll+=(tR-S.roll)*clamp(rdt*rk,0,1);S.pitch+=(tP-S.pitch)*clamp(rdt*pk,0,1);S.yaw+=S.roll*.75*dt*((S.reattack&&S.pos.y>1100)?1.45:1);
+ const rk=tkNear?3.2:(released?50:8.5), pk=tkNear?3.2:(released?50:7.5);
+ const rs=tkNear?(1-Math.exp(-5*rdt)):clamp(rdt*rk,0,1), ps=tkNear?(1-Math.exp(-5*rdt)):clamp(rdt*pk,0,1);
+ S.roll+=(tR-S.roll)*rs;S.pitch+=(tP-S.pitch)*ps;S.yaw+=S.roll*.75*dt*((S.reattack&&S.pos.y>1100)?1.45:1);
  const spd=85+S.thr*195;fwd.set(-Math.sin(S.yaw)*Math.cos(S.pitch),Math.sin(S.pitch),-Math.cos(S.yaw)*Math.cos(S.pitch));S.pos.addScaledVector(fwd,spd*dt);S.pos.y=Math.min(S.pos.y,3600);
  if(S.descendCue&&(S.pos.y<980||S.pos.z<180))S.descendCue=0;
  S.gunCD=Math.max(0,S.gunCD-rdt);S.gunSnd=Math.max(0,S.gunSnd-rdt);if(gunDown&&!S.cine)fireCannon();
@@ -2059,7 +2078,7 @@ function render(){jet.position.copy(S.pos);sun.target.position.copy(S.pos);sun.p
  else if((S.gridShot||0)>0&&S.grids&&S.grids[0]){const G=S.grids[0], u=1-Math.min(1,S.gridShot/2.7); cam.position.set(G.gx+40, G.floor+55, G.z+720); cam.up.set(0,1,0); cam.lookAt(G.gx, G.floor+8+u*Math.max(20,G.gy-G.floor), G.z)}
  else if(S.cine&&!S.bomb){if(!S.cineA){const dh=new THREE.Vector3(cam.position.x-BUNK.x,0,cam.position.z-BUNK.z);if(dh.lengthSq()<.01)dh.set(0,0,1);dh.normalize();const nk=S.boomT>=0,a=BUNK.clone().addScaledVector(dh,nk?1900:780);a.y=nk?Math.max(BUNK.y+380,H(a.x,a.z)+200):Math.max(BUNK.y+170,H(a.x,a.z)+60);S.cineA=a}cam.position.copy(S.cineA);cam.lookAt(tmp.copy(BUNK).setY(BUNK.y+(S.boomT>=0?(NK?250+Math.min(950,NK.t*160):300):10)))}
  else if(!aimTankerCam()){cam.position.set(S.pos.x+Math.sin(S.yaw)*24,S.pos.y+6.5,S.pos.z+Math.cos(S.yaw)*24);cam.rotation.set(-.07,S.yaw,0)}
- if(S.shake>0){const a=S.cine?2.2:.25;cam.position.y+=Math.sin(tt*43)*S.shake*a;cam.position.x+=Math.sin(tt*31+1)*S.shake*a*.6}
+ if(S.shake>0){let a=S.cine?2.2:.25; if(S.tanker&&(S.tanker.lock==='hold'||S.tanker.lock==='arm'||(S.tanker.dist!=null&&S.tanker.dist<80)))a*=.12; cam.position.y+=Math.sin(tt*43)*S.shake*a;cam.position.x+=Math.sin(tt*31+1)*S.shake*a*.6}
  grade.u.uT.value=performance.now()/1000;
  const showPhoto=!takingOff()&&!NIGHT_ON;
  if(photoSky){photoSky.visible=showPhoto; if(showPhoto)photoSky.position.copy(cam.position)}
@@ -2128,7 +2147,7 @@ function hudVis(key, live, hold=3.2){const now=performance.now()/1000; const s=_
 function calmLerp(key, target, rate){const now=performance.now()/1000; const s=_hud['L'+key]||(_hud['L'+key]={v:target,t:now}); const dt=Math.min(.08,Math.max(0,now-(s.t||now))); s.v+=(target-s.v)*(1-Math.exp(-(rate||4)*dt)); s.t=now; return s.v}
 function txtFit(s,x,y,sz,al,c){const str=String(s); hx.font=`700 ${sz}px ui-monospace,"SF Mono",Menlo,monospace`; hx.textAlign=al||'center'; const w=Math.max(12,hx.measureText(str).width); const left=al==='right'?x-w:al==='left'?x:x-w/2; hx.fillStyle='rgba(6,10,16,.82)'; hx.fillRect(left-12,y-sz-6,w+24,sz+16); hx.lineWidth=4; hx.strokeStyle='rgba(0,0,0,.92)'; hx.strokeText(str,x,y); hx.fillStyle=c||'#f4f7ef'; hx.fillText(str,x,y)}
 function instrumentAlpha(){const kcas=Math.round((S.spd||0)*1.94/5)*5; const aglN=S.agl||0; const step=aglN>800?50:10; const aglQ=Math.round(aglN/step)*step; if(_hud.kcas!==kcas){_hud.kcas=kcas; _hud.spdAt=performance.now()} const ph=(S.phase||'')+'|'+(S.reattack?1:0)+'|'+(S.fuelDone?1:0); if(_hud.ph!==ph){_hud.ph=ph; _hud.phAt=performance.now()} const live=aglN<200||performance.now()-(_hud.spdAt||0)<2000||performance.now()-(_hud.phAt||0)<3500||Math.abs(S.roll||0)>.5; return {a:hudVis('inst',live,2.2),kcas,aglN,aglQ}}
-function drawFuelGauge(cx, tk){const shown=calmLerp('fuel', tk.fuel||0, 5); const lbs=Math.round(shown*6400/50)*50; const per=tk.flow?490:0; const gy=Hh*.74, r=Math.max(54,Math.min(86,Math.min(W,Hh)*.16)); hx.save(); hx.fillStyle='rgba(6,10,16,.82)'; hx.fillRect(cx-r-28,gy-r-36,(r+28)*2,r+108); hx.strokeStyle='#f4f7ef'; hx.lineWidth=4; hx.beginPath(); hx.arc(cx,gy,r,Math.PI+.5,Math.PI*2-.5,false); hx.stroke(); const ang=(Math.PI+.5)+shown*((Math.PI*2-.5)-(Math.PI+.5)); hx.beginPath(); hx.moveTo(cx,gy); hx.lineTo(cx+Math.cos(ang)*(r-10),gy+Math.sin(ang)*(r-10)); hx.stroke(); hx.fillStyle='#f4f7ef'; hx.beginPath(); hx.arc(cx,gy,5,0,7); hx.fill(); const dir=tk.flow?'FLOW '+per+' LB/S':(tk.lock==='done'||(S&&S.fuelDone)?'FLOW 0':(tk.dir&&tk.dir!=='HOLD'?tk.dir:'FLOW 0')); txtFit(lbs.toLocaleString()+' LB',cx,gy+28,Math.max(20,Math.round(Math.min(W,Hh)*.048)),'center','#f7f3e4'); txtFit(dir,cx,gy+58,Math.max(16,Math.round(Math.min(W,Hh)*.038)),'center',tk.flow?'#c8f5d4':'#ffc9a4'); hx.restore()}
+function drawFuelGauge(cx, tk){const shown=calmLerp('fuel', tk.fuel||0, 5); const lbs=Math.round(shown*6400/50)*50; const per=tk.flow?490:0; const gy=Hh*.74, r=Math.max(54,Math.min(86,Math.min(W,Hh)*.16)); hx.save(); hx.fillStyle='rgba(6,10,16,.82)'; hx.fillRect(cx-r-28,gy-r-36,(r+28)*2,r+108); hx.strokeStyle='#f4f7ef'; hx.lineWidth=4; hx.beginPath(); hx.arc(cx,gy,r,Math.PI+.5,Math.PI*2-.5,false); hx.stroke(); const ang=(Math.PI+.5)+shown*((Math.PI*2-.5)-(Math.PI+.5)); hx.beginPath(); hx.moveTo(cx,gy); hx.lineTo(cx+Math.cos(ang)*(r-10),gy+Math.sin(ang)*(r-10)); hx.stroke(); hx.fillStyle='#f4f7ef'; hx.beginPath(); hx.arc(cx,gy,5,0,7); hx.fill(); const dir=tk.lock==='hold'||tk.flow?(tk.flow>0.2?'FLOW '+per+' LB/S':'FLOW'):(tk.lock==='done'||(S&&S.fuelDone)?'FLOW 0':(tk.dir&&tk.dir!=='HOLD'?tk.dir:'FLOW 0')); txtFit(lbs.toLocaleString()+' LB',cx,gy+28,Math.max(20,Math.round(Math.min(W,Hh)*.048)),'center','#f7f3e4'); txtFit(dir,cx,gy+58,Math.max(16,Math.round(Math.min(W,Hh)*.038)),'center',tk.flow?'#c8f5d4':'#ffc9a4'); hx.restore()}
 function drawReattack(cx){const km=(Math.round(bDist()/100)/10).toFixed(1)+' KM'; drawBasketArrow(BUNK,cx,Hh*.5,'#ffe1a8'); txtFit('RE-ATTACK  '+km,cx,Math.max(72,Hh*.14),Math.max(26,Math.round(Math.min(W,Hh)*.055)),'center','#ffe7b8')}
 function dimControls(){if(!S)return; const warn=!!(S.missile&&!S.missile.decoy&&!S.missile.lost); const sam=!!(S.th&&S.th.anyTrk); const rel=dropCue()==='RELEASE'; const lk=!!(S.locked||(S.lockT||0)>0||canLock()); const gun=warn||sam||!!(S.bandit&&!S.bandit.dead); const map={flr:warn,brk:warn||sam,ecm:warn||sam,gun,lock:lk,rel}; for(const id of ['flr','brk','ecm','gun','lock','rel']){const el=$(id); if(!el)continue; const need=map[id]||el.classList.contains('hot')||el.classList.contains('warn'); el.style.opacity=need?'1':'.46'}}
 function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!running&&!S.dead){document.body.classList.remove('tanking');document.body.classList.remove('gridding');return}paintRelease();if(S)dimControls();if(takingOff()){document.body.classList.remove('tanking');document.body.classList.remove('gridding');drawTakeoffHUD();return}if(S.cine){document.body.classList.remove('tanking');document.body.classList.remove('gridding');drawCine();return}const cx=W/2,cy=Hh*.5;if(tankerAiming()){document.body.classList.remove('gridding');document.body.classList.add('tanking');if($('thrl'))$('thrl').textContent='THROTTLE';drawTankerAim(cx,cy);return}document.body.classList.remove('tanking');if(gridHudOn()){document.body.classList.add('gridding');if($('thrl'))$('thrl').textContent='THROTTLE';drawGridHud(cx,cy);return}document.body.classList.remove('gridding');hx.strokeStyle=G;hx.lineWidth=1;hx.shadowColor='rgba(0,0,0,.9)';hx.shadowBlur=3;
