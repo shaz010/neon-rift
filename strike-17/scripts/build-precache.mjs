@@ -21,7 +21,7 @@ function walkJs(file, seen = new Set()) {
   const re = /(?:import\s+(?:[^'";]*?\sfrom\s*)?|import\()\s*['"](\.[^'"]+)['"]/g;
   let m;
   while ((m = re.exec(text))) {
-    let spec = m[1];
+    let spec = m[1].split('?')[0];
     if (!spec.endsWith('.js') && !spec.endsWith('.mjs')) spec += '.js';
     const next = rel(path.normalize(path.join(path.dirname(abs), spec)));
     walkJs(next, seen);
