@@ -1,19 +1,19 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17x12'])[1];
+const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17x13'])[1];
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
 
 import * as THREE from 'three';
-import {Sky} from './vendor/jsm/objects/Sky.js';
-import {EffectComposer} from './vendor/jsm/postprocessing/EffectComposer.js';
-import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js';
-import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js';
-import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js';
-import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js';
-import {MeshoptDecoder} from './vendor/jsm/libs/meshopt_decoder.module.js';
-import {clone as cloneSkin} from './vendor/jsm/utils/SkeletonUtils.js';
+import {Sky} from './vendor/jsm/objects/Sky.js?v=17x13';
+import {EffectComposer} from './vendor/jsm/postprocessing/EffectComposer.js?v=17x13';
+import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js?v=17x13';
+import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js?v=17x13';
+import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js?v=17x13';
+import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js?v=17x13';
+import {MeshoptDecoder} from './vendor/jsm/libs/meshopt_decoder.module.js?v=17x13';
+import {clone as cloneSkin} from './vendor/jsm/utils/SkeletonUtils.js?v=17x13';
 const $=id=>document.getElementById(id);
 // Orientation hint only. Rotation lock on iOS never fires orientationchange and
 // never updates the angle, so a full-screen gate stays up and swallows taps.
@@ -152,6 +152,7 @@ function H(x,z){const d=Math.abs(x-vx(z));
 const BZ=-10000, BUNK=new THREE.Vector3(vx(BZ)+40,0,BZ); BUNK.y=H(BUNK.x,BUNK.z);
 const HIGH_Y=3050, MEET_Z=9800, TANKER_Z=9480, TANKER_LEAVE_Z=1100;
 function meetPos(){const z=MEET_Z,x=vx(z); return {x,y:HIGH_Y,z}}
+function routeHdg(z){const x0=vx(z), x1=vx(z-40); return Math.atan2(-(x1-x0), 40)}
 const SAMP=new THREE.Vector3(vx(-10900)+330,0,-10900); SAMP.y=H(SAMP.x,SAMP.z);
 const UA=navigator.userAgent||'', PLAT=navigator.platform||'';
 const IPAD=/iPad/.test(UA)||(navigator.maxTouchPoints>1&&/Mac/.test(PLAT));
@@ -455,7 +456,7 @@ bunker.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});sam.t
 // ---------- GLB jet (F-35 Lightning II by bohmerang, Sketchfab) ----------
 jet.traverse(o=>{if(o.isMesh&&o!==jet.userData.sh)o.castShadow=true});
 window.__glb='loading';
-import('./vendor/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>new GLTFLoader().load('models/f35.glb',gl=>{
+import('./vendor/jsm/loaders/GLTFLoader.js?v=17x13').then(({GLTFLoader})=>new GLTFLoader().load('models/f35.glb',gl=>{
  const m=gl.scene;const bb=new THREE.Box3().setFromObject(m),sz=bb.getSize(new THREE.Vector3()),ct=bb.getCenter(new THREE.Vector3());
  const ax=sz.x>sz.z?'x':'z';const wrap=new THREE.Group();m.position.sub(ct);wrap.add(m);
  const L=Math.max(sz.x,sz.z);wrap.scale.setScalar(14.5/L);
@@ -503,7 +504,7 @@ function armBones(root){const names=['upper_armL','forearmL','handL','upper_armR
 function setBone(pack,n,dx,dy,dz){const b=pack.rig[n],r=pack.rest[n]; if(!b||!r)return; b.rotation.set(r.x+dx,r.y+dy,r.z+dz)}
 function armsDown(pack){setBone(pack,'upper_armL',0,0,1.35); setBone(pack,'upper_armR',0,0,-1.35); setBone(pack,'forearmL',0,0,.25); setBone(pack,'forearmR',0,0,-.25)}
 function loadDeck(){if(CVN._loading||CVN._ready)return; CVN._loading=1;
- import('./vendor/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>{
+ import('./vendor/jsm/loaders/GLTFLoader.js?v=17x13').then(({GLTFLoader})=>{
   const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   const get=url=>new Promise((res,rej)=>loader.load(url,res,undefined,rej));
   Promise.all(['carrier','f15','crew','tractor','heli'].map(k=>get('models/deck/'+k+'.glb'))).then(([ship,jetM,crewM,tugM,heliM])=>{
@@ -585,7 +586,7 @@ function flyClimb(rdt){
 }
 function enterMission(){
  S.to.swapped=1; S.phase='ingress';
- const meet=meetPos(); S.pos.set(meet.x,meet.y,meet.z); S.yaw=0; S.pitch=0; S.roll=0;
+ const meet=meetPos(); S.pos.set(meet.x,meet.y,meet.z); S.yaw=routeHdg(meet.z); S.pitch=0; S.roll=0;
  S.spd=85+S.thr*195; S.cine=false; S.shake=0; S.msg=''; S.msgT=0;
  document.body.classList.remove('takingoff','to-deck','to-arm');
  seaLight(false); carrier.visible=false; if(CVN.sea)CVN.sea.visible=false; stopIntroMusic(); stopDeckAmbience(); if(JET){startBed(); ambS=bedS} startMood(); if(CVN.fill)CVN.fill.intensity=0;
@@ -1051,7 +1052,8 @@ function reset(){clearGrids(); releaseControls(); try{document.body.classList.re
  rounds.forEach(r=>{if(r.m)r.m.visible=false});rounds.length=0;SITE_G.forEach(g=>{if(g)g.visible=true});ironMesh.visible=false;if(banditMesh)banditMesh.visible=false;gunDown=false;stopIntroMusic();stopDeckAmbience();
  if(DS_MODE==='game'&&!skipTakeoff&&!fromDeath){S.phase='deck';S.pos.set(CVN.jetX,CVN.jetY,CVN.jetZ);S.yaw=0;S.pitch=0;S.roll=0;S.thr=.18;S.spd=0;S.to={armed:0,shot:0,climb:0,hand:0,pulled:0,settled:0,steam:0,swapped:0,fade:0};setThr(.18);document.body.classList.add('takingoff','to-deck');document.body.classList.remove('to-arm')}
  else{S.to=null;setThr(.7);document.body.classList.remove('takingoff','to-deck','to-arm');
-  if(fromDeath){releaseSteer(); if(hadFuel){const z=300,x=vx(z); S.phase='ingress'; S.fuelDone=1; S.pos.set(x,H(x,z)+80,z); S.msg='RUN-IN — SETTLE'} else {const p=meetPos(); S.phase='ingress'; S.pos.set(p.x,p.y,p.z); S.msg='TANKER HIGH — JOIN UP'} S.yaw=0; S.pitch=0; S.roll=0; S.spd=85+.7*195; S.shake=0; S.msgT=3}}
+  if(fromDeath){releaseSteer(); if(hadFuel){const z=300,x=vx(z); S.phase='ingress'; S.fuelDone=1; S.pos.set(x,H(x,z)+80,z); S.msg='TANK FULL — NO REFUEL'; S.msgT=5} else {const p=meetPos(); S.phase='ingress'; S.pos.set(p.x,p.y,p.z); S.msg='TANKER HIGH — JOIN UP'; S.msgT=3} S.pitch=0; S.roll=0; S.spd=85+.7*195; S.shake=0}}
+ if(S.phase==='ingress')S.yaw=routeHdg(S.pos.z);
  const fade=$('tofade'); if(fade)fade.classList.remove('on')}
 // ---------- input ----------
 let steer=null;const inp={x:0,y:0};
@@ -1428,7 +1430,7 @@ let banditMesh=null;
 const _bd=new THREE.Vector3(), _bf=new THREE.Vector3(), _lead=new THREE.Vector3();
 function radio(line){msg(line); sfxLog('radio',{line}); if(AC){const t=AC.currentTime,n=AC.createBufferSource(); n.buffer=noiseBuf(.1); const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1500; f.Q.value=1.2; const g=AC.createGain(); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(.035,t+.012); g.gain.exponentialRampToValueAtTime(.0008,t+.08); n.connect(f).connect(g).connect(AC.tone||AC.out); try{n.start(t); n.stop(t+.09)}catch(e){}} try{ if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(line); u.rate=1.02; u.pitch=.8; u.volume=.85; speechSynthesis.cancel(); speechSynthesis.speak(u)} }catch(e){}}
 function ensureBanditMesh(){if(banditMesh)return banditMesh; const g=new THREE.Group(); g.name='bandit'; g.visible=false; g.scale.setScalar(2.4); const holdMat=new THREE.MeshStandardMaterial({color:0xb7c0c8,metalness:.35,roughness:.5}); const hold=new THREE.Group(); hold.name='hold'; const hb=new THREE.Mesh(new THREE.BoxGeometry(2.4,1.3,16),holdMat); const hw=new THREE.Mesh(new THREE.BoxGeometry(14,.25,3.2),holdMat); hw.position.set(0,.2,-1); hold.add(hb,hw); g.add(hold); scene.add(g); banditMesh=g;
- import('./vendor/jsm/loaders/GLTFLoader.js').then(({GLTFLoader})=>{ const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+ import('./vendor/jsm/loaders/GLTFLoader.js?v=17x13').then(({GLTFLoader})=>{ const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   loader.load('models/deck/f15.glb', gl=>{ const hold=g.getObjectByName('hold'); if(hold)hold.visible=false; const m=gl.scene; m.rotation.y=Math.PI; m.traverse(o=>{ if(!o.isMesh)return; const n=o.name||''; if(/Landing_Gear|Tires/i.test(n)){o.visible=false; return} o.castShadow=true; o.receiveShadow=true; const mats=[].concat(o.material||[]); mats.forEach(mt=>{ if(mt&&mt.isMeshStandardMaterial){mt.envMapIntensity=Math.max(mt.envMapIntensity||1,1.35); mt.roughness=Math.min(mt.roughness??.45,.48); mt.emissive=mt.emissive||new THREE.Color(); mt.emissive.setHex(0x2a3138); mt.emissiveIntensity=.45} }); }); g.add(m);
    const glowMat=c=>new THREE.SpriteMaterial({map:glowTex,color:c,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false});
    const abL=new THREE.Sprite(glowMat(0xff6a1a)); abL.position.set(1.15,1.95,-9.3); abL.scale.set(3.2,1.4,1); const abR=new THREE.Sprite(glowMat(0xff6a1a)); abR.position.set(-1.15,1.95,-9.3); abR.scale.set(3.2,1.4,1); m.add(abL,abR);
@@ -1449,7 +1451,7 @@ function hitBandit(){const b=S.bandit; if(!b||b.dead)return; b.hp--; spr(b.p,0xf
  else msg('BANDIT HIT  '+b.hp)}
 function threatBehind(p){if(!p||!S)return false; nose(); const dx=p.x-S.pos.x, dz=p.z-S.pos.z; return dx*fwd.x+dz*fwd.z<-30}
 function warnSix(kind){if(!S||S.dead)return; const now=S.t||0; if(S._sixAt!=null&&now-S._sixAt<1.4&&S._sixKind===kind)return; S._sixAt=now; S._sixKind=kind; S.six=kind; msg('SIX O\'CLOCK — '+kind); lockTone()}
-function updBandit(rdt){if(!S||S.dead||takingOff()||S.calm||S.gridSafe)return; if(!S.bandit){const ready=!S.cine&&!S.safe; const after=S.phase==='egress'&&S.boomT>8&&ready; const timed=S.t>75&&ready&&(S.phase==='ingress'||S.phase==='egress')&&!reattackTurn()&&(S.phase!=='ingress'||(S.banditDown||0)<2); if(after||timed)spawnBandit(); return} const b=S.bandit;
+function updBandit(rdt){if(!S||S.dead||takingOff()||S.calm||S.gridSafe)return; if(!S.bandit){const ready=!S.cine&&!S.safe; const after=S.phase==='egress'&&S.boomT>8&&ready; const refuelOpen=S.phase==='ingress'&&!S.fuelDone&&!S.fuelFail; const timed=!refuelOpen&&S.t>75&&ready&&(S.phase==='ingress'||S.phase==='egress')&&!reattackTurn()&&(S.phase!=='ingress'||(S.banditDown||0)<2); if(after||timed)spawnBandit(); return} const b=S.bandit;
  if(b.dead){b.timer+=rdt; if(b.timer>8){S.banditDown=(S.banditDown||0)+1; S.bandit=null; if(banditMesh)banditMesh.visible=false; return} b.pitch=Math.max(-1.15,(b.pitch||0)-rdt*.45); b.roll+=(b.roll>0?1:-1)*rdt*.35;
   _bf.set(-Math.sin(b.yaw)*Math.cos(b.pitch),Math.sin(b.pitch),-Math.cos(b.yaw)*Math.cos(b.pitch)); b.p.addScaledVector(_bf,70*rdt); b.p.y-=(30+b.timer*40)*rdt;
   const floor=H(b.p.x,b.p.z)+4; if(b.p.y<floor){b.p.y=floor; if(!b.impact){b.impact=1; fire(b.p,1.5); boomSfx(false,b.p)}}
@@ -1800,21 +1802,34 @@ function refreshCalm(rdt){if(!S||takingOff()){if(S)S.calm=''; return}
  else if(tk&&tk.called&&S.calmLeft==null&&(S.fuelDone||S.fuelFail||S.phase==='ingress'))S.calmLeft=4;
  if(S.calmLeft!=null)S.calmLeft-=rdt||0;
  const tail=!live&&S.calmLeft!=null&&S.calmLeft>0;
- const on=!!(live||tail);
- S.calm=on?(S.tankerLesson?'light':'off'):'';
+ const refuelOpen=!!(S.phase==='ingress'&&!S.fuelDone&&!S.fuelFail&&tk&&tk.called&&tankerMesh&&tankerMesh.visible);
+ const on=!!(live||tail||refuelOpen);
+ S.calm=on?(S.tankerLesson&&!refuelOpen?'light':'off'):'';
  if((S.refuelSafe||0)>0)S.calm=S.tankerLesson?'light':'off';
  if(S.calm)clearCombat();
  if(S.calm==='light'){if(S.farPress==null)S.farPress=48; if(!S._farSaid){S._farSaid=1; msg('BANDIT, FAR'); radio('Bandit, far')} S._farT=(S._farT||0)-(rdt||0); if(S._farT<=0){S._farT=5.5; if(AC)blip(420,.1,.035)} S.farPress-=rdt||0; if(S.farPress<=0){S.farPress=48; msg('BANDIT STILL FAR — NO LOCK')}} else if(!on)S.farPress=null}
 function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(S.phase!=='ingress'){hideTankerRig();return}
+ if(S.fuelDone&&!(S.tanker&&(S.tanker.lock==='hold'||S.tanker.lock==='arm'||S.tanker.lock==='done'))&&!(S.refuelSafe>0)){hideTankerRig(); if(tankerMesh)tankerMesh.visible=false; if(!S._saidFull){S._saidFull=1; msg('TANK FULL — NO REFUEL'); S.msgT=5} refreshCalm(0); return}
  if(S.tanker&&S.tanker.lock==='done'){const tk=S.tanker; if(S.t<(tk.hideAt||0)&&tankerMesh&&tankerMesh.visible){const u=clamp((S.t-(tk.fullAt||S.t))/1.45,0,1); const pod=podPoint(); const o=tk.reelFrom||{x:0,y:0,z:0}; const bx=pod.x+o.x*(1-u), by=pod.y+o.y*(1-u), bz=pod.z+o.z*(1-u); layHose(bx,by,bz,.3*(1-u),0); tk.basket={x:bx,y:by,z:bz}; if(u>0.55&&!tk.cleared){tk.cleared=1; msg('CLEARED'); S.msgT=1.6; fuelClunk()} hideFuelFx(); refreshCalm(0); return} if(!tk.away){tk.away=1; S.descendCue=1; msg('TANKER BREAKING AWAY'); S.msgT=2.2} releaseContact(tk); tk.fuel=0; if(tankerMesh)tankerMesh.visible=true}
  if(!S.tanker)S.tanker={z:TANKER_Z,fuel:0,fails:0,called:0,contact:0,t0:0,fast:0,shout:-10,spd:220,rejoin:0,lock:'',lockT:0};
  const tk=S.tanker;
- if(tk.hdg==null){const z0=tk.z, x0=vx(z0); tk.hdg=Math.atan2(-(vx(z0-40)-x0), 40); tk.px=x0; tk.pz=z0; tk.cruise=200}
  const breaking=(S.refuelSafe||0)>0&&S.fuelDone&&tk.lock!=='hold'&&tk.lock!=='arm';
- tk.spd=breaking?(tk.cruise||200)+40:(tk.cruise||200);
+ if(tk.straight&&!S.fuelDone&&tk.lock!=='hold'&&tk.lock!=='arm'&&Math.hypot(S.pos.x-(tk.px||0),S.pos.y-HIGH_Y,S.pos.z-(tk.pz||0))>2200) tk.straight=0;
+ if(!tk.straight&&!breaking&&!S.fuelDone){
+  if(tk.pz==null){tk.pz=TANKER_Z; tk.px=vx(TANKER_Z)}
+  const gap=Math.hypot(S.pos.x-tk.px,S.pos.y-HIGH_Y,S.pos.z-tk.pz);
+  if(gap>1400){const onRoute=Math.abs(S.pos.x-vx(S.pos.z))<450; if(onRoute){tk.pz=S.pos.z-720; tk.px=vx(tk.pz)} else {const lead=720; tk.px=S.pos.x-Math.sin(S.yaw)*lead; tk.pz=S.pos.z-Math.cos(S.yaw)*lead} }
+  else {const h=routeHdg(tk.pz); tk.px+=-Math.sin(h)*200*dt; tk.pz+=-Math.cos(h)*200*dt}
+  tk.hdg=routeHdg(tk.pz); tk.z=tk.pz; tk.cruise=200; tk.spd=200;
+  if(Math.hypot(S.pos.x-tk.px,S.pos.y-HIGH_Y,S.pos.z-tk.pz)<200) tk.straight=1;
+ } else {
+  if(tk.hdg==null){const z0=tk.z, x0=vx(z0); tk.hdg=routeHdg(z0); tk.px=x0; tk.pz=z0; tk.cruise=200}
+  tk.spd=breaking?(tk.cruise||200)+40:(tk.cruise||200);
+  const fx=-Math.sin(tk.hdg), fz=-Math.cos(tk.hdg);
+  tk.px+=fx*tk.spd*dt; tk.pz+=fz*tk.spd*dt; tk.z=tk.pz;
+ }
  tk.breakSide=0; tk.rejoin=0;
  const yaw=tk.hdg, fx=-Math.sin(yaw), fz=-Math.cos(yaw);
- tk.px+=fx*tk.spd*dt; tk.pz+=fz*tk.spd*dt; tk.z=tk.pz;
  const x=tk.px, y=HIGH_Y;
  ensureTanker(); tankerMesh.visible=true; tankerMesh.position.set(x,y,tk.z); tankerMesh.rotation.set(0,yaw,0);
  const aftX=Math.sin(yaw), aftZ=Math.cos(yaw), rightX=-aftZ, rightZ=aftX;
@@ -1896,6 +1911,7 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(S.phas
  } else {
   hideFuelFx(); setDirLights(allow?mode:'');
   const stepT=Math.max(.004, rdt||dt||1/60);
+  if((S.refuelSafe||0)<=0&&Math.hypot(inp.x,inp.y)<.16&&!S.fuelDone&&dist>120&&dist<6000){const dyaw=Math.atan2(Math.sin((yaw||0)-S.yaw),Math.cos((yaw||0)-S.yaw)); S.yaw+=dyaw*(1-Math.exp(-stepT/.8))*.55}
   if((S.refuelSafe||0)<=0&&Math.hypot(inp.x,inp.y)<.16&&dist<120){const dyaw=Math.atan2(Math.sin((yaw||0)-S.yaw),Math.cos((yaw||0)-S.yaw)); S.yaw+=dyaw*(1-Math.exp(-stepT/.65))*.42; if(dist<40){const want=(tk.cruise-85)/195; S.thr+=(want-S.thr)*(1-Math.exp(-stepT/.5))} const dp=clamp((by-S.pos.y)/80,-.08,.08); S.pitch+=(dp-S.pitch)*(1-Math.exp(-stepT/.55))*.4}
   if(allow){ tk._gap=0; tk.lockT=(tk.lockT||0)+stepT; tk.lock='arm'; tk.why='HOLD STEADY'; if(tk.lockT>=.65){tk.lock='hold'; tk.contact=1; tk.outT=0; tk.wave=1; tk.why=''; tk.flow=0.55; fuelClunk(); S.shake=Math.max(S.shake,.04); msg('CONTACT'); S.msgT=1.6} }
   else { tk._gap=(tk._gap||0)+stepT; if(tk.lock==='arm'&&tk._gap<0.85){tk.lockT=(tk.lockT||0)+stepT*0.35; tk.why='HOLD STEADY'} else { tk.lockT=Math.max(0,(tk.lockT||0)-stepT*0.5); if(tk.lockT<=0)tk.lock=''; tk.why=block||'CLOSER' } }

@@ -1,6 +1,7 @@
 /* DEEP STRIKE offline worker. Scope is this folder only (strike-17 on GitHub Pages). */
 importScripts('precache-list.js');
-const CACHE = 'strike-17-17x12';
+const CACHE = 'strike-17-17x13';
+const BUILD = '17x13';
 const HTML_TIMEOUT_MS = 2500;
 
 self.addEventListener('install', event => {
@@ -76,11 +77,22 @@ async function networkFirst(req) {
   return (await fromCache(req)) || new Response('<!doctype html><title>offline miss</title><p>SW saw the navigation but had no cached page.</p>', {status:503, headers:{'content-type':'text/html;charset=utf-8'}});
 }
 
+function foreignBuild(url){
+  const v = url.searchParams.get('v');
+  return !!(v && v !== BUILD);
+}
 self.addEventListener('fetch', event => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (!underScope(url)) return;
   if (url.pathname.endsWith('/sw.js') || url.pathname.endsWith('/precache-list.js')) return;
+  if (foreignBuild(url)) {
+    event.respondWith((async () => {
+      try { return await fetch(req); }
+      catch (e) { return cacheFirst(req); }
+    })());
+    return;
+  }
   event.respondWith(isDocument(req, url) ? networkFirst(req) : cacheFirst(req));
 });
