@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x12 — the dot goes in the ring
+
+The yellow dot was the probe tip, drawn from a camera that sits above and behind the jet, while the ring was the basket. On a phone those two points do not line up until the probe is almost on the drogue, so a jet that was already on the hose still showed the dot outside the ring. The dot is now the aim point at the basket's distance, using the same camera and the same projection as the ring. A lined-up jet at 40 m sits about 9 px inside the ring in portrait and in landscape. The ring turns green only when that dot is inside it and the probe is within 42 m, and the closure window is wide. A centred stick in the join trims heading and pitch to the tanker, and trims speed once you are in the capture bubble. A calm noisy approach on a phone-sized page connects in about 5.5 s at 30, 60 and 120 fps.
+
+Stamp `s17 · 17x12`.
+
 ## s17 · 17x11 — plays with no network
 
 A service worker scoped to this folder caches the game, the sound pages, the scripts, the sky, the models, and the sound bank. Open it once online, then flight mode still starts a sortie and the sound page still plays. The next online launch picks up a new build. Saved sound picks and scores stay in localStorage. The cache is about 166 MB because the sound bank is mostly large wav masters, which is over a comfortable iPhone budget.
@@ -343,4 +349,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17x11. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17x12. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
