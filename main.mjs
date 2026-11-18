@@ -1,19 +1,20 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const PATCH_V=(/[?&]v=([^&]+)/.exec(import.meta.url)||['','17x14'])[1];
+const BUILD_V='17x15';
+const PATCH_V=BUILD_V;
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
 
 import * as THREE from 'three';
-import {Sky} from './vendor/jsm/objects/Sky.js?v=17x14';
-import {EffectComposer} from './vendor/jsm/postprocessing/EffectComposer.js?v=17x14';
-import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js?v=17x14';
-import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js?v=17x14';
-import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js?v=17x14';
-import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js?v=17x14';
-import {MeshoptDecoder} from './vendor/jsm/libs/meshopt_decoder.module.js?v=17x14';
-import {clone as cloneSkin} from './vendor/jsm/utils/SkeletonUtils.js?v=17x14';
+import {Sky} from './vendor/jsm/objects/Sky.js?v=17x15';
+import {EffectComposer} from './vendor/jsm/postprocessing/EffectComposer.js?v=17x15';
+import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js?v=17x15';
+import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js?v=17x15';
+import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js?v=17x15';
+import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js?v=17x15';
+import {MeshoptDecoder} from './vendor/jsm/libs/meshopt_decoder.module.js?v=17x15';
+import {clone as cloneSkin} from './vendor/jsm/utils/SkeletonUtils.js?v=17x15';
 const $=id=>document.getElementById(id);
 // Orientation hint only. Rotation lock on iOS never fires orientationchange and
 // never updates the angle, so a full-screen gate stays up and swallows taps.
@@ -456,7 +457,7 @@ bunker.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});sam.t
 // ---------- GLB jet (F-35 Lightning II by bohmerang, Sketchfab) ----------
 jet.traverse(o=>{if(o.isMesh&&o!==jet.userData.sh)o.castShadow=true});
 window.__glb='loading';
-import('./vendor/jsm/loaders/GLTFLoader.js?v=17x14').then(({GLTFLoader})=>new GLTFLoader().load('models/f35.glb',gl=>{
+import('./vendor/jsm/loaders/GLTFLoader.js?v=17x15').then(({GLTFLoader})=>new GLTFLoader().load('models/f35.glb',gl=>{
  const m=gl.scene;const bb=new THREE.Box3().setFromObject(m),sz=bb.getSize(new THREE.Vector3()),ct=bb.getCenter(new THREE.Vector3());
  const ax=sz.x>sz.z?'x':'z';const wrap=new THREE.Group();m.position.sub(ct);wrap.add(m);
  const L=Math.max(sz.x,sz.z);wrap.scale.setScalar(14.5/L);
@@ -504,7 +505,7 @@ function armBones(root){const names=['upper_armL','forearmL','handL','upper_armR
 function setBone(pack,n,dx,dy,dz){const b=pack.rig[n],r=pack.rest[n]; if(!b||!r)return; b.rotation.set(r.x+dx,r.y+dy,r.z+dz)}
 function armsDown(pack){setBone(pack,'upper_armL',0,0,1.35); setBone(pack,'upper_armR',0,0,-1.35); setBone(pack,'forearmL',0,0,.25); setBone(pack,'forearmR',0,0,-.25)}
 function loadDeck(){if(CVN._loading||CVN._ready)return; CVN._loading=1;
- import('./vendor/jsm/loaders/GLTFLoader.js?v=17x14').then(({GLTFLoader})=>{
+ import('./vendor/jsm/loaders/GLTFLoader.js?v=17x15').then(({GLTFLoader})=>{
   const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   const get=url=>new Promise((res,rej)=>loader.load(url,res,undefined,rej));
   Promise.all(['carrier','f15','crew','tractor','heli'].map(k=>get('models/deck/'+k+'.glb'))).then(([ship,jetM,crewM,tugM,heliM])=>{
@@ -1430,7 +1431,7 @@ let banditMesh=null;
 const _bd=new THREE.Vector3(), _bf=new THREE.Vector3(), _lead=new THREE.Vector3();
 function radio(line){msg(line); sfxLog('radio',{line}); if(AC){const t=AC.currentTime,n=AC.createBufferSource(); n.buffer=noiseBuf(.1); const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1500; f.Q.value=1.2; const g=AC.createGain(); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(.035,t+.012); g.gain.exponentialRampToValueAtTime(.0008,t+.08); n.connect(f).connect(g).connect(AC.tone||AC.out); try{n.start(t); n.stop(t+.09)}catch(e){}} try{ if(window.speechSynthesis){const u=new SpeechSynthesisUtterance(line); u.rate=1.02; u.pitch=.8; u.volume=.85; speechSynthesis.cancel(); speechSynthesis.speak(u)} }catch(e){}}
 function ensureBanditMesh(){if(banditMesh)return banditMesh; const g=new THREE.Group(); g.name='bandit'; g.visible=false; g.scale.setScalar(2.4); const holdMat=new THREE.MeshStandardMaterial({color:0xb7c0c8,metalness:.35,roughness:.5}); const hold=new THREE.Group(); hold.name='hold'; const hb=new THREE.Mesh(new THREE.BoxGeometry(2.4,1.3,16),holdMat); const hw=new THREE.Mesh(new THREE.BoxGeometry(14,.25,3.2),holdMat); hw.position.set(0,.2,-1); hold.add(hb,hw); g.add(hold); scene.add(g); banditMesh=g;
- import('./vendor/jsm/loaders/GLTFLoader.js?v=17x14').then(({GLTFLoader})=>{ const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+ import('./vendor/jsm/loaders/GLTFLoader.js?v=17x15').then(({GLTFLoader})=>{ const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   loader.load('models/deck/f15.glb', gl=>{ const hold=g.getObjectByName('hold'); if(hold)hold.visible=false; const m=gl.scene; m.rotation.y=Math.PI; m.traverse(o=>{ if(!o.isMesh)return; const n=o.name||''; if(/Landing_Gear|Tires/i.test(n)){o.visible=false; return} o.castShadow=true; o.receiveShadow=true; const mats=[].concat(o.material||[]); mats.forEach(mt=>{ if(mt&&mt.isMeshStandardMaterial){mt.envMapIntensity=Math.max(mt.envMapIntensity||1,1.35); mt.roughness=Math.min(mt.roughness??.45,.48); mt.emissive=mt.emissive||new THREE.Color(); mt.emissive.setHex(0x2a3138); mt.emissiveIntensity=.45} }); }); g.add(m);
    const glowMat=c=>new THREE.SpriteMaterial({map:glowTex,color:c,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false});
    const abL=new THREE.Sprite(glowMat(0xff6a1a)); abL.position.set(1.15,1.95,-9.3); abL.scale.set(3.2,1.4,1); const abR=new THREE.Sprite(glowMat(0xff6a1a)); abR.position.set(-1.15,1.95,-9.3); abR.scale.set(3.2,1.4,1); m.add(abL,abR);
@@ -1811,7 +1812,7 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(S.phas
  if(S.tanker&&S.tanker.lock==='done'){const tk=S.tanker; if(S.t<(tk.hideAt||0)&&tankerMesh&&tankerMesh.visible){const u=clamp((S.t-(tk.fullAt||S.t))/1.45,0,1); const pod=podPoint(); const o=tk.reelFrom||{x:0,y:0,z:0}; const bx=pod.x+o.x*(1-u), by=pod.y+o.y*(1-u), bz=pod.z+o.z*(1-u); layHose(bx,by,bz,.3*(1-u),0); tk.basket={x:bx,y:by,z:bz}; if(u>0.55&&!tk.cleared){tk.cleared=1; msg('CLEARED'); S.msgT=1.6; fuelClunk()} hideFuelFx(); refreshCalm(0); return} if(!tk.away){tk.away=1; S.descendCue=1; msg('TANKER BREAKING AWAY'); S.msgT=2.2} releaseContact(tk); tk.fuel=0; if(tankerMesh)tankerMesh.visible=true}
  if(!S.tanker)S.tanker={z:TANKER_Z,fuel:0,fails:0,called:0,contact:0,t0:0,fast:0,shout:-10,spd:220,rejoin:0,lock:'',lockT:0};
  const tk=S.tanker;
- if(tk.hdg==null){const h=S.yaw||routeHdg(S.pos.z); tk.hdg=h; const fx0=-Math.sin(h), fz0=-Math.cos(h); tk.px=S.pos.x+fx0*1000; tk.pz=S.pos.z+fz0*1000; tk.cruise=200}
+ if(tk.hdg==null){const h=S.yaw||routeHdg(S.pos.z); tk.hdg=h; const fx0=-Math.sin(h), fz0=-Math.cos(h); tk.px=S.pos.x+fx0*400; tk.pz=S.pos.z+fz0*400; tk.cruise=200}
  tk.spd=200; tk.breakSide=0; tk.rejoin=0;
  const yaw=tk.hdg, fx=-Math.sin(yaw), fz=-Math.cos(yaw);
  tk.px+=fx*200*dt; tk.pz+=fz*200*dt; tk.z=tk.pz;
@@ -1829,7 +1830,7 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(S.phas
  if(!tk.called){tk.called=1; tk.t0=S.t; tk.shout=S.t; if(!S.fuelDone){radio('Tanker ahead, join up'); msg('TANKER AHEAD — JOIN UP')}}
  else if(!S.fuelDone&&!tk.contact&&S.t-(tk.shout||-10)>6){tk.shout=S.t; msg('TANKER AHEAD — JOIN UP  '+(ship/1000).toFixed(1)+' KM')}
  const stepDt=Math.max(.004, dt||rdt||1/60);
- const inst=tk._pd==null?0:(tk._pd-dist)/stepDt; tk._pd=dist;
+ const inst=tk._pd==null?0:clamp((tk._pd-dist)/stepDt,-80,80); tk._pd=dist;
  tk.rate=tk.rate==null?inst:tk.rate+(inst-tk.rate)*(1-Math.exp(-4*stepDt));
  const closing=tk.rate;
  tk.dist=dist; tk.dy=dy; tk.closing=closing; tk.along=along; tk.ship=ship; tk.ahead=(bx-S.pos.x)*fx+(bz-S.pos.z)*fz; tk.rel=(S.spd||0)-200;
@@ -1845,7 +1846,7 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(S.phas
  if(!view||!view.cs||!view.fp) block='CLOSER';
  else if(!inRing) block='ALIGN';
  else if(!atBasket) block='CLOSER';
- else if(closing>5) block='FAST';
+ else if(closing>6) block='FAST';
  else if(closing<0.5) block='SLOW';
  const allow=!block;
  tk._allow=!!allow;
@@ -1863,8 +1864,8 @@ function updTanker(dt,rdt){if(!S||takingOff()){hideTankerRig();return} if(S.phas
  } else {
   hideFuelFx(); setDirLights('');
   const stepT=Math.max(.004, rdt||dt||1/60);
-  if(allow){ tk.lockT=(tk.lockT||0)+stepT; tk.lock='arm'; tk.why=''; if(tk.lockT>=0.5){tk.lock='hold'; tk.contact=1; tk.outT=0; tk.why=''; tk.flow=1; fuelClunk(); S.shake=Math.max(S.shake,.04); msg('CONTACT'); S.msgT=1.6} }
-  else { tk.lockT=0; tk.lock=''; tk.why=block||'CLOSER' }
+  if(allow){ tk._gap=0; tk.lockT=(tk.lockT||0)+stepT; tk.lock='arm'; tk.why=''; if(tk.lockT>=0.5){tk.lock='hold'; tk.contact=1; tk.outT=0; tk.why=''; tk.flow=1; fuelClunk(); S.shake=Math.max(S.shake,.04); msg('CONTACT'); S.msgT=1.6} }
+  else { tk._gap=(tk._gap||0)+stepT; if(tk.lock==='arm'&&tk._gap<0.08){tk.why=''} else { tk.lockT=0; tk.lock=''; tk.why=block||'CLOSER' } }
  }
  refreshCalm(0);
 }
@@ -1896,8 +1897,8 @@ function placeChaseCam(){if(!S)return; const span=(jet.userData&&jet.userData.sp
  seat(dist); for(let n=0;n<5&&!jetInFrame();n++){dist*=1.16; seat(dist)}}
 function refuelCamOn(){return !!(S&&!S.fuelDone&&!S.fuelFail&&S.phase==='ingress'&&!S.cine&&S.tanker&&S.tanker.basket&&tankerMesh&&tankerMesh.visible)}
 function placeRefuelCam(){jet.position.copy(S.pos); jet.rotation.set(S.pitch||0,S.yaw||0,S.roll||0); jet.updateMatrixWorld(true);
- _chaseTry.set(0.95,-0.28,-9.05+36); jet.localToWorld(_chaseTry); cam.position.copy(_chaseTry);
- _chaseLook.set(0.95,-0.28,-80); jet.localToWorld(_chaseLook);
+ _chaseTry.set(0, 11, 28); jet.localToWorld(_chaseTry); cam.position.copy(_chaseTry);
+ _chaseLook.set(0, -7.5, -22); jet.localToWorld(_chaseLook);
  _chaseTmp.set(0,1,0).transformDirection(jet.matrixWorld); cam.up.copy(_chaseTmp); cam.lookAt(_chaseLook)}
 function aimTankerCam(){if(refuelCamOn())placeRefuelCam(); else placeChaseCam(); return true}
 window.__jetBox=()=>{placeChaseCam(); cam.updateMatrixWorld(true); return _chasePts.map(p=>{const q=_chaseTmp.copy(p).project(cam); return {x:+q.x.toFixed(3),y:+q.y.toFixed(3)}})};
@@ -1938,9 +1939,12 @@ function capRefuelClose(dt){const tk=S&&S.tanker; if(!tk||!tk.basket||S.fuelDone
  const b=tk.basket; let dx=b.x-S.pos.x, dy=b.y-S.pos.y, dz=b.z-S.pos.z; const dist=Math.hypot(dx,dy,dz)||1; dx/=dist; dy/=dist; dz/=dist;
  const spd=S.spd||(85+(S.thr||0)*195); const h=tk.hdg||0, tfx=-Math.sin(h), tfz=-Math.cos(h);
  const rx=fwd.x*spd-tfx*200, ry=fwd.y*spd, rz=fwd.z*spd-tfz*200; const closing=rx*dx+ry*dy+rz*dz;
- const want=dist>300?60:15; const adt=Math.max(.004,dt||1/60);
- tk._closeCap=tk._closeCap==null?want:tk._closeCap+(want-tk._closeCap)*(1-Math.exp(-adt/0.35));
- if(closing>tk._closeCap){const extra=(closing-tk._closeCap)*adt; S.pos.x-=dx*extra; S.pos.y-=dy*extra; S.pos.z-=dz*extra}}
+ const fore=(S.pos.x-b.x)*Math.sin(h)+(S.pos.z-b.z)*Math.cos(h);
+ const range=Math.max(0,fore);
+ const want=range>=150?40:range<=20?8:(8+32*(range-20)/130); const adt=Math.max(.004,dt||1/60);
+ if(closing>want){const extra=(closing-want)*adt; S.pos.x-=dx*extra; S.pos.y-=dy*extra; S.pos.z-=dz*extra}
+ const alongSpd=fwd.x*spd*tfx+fwd.z*spd*tfz; const relA=alongSpd-200;
+ if(relA>want&&dist<900){const extra=(relA-want)*adt; S.pos.x-=tfx*extra; S.pos.z-=tfz*extra}}
 function update(rdt){if(S)S._rdt=rdt;
  if(S.to&&S.to.fade>0){S.to.fade-=rdt;if(S.to.fade<=0){S.to.fade=0;const f=$('tofade');if(f)f.classList.remove('on')}}
  if(takingOff()){updateTakeoff(rdt);mixFlightAudio(rdt);return}
@@ -2000,7 +2004,7 @@ function update(rdt){if(S)S._rdt=rdt;
   if(m.p.y<H(m.p.x,m.p.z)||m.life<=0||(m.decoy&&m.dt<=0)){const pd=m.p.distanceTo(S.pos);fire(m.p,m.decoy?.45:.25);if(m.decoy){spr(m.p,0xfff0d0,90,.35,null,{add:true,tex:glowTex,fog:false,grow:120,must:1});for(let k=0;k<30;k++)spr(m.p,0xffc080,3,1.4,new THREE.Vector3(rnd(160),rnd(160),rnd(160)),{add:true,tex:glowTex,g:20,fog:false,must:1});if(pd<1200){S.shake=Math.max(S.shake,.2+.5*(1-pd/1200));heavy('sub08',.45*(1-pd/1500),1.35)}}boomSfx(false,m.p);if(AC&&pd<4000){psrc('hitsub',.4,m.p,true,{ref:280,rate:.95,pri:1,fadeIn:.008,tag:'psrc:hitsub'});if(!psrc('impact',.4,m.p,true,{ref:250,rate:.9,pri:1,fadeIn:.008,tag:'psrc:impact'})){const pn=mkPan(true,150);setP0(pn,m.p);pn.connect(AC.out);thud(pn,.85,55,24,1.3);setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}},1800)}}mslAudioStop(m);S.sites[m.site].next=S.t+2.5;S.missile=null;msl.visible=false;mslG.visible=false;if(!S.dead&&!m.def){S.defeated++;msg(m.lost?'MISSILE LOST — TERRAIN MASK':'MISSILE DEFEATED')}}}
  updRounds(rdt);
  S.brk=Math.max(0,S.brk-rdt);S.brkCD=Math.max(0,S.brkCD-rdt);S.ecm=Math.max(0,S.ecm-rdt);S.ecmCD=Math.max(0,S.ecmCD-rdt);S.teachT=Math.max(0,S.teachT-rdt);S.dmgT=Math.max(0,(S.dmgT||0)-rdt);
- S.exT=(S.exT||0)-rdt;if(!S.cine&&S.exT<=0){S.exT=MOB?.07:.045;const thr=S.thr,sz=1.5+thr*5,life=1.2+thr*2.2,op=.25+thr*.45;spr(tmp.copy(S.pos).addScaledVector(fwd,-8-thr*4),0x3a3732,sz,life,new THREE.Vector3(rnd(2+thr*3),1+thr*2,rnd(2+thr*3)),{grow:4+thr*10,o:op,drag:.4,must:thr>.55});if(thr>.75&&Math.random()<.4)spr(tmp.copy(S.pos).addScaledVector(fwd,-7),0xffa060,2+thr*2,.18,null,{add:true,tex:glowTex,fog:false})}
+ S.exT=(S.exT||0)-rdt;if(!S.cine&&S.exT<=0){S.exT=MOB?.07:.045;const thr=S.thr; const joining=S.phase==='ingress'&&!S.fuelDone&&!S.fuelFail&&S.tanker; if(!joining){const sz=1.5+thr*5,life=1.2+thr*2.2,op=.25+thr*.45;spr(tmp.copy(S.pos).addScaledVector(fwd,-8-thr*4),0x3a3732,sz,life,new THREE.Vector3(rnd(2+thr*3),1+thr*2,rnd(2+thr*3)),{grow:4+thr*10,o:op,drag:.4,must:thr>.55});if(thr>.75&&Math.random()<.4)spr(tmp.copy(S.pos).addScaledVector(fwd,-7),0xffa060,2+thr*2,.18,null,{add:true,tex:glowTex,fog:false})}}
  if(S.hp<2){S.smT-=rdt;if(S.smT<=0){S.smT=MOB?.09:.05;spr(tmp.copy(S.pos).addScaledVector(fwd,-9),0x2a2724,4,3,new THREE.Vector3(rnd(4),2,rnd(4)),{grow:8,o:.75,must:1});if(Math.random()<.35)spr(tmp.copy(S.pos).addScaledVector(fwd,-8),0xff8a40,2.8,.28,null,{add:true,tex:glowTex,fog:false})}}
  if(!S.cine&&!S.calm&&!S.gridSafe&&!reattackTurn()&&bunker.visible&&bDist()<6500){S.aaaS-=rdt;if(S.aaaS<=0){S.aaaS=.7+Math.random()*.6;aaaBurst(tmp.copy(BUNK).add(new THREE.Vector3(Math.random()<.5?-60:55,4,0)).clone())}
   if(bDist()<4500){S.flakT-=rdt;if(S.flakT<=0){S.flakT=(MOB?1.6:1.2)+Math.random();const P=S.pos.clone().addScaledVector(fwd,150+Math.random()*350).add(new THREE.Vector3(rnd(220),40+Math.random()*160,rnd(220)));
