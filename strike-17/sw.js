@@ -1,7 +1,7 @@
 /* DEEP STRIKE offline worker. Scope is this folder only (strike-17 on GitHub Pages). */
 importScripts('precache-list.js');
-const CACHE = 'strike-17-17x18';
-const BUILD = '17x18';
+const CACHE = 'strike-17-17x19';
+const BUILD = '17x19';
 const HTML_TIMEOUT_MS = 2500;
 
 self.addEventListener('install', event => {
