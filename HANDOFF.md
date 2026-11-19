@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x21 — the arrow is on the page, and the phone can open offline
+
+The way home is an HTML arrow, not a mark on the HUD canvas. It stays up from the blast until the trap, with the kilometres, and a diamond on the ship when the ship is in sight. The offline store is the sortie itself, about 27 MB, not the whole sound bank. The start screen says READY OFFLINE when that store is in.
+
+Stamp `s17 · 17x21`.
+
 ## s17 · 17x20 — the way home is marked
 
 After the blast a diamond on the heading tape points back along the valley, then to the carrier. Left and right arrows show when it is off the nose. A diamond sits on the ship when it is in sight. One line, RTB — FOLLOW ◆ TO CARRIER, fades after 3 s. The grids stay, but they are no longer the thing the HUD tells you to chase. The glass panels no longer blur the scene behind them, and the phone is capped the way the earlier thermal pass left it.
@@ -397,4 +403,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17x20. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. After the bunker, follow the diamond home and trap on the carrier. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`.
+Current project checkpoint: DEEP STRIKE s17 · 17x21. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. After the bunker, follow the arrow home and trap on the carrier. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`.
