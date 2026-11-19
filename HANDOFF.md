@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x17 — glass HUD, harder enemies
+
+The refuel is the 17x16 join. Panels, buttons and readout plates are translucent glass, and idle labels are shorter. Outside the refuel, bandits press from more than one angle, sometimes as a pair, and a stern gun or missile lands if you ignore the SIX. SAMs are a little quicker. AAA near the bunker is denser. The 8 s after CLEARED are still safe, and there are still no enemies during the refuel.
+
+Stamp `s17 · 17x17`.
+
 ## s17 · 17x16 — the 17x8 refuel, put back
 
 The join is the 17x8 refuel again: the tanker follows the valley and matches speed, the hose and basket move as they did, the ring and the dot are the 17x8 pair, and the camera is the 17x8 chase. Combat buttons stay up and hide only while the probe is on the basket. The jet starts on the route heading. No bandit or SAM while a refuel is still required. A death retry that already has fuel says TANK FULL — NO REFUEL. The badge is the build in the code. Damage smoke is only below 2 hp. Engine exhaust is the 17x8 exhaust.
@@ -373,4 +379,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17x16. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17x17. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
