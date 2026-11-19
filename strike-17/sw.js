@@ -1,28 +1,40 @@
 /* DEEP STRIKE offline worker. Scope is this folder only (strike-17 on GitHub Pages). */
 importScripts('precache-list.js');
-const CACHE = 'strike-17-17x20';
-const BUILD = '17x20';
-const HTML_TIMEOUT_MS = 2500;
+const CACHE = 'strike-17-17x21';
+const BUILD = '17x21';
+const CORE = self.CORE || self.PRECACHE || [];
+const LAZY = self.LAZY || [];
+// The rest of the sound bank stays in LAZY and is not installed up front.
+// Playing one of those files stores it later, one put at a time, via cacheFirst.
+void LAZY;
+let coreCount = 0;
+
+function scopeUrl(path){ return new URL(path, self.registration.scope); }
+
+async function putOne(cache, path){
+  const res = await fetch(new Request(path, { cache: 'reload' }));
+  if (!res || !res.ok || res.type === 'opaque') throw new Error('HTTP ' + (res && res.status));
+  await cache.put(scopeUrl(path), res);
+}
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil((async () => {
-    const list = self.PRECACHE || [];
-    if (!list.length) throw new Error('precache list is empty');
     const cache = await caches.open(CACHE);
-    const failed = [];
-    for (const path of list) {
-      try {
-        const res = await fetch(new Request(path, { cache: 'reload' }));
-        if (!res || !res.ok) throw new Error('HTTP ' + (res && res.status));
-        await cache.put(path, res);
-      } catch (err) {
-        failed.push(path + ' — ' + (err && err.message ? err.message : err));
+    let n = 0;
+    const queue = CORE.slice();
+    async function worker(){
+      for (;;) {
+        const path = queue.shift();
+        if (!path) return;
+        try { await putOne(cache, path); n++; }
+        catch (e) { /* one missed file must not wipe the install */ }
       }
     }
-    if (failed.length) {
-      throw new Error('precache failed (' + failed.length + '):\n' + failed.join('\n'));
-    }
-    await self.skipWaiting();
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    const index = await cache.match(scopeUrl('index.html'));
+    const mod = await cache.match(scopeUrl('main.mjs'));
+    if (index && mod) coreCount = n;
   })());
 });
 
@@ -31,6 +43,20 @@ self.addEventListener('activate', event => {
     const keys = await caches.keys();
     await Promise.all(keys.filter(k => k.startsWith('strike-17-') && k !== CACHE).map(k => caches.delete(k)));
     await self.clients.claim();
+    if (coreCount) {
+      const clients = await self.clients.matchAll({ includeUncontrolled: true });
+      for (const c of clients) c.postMessage({ type: 'offline-ready', n: coreCount });
+    }
+  })());
+});
+
+self.addEventListener('message', event => {
+  if (!event.data || event.data.type !== 'offline-status') return;
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    const index = await cache.match(scopeUrl('index.html'));
+    const mod = await cache.match(scopeUrl('main.mjs'));
+    if (index && mod && event.source) event.source.postMessage({ type: 'offline-ready', n: coreCount || 1 });
   })());
 });
 
@@ -46,35 +72,36 @@ async function cacheFirst(req) {
   const cache = await caches.open(CACHE);
   const hit = await cache.match(req, { ignoreSearch: true });
   if (hit) return hit;
-  const res = await fetch(req);
-  if (res && res.ok) cache.put(req, res.clone());
-  return res;
-}
-
-async function fromCache(req) {
-  const cache = await caches.open(CACHE);
-  const hit = await cache.match(req, { ignoreSearch: true, ignoreVary: true });
-  if (hit) return hit;
-  const url = new URL(req.url);
-  const scope = new URL(self.registration.scope).pathname;
-  let path = url.pathname.startsWith(scope) ? url.pathname.slice(scope.length) : url.pathname;
-  if (!path || path.endsWith('/')) path = 'index.html';
-  return cache.match(new URL(path, self.registration.scope).href, { ignoreSearch: true });
-}
-
-async function networkFirst(req) {
-  const cache = await caches.open(CACHE);
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), HTML_TIMEOUT_MS);
   try {
-    const res = await fetch(req, { cache: 'no-store', signal: ctrl.signal });
-    clearTimeout(timer);
-    if (res && res.ok) {
-      cache.put(req, res.clone());
+    const res = await fetch(req);
+    if (res && res.ok && res.type !== 'opaque') cache.put(req, res.clone());
+    return res;
+  } catch (e) {
+    return hit || new Response('', { status: 504 });
+  }
+}
+
+function offlineDoc(){
+  return new Response('<!doctype html><title>offline</title><p>This sortie is not stored on the phone yet.</p>', { status: 503, headers: { 'content-type': 'text/html;charset=utf-8' } });
+}
+
+/* Any in-scope navigation, including ?v= / ?nc= on the Home Screen start URL,
+   is answered from the cached index.html. fetch() of the original navigation
+   Request is never used: a failed one fails the page on iOS and Chrome even
+   when the rejection is caught, which is the airplane-mode blank page. */
+async function serveNav(req) {
+  const cache = await caches.open(CACHE);
+  const hit = await cache.match(req, { ignoreSearch: true });
+  const index = hit || await cache.match(scopeUrl('index.html'), { ignoreSearch: true });
+  if (index) return index;
+  try {
+    const res = await fetch(new Request(req.url, { method: 'GET', cache: 'no-store', credentials: 'same-origin', redirect: 'follow' }));
+    if (res && res.ok && res.type !== 'opaque') {
+      try { await cache.put(scopeUrl('index.html'), res.clone()); } catch (e) {}
       return res;
     }
-  } catch (e) { clearTimeout(timer); }
-  return (await fromCache(req)) || new Response('<!doctype html><title>offline miss</title><p>SW saw the navigation but had no cached page.</p>', {status:503, headers:{'content-type':'text/html;charset=utf-8'}});
+  } catch (e) {}
+  return offlineDoc();
 }
 
 function foreignBuild(url){
@@ -87,6 +114,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   if (!underScope(url)) return;
   if (url.pathname.endsWith('/sw.js') || url.pathname.endsWith('/precache-list.js')) return;
+  if (isDocument(req, url)) { event.respondWith(serveNav(req)); return; }
   if (foreignBuild(url)) {
     event.respondWith((async () => {
       try { return await fetch(req); }
@@ -94,5 +122,5 @@ self.addEventListener('fetch', event => {
     })());
     return;
   }
-  event.respondWith(isDocument(req, url) ? networkFirst(req) : cacheFirst(req));
+  event.respondWith(cacheFirst(req));
 });
