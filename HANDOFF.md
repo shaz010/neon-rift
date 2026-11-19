@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x19 — fly back and trap
+
+After the bunker, the jet is flown home to the carrier and caught on the wires. Fuel is a clock on that leg. The ball and the lineup are cues only. A miss is a bolter. A trap stops the jet, a low thud, then the same debrief, with a landing bonus. Practice: carrier landing is in the picker. The refuel, the glass HUD, and the warning tones are the 17x18 ones.
+
+Stamp `s17 · 17x19`.
+
 ## s17 · 17x18 — the high tone is gone
 
 The shrill beeps and the bright engine whine are lowered. Warnings that the flight still needs are short and under 400 Hz. The refuel, the HUD, the enemies, and the bunker blast are unchanged.
@@ -385,4 +391,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17x18. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`. The fuel clock waits until Shahbaz says Next.
+Current project checkpoint: DEEP STRIKE s17 · 17x19. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. After the bunker, fly the jet back and trap on the carrier. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`.
