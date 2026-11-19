@@ -6,25 +6,25 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="DS 17x19">
+<meta name="apple-mobile-web-app-title" content="DS 17x20">
 <meta name="theme-color" content="#0c3a48">
-<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-game-17x19-180.png?v=17x19">
-<link rel="icon" href="icons/icon-game-17x19-180.png?v=17x19">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-game-17x20-180.png?v=17x20">
+<link rel="icon" href="icons/icon-game-17x20-180.png?v=17x20">
 <link rel="manifest" href="manifest-game.webmanifest">
 
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- Credits: see CREDITS.txt (F-35 model by bohmerang/Sketchfab, non-commercial; textures ambientCG CC0) -->
-<title>DS 17x19</title>
-<!-- icache:17x19 -->
-<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js?v=17x19"}}</script>
+<title>DS 17x20</title>
+<!-- icache:17x20 -->
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js?v=17x20"}}</script>
 <style>
 :root{--g:rgba(178,214,170,.88);--gd:rgba(178,214,170,.35);--m:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
 html,body{margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;overscroll-behavior:none;position:fixed;inset:0;background:#050605;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-family:var(--m)}
 canvas{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;display:block;touch-action:none}
 #gl,#hud{touch-action:none}
 #hud{pointer-events:none}
-.btn{position:fixed;z-index:30;border:1px solid rgba(226,236,220,.42);color:#e7f6e4;background:rgba(8,12,10,.30);-webkit-backdrop-filter:blur(12px) saturate(1.2);backdrop-filter:blur(12px) saturate(1.2);display:flex;align-items:center;justify-content:center;font:600 13px var(--m);letter-spacing:1px;opacity:.30;transition:opacity .35s ease;-webkit-tap-highlight-color:transparent;touch-action:none;pointer-events:auto;text-shadow:0 1px 2px rgba(0,0,0,.9)}
+.btn{position:fixed;z-index:30;border:1px solid rgba(226,236,220,.42);color:#e7f6e4;background:rgba(8,12,10,.58);display:flex;align-items:center;justify-content:center;font:600 13px var(--m);letter-spacing:1px;opacity:.30;transition:opacity .35s ease;-webkit-tap-highlight-color:transparent;touch-action:none;pointer-events:auto;text-shadow:0 1px 2px rgba(0,0,0,.9)}
 .btn::before,.btn::after{content:"";position:absolute;width:8px;height:8px;border:1px solid var(--g)}
 .btn::before{left:-3px;top:-3px;border-right:0;border-bottom:0}.btn::after{right:-3px;bottom:-3px;border-left:0;border-top:0}
 .btn.off{opacity:.16}
@@ -46,8 +46,8 @@ canvas{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;display:blo
 }
 #vig{position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;box-shadow:inset 0 0 120px 40px rgba(255,20,10,.85)}
 #mvig{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(0,0,0,.32) 100%)}
-#teach{position:fixed;left:50%;top:22%;transform:translateX(-50%);max-width:80vw;padding:10px 16px;border:1px solid rgba(255,180,160,.55);background:rgba(28,8,6,.32);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);color:#ffd8d0;font:600 13px var(--m);letter-spacing:1px;text-align:center;z-index:4;pointer-events:none;display:none;text-shadow:0 1px 2px rgba(0,0,0,.9)}
-#thr{position:fixed;left:calc(18px + env(safe-area-inset-left));bottom:calc(124px + env(safe-area-inset-bottom));width:40px;height:130px;border:1px solid rgba(226,236,220,.42);background:rgba(8,12,10,.28);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);touch-action:none}
+#teach{position:fixed;left:50%;top:22%;transform:translateX(-50%);max-width:80vw;padding:10px 16px;border:1px solid rgba(255,180,160,.55);background:rgba(28,8,6,.72);color:#ffd8d0;font:600 13px var(--m);letter-spacing:1px;text-align:center;z-index:4;pointer-events:none;display:none;text-shadow:0 1px 2px rgba(0,0,0,.9)}
+#thr{position:fixed;left:calc(18px + env(safe-area-inset-left));bottom:calc(124px + env(safe-area-inset-bottom));width:40px;height:130px;border:1px solid rgba(226,236,220,.42);background:rgba(8,12,10,.58);touch-action:none}
 #thrk{position:absolute;left:3px;right:3px;height:6px;background:var(--g)}
 #thrl{position:absolute;top:-22px;width:160%;left:-30%;text-align:center;color:#e7f6e4;font-size:13px;font-weight:700;letter-spacing:.4px;line-height:1.15;text-shadow:0 1px 2px rgba(0,0,0,.9)}
 .ov{position:fixed;inset:0;color:#b9c4b8;z-index:5;background:#070908}
@@ -68,7 +68,7 @@ canvas{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;display:blo
 #endb{width:min(460px,80vw);border:1px solid #3d4a3c;padding:16px 22px;background:rgba(6,10,7,.9)}
 #et{letter-spacing:4px;font-size:15px;color:#dfe8dc}#es{color:#d8b25a;font-size:22px;letter-spacing:8px;margin:6px 0}
 table{width:100%;font-size:12px;border-collapse:collapse}td{padding:3px 0;border-bottom:1px solid #1e241e}td:last-child{text-align:right;color:#dfe8dc}
-#setb,#pauseb{position:fixed;top:calc(10px + env(safe-area-inset-top));z-index:40;width:44px;height:44px;border:1px solid rgba(226,236,220,.42);background:rgba(8,12,10,.30);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);color:#e7f6e4;font:20px monospace;display:flex;align-items:center;justify-content:center;border-radius:6px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;text-shadow:0 1px 2px #000}
+#setb,#pauseb{position:fixed;top:calc(10px + env(safe-area-inset-top));z-index:40;width:44px;height:44px;border:1px solid rgba(226,236,220,.42);background:rgba(8,12,10,.58);color:#e7f6e4;font:20px monospace;display:flex;align-items:center;justify-content:center;border-radius:6px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;text-shadow:0 1px 2px #000}
 #setb{left:calc(10px + env(safe-area-inset-left))}
 #pauseb{right:calc(10px + env(safe-area-inset-right));font-size:22px}
 #setp{position:fixed;top:calc(60px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));z-index:41;background:rgba(8,12,10,.94);border:1px solid rgba(182,220,174,.5);padding:14px 16px 18px;color:#b6dcae;font:12px monospace;letter-spacing:1.2px;display:none;width:min(300px,calc(100vw - 24px));max-height:min(70dvh,520px);overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;border-radius:8px}
@@ -93,8 +93,8 @@ table{width:100%;font-size:12px;border-collapse:collapse}td{padding:3px 0;border
 #nv{display:none;position:fixed;top:calc(58px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));z-index:40;min-height:44px;padding:0 12px;border:1px solid rgba(182,220,174,.55);background:rgba(8,16,10,.8);color:#d7ecd0;border-radius:6px;font:700 12px ui-monospace,Menlo,monospace;touch-action:manipulation}
 body.night #nv{display:flex;align-items:center}
 #nv.on{border-color:#b6ff9a;color:#eaffdf}
-#badge{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;color:#e7f6e4;font:700 15px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:1.5px;padding:6px 14px;border:1px solid rgba(226,236,220,.5);background:rgba(8,12,10,.30);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-radius:4px;text-shadow:0 1px 2px #000;white-space:nowrap}#verpill{margin:8px 0 6px;display:inline-block;color:#e8ffe0;font:700 16px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:1.2px;padding:8px 14px;border:1px solid rgba(182,220,174,.65);background:rgba(20,36,24,.85);border-radius:4px}#sndlive{font:600 13px var(--m);color:#d7ecd0;letter-spacing:.2px;line-height:1.4;margin:0 0 8px}
-#rot{display:none;position:fixed;inset:auto;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:max-content;max-width:calc(100vw - 24px);height:auto;z-index:8;align-items:center;justify-content:center;pointer-events:none!important;touch-action:none;background:rgba(8,12,10,.30);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);color:#e7f6e4;border:1px solid rgba(226,236,220,.42);border-radius:4px;padding:8px 12px;letter-spacing:1.4px;font-size:11px;line-height:1.35;text-align:center;text-shadow:0 1px 2px #000}
+#badge{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;color:#e7f6e4;font:700 15px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:1.5px;padding:6px 14px;border:1px solid rgba(226,236,220,.5);background:rgba(8,12,10,.58);border-radius:4px;text-shadow:0 1px 2px #000;white-space:nowrap}#verpill{margin:8px 0 6px;display:inline-block;color:#e8ffe0;font:700 16px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:1.2px;padding:8px 14px;border:1px solid rgba(182,220,174,.65);background:rgba(20,36,24,.85);border-radius:4px}#sndlive{font:600 13px var(--m);color:#d7ecd0;letter-spacing:.2px;line-height:1.4;margin:0 0 8px}
+#rot{display:none;position:fixed;inset:auto;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:max-content;max-width:calc(100vw - 24px);height:auto;z-index:8;align-items:center;justify-content:center;pointer-events:none!important;touch-action:none;background:rgba(8,12,10,.58);color:#e7f6e4;border:1px solid rgba(226,236,220,.42);border-radius:4px;padding:8px 12px;letter-spacing:1.4px;font-size:11px;line-height:1.35;text-align:center;text-shadow:0 1px 2px #000}
 @media (orientation:portrait){#rot{display:flex}}
 html.ds-land #rot,#rot.hide{display:none!important;pointer-events:none!important}
 #tut,#end,#go,#skipTO,#retry,#brief a{touch-action:manipulation}
@@ -156,11 +156,11 @@ body.gridding #flr,body.gridding #brk,body.gridding #ecm,body.gridding #gun,body
 <div class="row"><div class="k">HEALTH</div><div class="v">Two hits from SAMs and you are down. DMG appears on the HUD when wounded.</div></div>
 <button type="button" class="res" id="resume">RESUME</button></div></div>
 <div id="nvg"></div><button type="button" id="nv">NV</button>
-<div id="badge" data-patch>s17 · 17x19</div>
+<div id="badge" data-patch>s17 · 17x20</div>
 <div id="tofade"></div>
 <div id="launch" class="btn">LAUNCH</div>
 <div id="brief" class="ov scan">
- <div id="bl"><div class="hdr"><span>DEEP STRIKE // IRON VEIL</span><span>s17</span></div><div id="verpill" data-patch>s17 · 17x19</div>
+ <div id="bl"><div class="hdr"><span>DEEP STRIKE // IRON VEIL</span><span>s17</span></div><div id="verpill" data-patch>s17 · 17x20</div>
   <div id="sndlive">Sounds: all Current</div>
   <canvas id="map"></canvas>
   <div class="hdr" style="border:0;margin:4px 0 0"><span id="mapc">SAT-4 0412Z · VARKESH (FICTIONAL)</span><span>1KM GRID</span></div></div>
@@ -178,7 +178,7 @@ body.gridding #flr,body.gridding #brk,body.gridding #ecm,body.gridding #gun,body
   <div id="pickbox">
     <input id="pickshow" readonly value="" aria-label="Pick code"/>
     <div id="pickrow"><input id="pickin" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste a pick code"/><button type="button" id="pickgo">USE</button></div>
-    <div id="picknote">17x19 keeps Deep Report, Oil Rise, Pressure Hiss, Shells Overhead, Violent Hit, Fifty Cal, F-105 Whine, and Pier Bed. Mood has an Off that silences the synth. Paste a code only if Apply was used on the other Home Screen icon.</div>
+    <div id="picknote">17x20 keeps Deep Report, Oil Rise, Pressure Hiss, Shells Overhead, Violent Hit, Fifty Cal, F-105 Whine, and Pier Bed. Mood has an Off that silences the synth. Paste a code only if Apply was used on the other Home Screen icon.</div>
   </div>
   <div id="testers" style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 4px">
     <a href="./sounds.html" style="color:#b6dcae;border:1px solid rgba(182,220,174,.55);padding:10px 12px;min-height:44px;display:inline-flex;align-items:center;text-decoration:none;letter-spacing:1.5px;font-size:12px;border-radius:4px;background:rgba(20,32,24,.65)">SOUND TESTER</a>
@@ -197,6 +197,6 @@ body.gridding #flr,body.gridding #brk,body.gridding #ecm,body.gridding #gun,body
 <div id="end" class="ov hide"><div id="endb"><div class="hdr"><span>DEBRIEF // IRON VEIL</span><span>s17</span></div><div id="et"></div><div id="es"></div><table id="etab"></table><div class="sbtn" id="retry">RETRY SORTIE</div></div></div>
 <div id="rot">LANDSCAPE PLAYS BEST</div>
 <script>window.__DS_MODE=window.__DS_MODE||'game';</script>
-<script>(function(){var v='17x19';try{var u=new URL(location.href);if(u.searchParams.get('v')!==v){u.searchParams.set('v',v);location.replace(u.pathname+u.search+u.hash)}}catch(e){}})();</script>
+<script>(function(){var v='17x20';try{var u=new URL(location.href);if(u.searchParams.get('v')!==v){u.searchParams.set('v',v);location.replace(u.pathname+u.search+u.hash)}}catch(e){}})();</script>
 <script>(function(){if(!('serviceWorker' in navigator))return;function flying(){try{var S=window.__S&&window.__S();var brief=document.getElementById('brief');return window.__DS_MODE==='game'&&!!(S&&brief&&brief.classList.contains('hide')&&S.phase&&S.phase!=='done'&&!S.dead)}catch(e){return false}}function reloadOnce(){var t=Date.now(),prev=+sessionStorage.getItem('dsSWt')||0;if(t-prev<8000)return;if(flying())return;sessionStorage.setItem('dsSWt',String(t));location.reload()}navigator.serviceWorker.register('sw.js',{scope:'./'}).then(function(reg){var sw=reg.installing||reg.waiting;if(sw&&!navigator.serviceWorker.controller)sw.addEventListener('statechange',function(){if(sw.state==='activated')reloadOnce()});reg.addEventListener('updatefound',function(){var nw=reg.installing;if(!nw)return;nw.addEventListener('statechange',function(){if(nw.state==='activated'&&navigator.serviceWorker.controller)reloadOnce()})})}).catch(function(e){console.warn(e)})})();</script>
-<script type="module" src="./main.mjs?v=17x19"></script></body></html>
+<script type="module" src="./main.mjs?v=17x20"></script></body></html>
