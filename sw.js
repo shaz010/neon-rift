@@ -1,7 +1,7 @@
 /* DEEP STRIKE offline worker. Scope is this folder only (strike-17 on GitHub Pages). */
 importScripts('precache-list.js');
-const CACHE = 'strike-17-17x23';
-const BUILD = '17x23';
+const CACHE = 'strike-17-17x24';
+const BUILD = '17x24';
 const CORE = self.CORE || self.PRECACHE || [];
 const LAZY = self.LAZY || [];
 // The rest of the sound bank stays in LAZY and is not installed up front.
