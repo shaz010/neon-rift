@@ -6,18 +6,18 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="DS 17x21">
+<meta name="apple-mobile-web-app-title" content="DS 17x22">
 <meta name="theme-color" content="#0c3a48">
-<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-game-17x21-180.png?v=17x21">
-<link rel="icon" href="icons/icon-game-17x21-180.png?v=17x21">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-game-17x22-180.png?v=17x22">
+<link rel="icon" href="icons/icon-game-17x22-180.png?v=17x22">
 <link rel="manifest" href="manifest-game.webmanifest">
 
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <!-- Credits: see CREDITS.txt (F-35 model by bohmerang/Sketchfab, non-commercial; textures ambientCG CC0) -->
-<title>DS 17x21</title>
-<!-- icache:17x21 -->
-<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js?v=17x21"}}</script>
+<title>DS 17x22</title>
+<!-- icache:17x22 -->
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js?v=17x22"}}</script>
 <style>
 :root{--g:rgba(178,214,170,.88);--gd:rgba(178,214,170,.35);--m:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
 html,body{margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;overscroll-behavior:none;position:fixed;inset:0;background:#050605;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-family:var(--m)}
@@ -106,6 +106,17 @@ body.night #nv{display:flex;align-items:center}
 #rtbEdge.right{display:block;right:6px;border-left:70px solid #ffd27a}
 #rtbGem{display:none;position:fixed;z-index:8;width:26px;height:26px;margin:-13px 0 0 -13px;pointer-events:none;background:#ffd27a;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);box-shadow:0 0 0 3px #000}
 #rtbGem.on{display:block}
+#lnd{display:none;position:fixed;z-index:8;left:50%;top:calc(150px + env(safe-area-inset-top));transform:translateX(-50%);width:min(360px,94vw);pointer-events:none;background:rgba(6,10,8,.9);border:2px solid #ffd27a;border-radius:12px;padding:10px 12px 12px;text-align:center;color:#fff6d8;font:700 15px ui-monospace,Menlo,monospace;text-shadow:0 2px 2px #000}
+#lnd.on{display:block}
+#lndSay{font-size:15px;line-height:1.35;color:#ffe7a8;margin:0 0 8px}
+#lndRow{display:flex;gap:6px;justify-content:center}
+#lndRow b{flex:1;padding:8px 2px;border-radius:8px;background:#1c160c;border:2px solid #ffd27a;font-size:15px;letter-spacing:.4px}
+#lndRow b.ok{background:#14301c;border-color:#b6ff9a;color:#e9ffe6}
+#lndRow b.bad{background:#3a140e;border-color:#ff8a6a;color:#ffe0d6}
+#lndNum{margin-top:8px;font-size:18px;letter-spacing:1px;color:#fff}
+#lndGo{display:none;font-size:30px;letter-spacing:2px;color:#ffe14a;padding:8px 0}
+#lnd.go #lndGo{display:block}
+#lnd.go #lndSay,#lnd.go #lndRow,#lnd.go #lndNum{display:none}
 #offready{display:none;margin:8px 0 2px;color:#b6ff9a;letter-spacing:2px;font:700 14px ui-monospace,Menlo,monospace}
 #offready.on{display:block}#verpill{margin:8px 0 6px;display:inline-block;color:#e8ffe0;font:700 16px ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:1.2px;padding:8px 14px;border:1px solid rgba(182,220,174,.65);background:rgba(20,36,24,.85);border-radius:4px}#sndlive{font:600 13px var(--m);color:#d7ecd0;letter-spacing:.2px;line-height:1.4;margin:0 0 8px}
 #rot{display:none;position:fixed;inset:auto;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:max-content;max-width:calc(100vw - 24px);height:auto;z-index:8;align-items:center;justify-content:center;pointer-events:none!important;touch-action:none;background:rgba(8,12,10,.58);color:#e7f6e4;border:1px solid rgba(226,236,220,.42);border-radius:4px;padding:8px 12px;letter-spacing:1.4px;font-size:11px;line-height:1.35;text-align:center;text-shadow:0 1px 2px #000}
@@ -170,14 +181,15 @@ body.gridding #flr,body.gridding #brk,body.gridding #ecm,body.gridding #gun,body
 <div class="row"><div class="k">HEALTH</div><div class="v">Two hits from SAMs and you are down. DMG appears on the HUD when wounded.</div></div>
 <button type="button" class="res" id="resume">RESUME</button></div></div>
 <div id="nvg"></div><button type="button" id="nv">NV</button>
-<div id="badge" data-patch>s17 · 17x21</div>
+<div id="badge" data-patch>s17 · 17x22</div>
 <div id="rtb"><div class="chev"></div><div id="rtbKm">— KM</div><div id="rtbHint">TURN</div></div>
+<div id="lnd"><div id="lndSay">Line up with the deck, slow down, gear down, follow the ball, touch down</div><div id="lndRow"><b id="lndGs">ON GLIDE</b><b id="lndLn">LINE UP</b><b id="lndSp">243 KT</b></div><div id="lndNum">ALT — M · 243 KT</div><div id="lndGo">GO AROUND</div></div>
 <div id="rtbEdge"></div>
 <div id="rtbGem"></div>
 <div id="tofade"></div>
 <div id="launch" class="btn">LAUNCH</div>
 <div id="brief" class="ov scan">
- <div id="bl"><div class="hdr"><span>DEEP STRIKE // IRON VEIL</span><span>s17</span></div><div id="verpill" data-patch>s17 · 17x21</div>
+ <div id="bl"><div class="hdr"><span>DEEP STRIKE // IRON VEIL</span><span>s17</span></div><div id="verpill" data-patch>s17 · 17x22</div>
   <div id="offready">READY OFFLINE ✓</div>
   <div id="sndlive">Sounds: all Current</div>
   <canvas id="map"></canvas>
@@ -196,7 +208,7 @@ body.gridding #flr,body.gridding #brk,body.gridding #ecm,body.gridding #gun,body
   <div id="pickbox">
     <input id="pickshow" readonly value="" aria-label="Pick code"/>
     <div id="pickrow"><input id="pickin" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste a pick code"/><button type="button" id="pickgo">USE</button></div>
-    <div id="picknote">17x21 keeps Deep Report, Oil Rise, Pressure Hiss, Shells Overhead, Violent Hit, Fifty Cal, F-105 Whine, and Pier Bed. Mood has an Off that silences the synth. Paste a code only if Apply was used on the other Home Screen icon.</div>
+    <div id="picknote">17x22 keeps Deep Report, Oil Rise, Pressure Hiss, Shells Overhead, Violent Hit, Fifty Cal, F-105 Whine, and Pier Bed. Mood has an Off that silences the synth. Paste a code only if Apply was used on the other Home Screen icon.</div>
   </div>
   <div id="testers" style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 4px">
     <a href="./sounds.html" style="color:#b6dcae;border:1px solid rgba(182,220,174,.55);padding:10px 12px;min-height:44px;display:inline-flex;align-items:center;text-decoration:none;letter-spacing:1.5px;font-size:12px;border-radius:4px;background:rgba(20,32,24,.65)">SOUND TESTER</a>
@@ -215,8 +227,8 @@ body.gridding #flr,body.gridding #brk,body.gridding #ecm,body.gridding #gun,body
 <div id="end" class="ov hide"><div id="endb"><div class="hdr"><span>DEBRIEF // IRON VEIL</span><span>s17</span></div><div id="et"></div><div id="es"></div><table id="etab"></table><div class="sbtn" id="retry">RETRY SORTIE</div></div></div>
 <div id="rot">LANDSCAPE PLAYS BEST</div>
 <script>window.__DS_MODE=window.__DS_MODE||'game';</script>
-<script>(function(){var v='17x21';try{var u=new URL(location.href);if(u.searchParams.get('v')!==v){u.searchParams.set('v',v);location.replace(u.pathname+u.search+u.hash)}}catch(e){}})();</script>
+<script>(function(){var v='17x22';try{var u=new URL(location.href);if(u.searchParams.get('v')!==v){u.searchParams.set('v',v);location.replace(u.pathname+u.search+u.hash)}}catch(e){}})();</script>
 <script>(function(){if(!('serviceWorker' in navigator))return;function flying(){try{var S=window.__S&&window.__S();var brief=document.getElementById('brief');return window.__DS_MODE==='game'&&!!(S&&brief&&brief.classList.contains('hide')&&S.phase&&S.phase!=='done'&&!S.dead)}catch(e){return false}}function reloadOnce(){var t=Date.now(),prev=+sessionStorage.getItem('dsSWt')||0;if(t-prev<8000)return;if(flying())return;sessionStorage.setItem('dsSWt',String(t));location.reload()}function markOffline(n){var el=document.getElementById('offready');if(el)el.classList.add('on');window.__offlineReady=1;if(n)window.__offlineN=n}
 navigator.serviceWorker.addEventListener('message',function(e){if(e.data&&e.data.type==='offline-ready')markOffline(e.data.n)});
 navigator.serviceWorker.register('sw.js',{scope:'./'}).then(function(reg){var sw=reg.installing||reg.waiting;if(sw&&!navigator.serviceWorker.controller)sw.addEventListener('statechange',function(){if(sw.state==='activated')reloadOnce()});reg.addEventListener('updatefound',function(){var nw=reg.installing;if(!nw)return;nw.addEventListener('statechange',function(){if(nw.state==='activated'&&navigator.serviceWorker.controller)reloadOnce()})});if(navigator.serviceWorker.controller)navigator.serviceWorker.controller.postMessage({type:'offline-status'})}).catch(function(e){console.warn(e)})})();</script>
-<script type="module" src="./main.mjs?v=17x21"></script></body></html>
+<script type="module" src="./main.mjs?v=17x22"></script></body></html>
