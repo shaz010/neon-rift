@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x23 — every sortie is different
+
+A full mission rolls a seed, shown on the start card. The target is a bunker, a radar site, or a fuel-depot entrance, somewhere in the valley he can still fly. The three SAM sites move, the bandit still comes from a seeded direction, and the count stays the same. The sky is day, dusk, or night, and clear, haze, or low cloud. Night is moonlit so the valley and the HUD stay readable. Practice is the fixed sortie. The refuel and the open-sea landing are unchanged.
+
+Stamp `s17 · 17x23`.
+
 ## s17 · 17x22 — the carrier is in open sea, and the approach is written on the screen
 
 The ship is east of the valley, on open water, with a long straight final. The way home is still the valley, then the sea, then the carrier. From about 5 km the screen says high or low, left or right, and slow down, with the altitude and the speed. The first approach says: line up with the deck, slow down, gear down, follow the ball, touch down. A wide or fast pass is a go-around, with the arrow turning back. A sea hit or a ramp hit still fails. The refuel is unchanged.
@@ -409,4 +415,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17x22. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. After the bunker, follow the arrow out of the valley, over the open sea, and trap on the carrier. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`.
+Current project checkpoint: DEEP STRIKE s17 · 17x23. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Each full mission is a different seed. After the target, follow the arrow out of the valley, over the open sea, and trap on the carrier. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`.
