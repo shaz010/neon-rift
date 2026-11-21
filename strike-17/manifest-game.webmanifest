@@ -1,14 +1,14 @@
 {
-  "name": "DEEP STRIKE 17x24",
-  "short_name": "DS 17x24",
-  "start_url": "./index.html?v=17x24",
+  "name": "DEEP STRIKE 17x25",
+  "short_name": "DS 17x25",
+  "start_url": "./index.html?v=17x25",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0c3a48",
   "theme_color": "#0c3a48",
   "icons": [
-    {"src": "icons/icon-game-17x24-192.png?v=17x24", "sizes": "192x192", "type": "image/png"},
-    {"src": "icons/icon-game-17x24-512.png?v=17x24", "sizes": "512x512", "type": "image/png"},
-    {"src": "icons/icon-game-17x24-180.png?v=17x24", "sizes": "180x180", "type": "image/png"}
+    {"src": "icons/icon-game-17x25-192.png?v=17x25", "sizes": "192x192", "type": "image/png"},
+    {"src": "icons/icon-game-17x25-512.png?v=17x25", "sizes": "512x512", "type": "image/png"},
+    {"src": "icons/icon-game-17x25-180.png?v=17x25", "sizes": "180x180", "type": "image/png"}
   ]
 }
