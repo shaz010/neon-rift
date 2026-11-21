@@ -1,20 +1,20 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const BUILD_V='17x26';
+const BUILD_V='17x27';
 const PATCH_V=BUILD_V;
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
 
 import * as THREE from 'three';
-import {Sky} from './vendor/jsm/objects/Sky.js?v=17x26';
-import {EffectComposer} from './vendor/jsm/postprocessing/EffectComposer.js?v=17x26';
-import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js?v=17x26';
-import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js?v=17x26';
-import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js?v=17x26';
-import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js?v=17x26';
-import {MeshoptDecoder} from './vendor/jsm/libs/meshopt_decoder.module.js?v=17x26';
-import {clone as cloneSkin} from './vendor/jsm/utils/SkeletonUtils.js?v=17x26';
+import {Sky} from './vendor/jsm/objects/Sky.js?v=17x27';
+import {EffectComposer} from './vendor/jsm/postprocessing/EffectComposer.js?v=17x27';
+import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js?v=17x27';
+import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js?v=17x27';
+import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js?v=17x27';
+import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js?v=17x27';
+import {MeshoptDecoder} from './vendor/jsm/libs/meshopt_decoder.module.js?v=17x27';
+import {clone as cloneSkin} from './vendor/jsm/utils/SkeletonUtils.js?v=17x27';
 const $=id=>document.getElementById(id);
 // Orientation hint only. Rotation lock on iOS never fires orientationchange and
 // never updates the angle, so a full-screen gate stays up and swallows taps.
@@ -192,10 +192,17 @@ let hemiL=new THREE.HemisphereLight(0x9bb6d4,0x5c584e,SCEN.hemi); scene.add(hemi
 const sun=new THREE.DirectionalLight(0xfff0dc,SCEN.sunInt); sun.position.copy(SUN).multiplyScalar(1000); scene.add(sun); scene.add(sun.target);
 scene.add(sky); sky.material.fog=false;
 let envPM=null, wantPhotoEnv=true, photoEnvMap=null;
-function rebuildEnv(){const es=new THREE.Scene(); const usePhoto=!!(photoEnvMap&&photoEnvMap.image&&wantPhotoEnv&&!NIGHT_ON);
- if(usePhoto){const ball=new THREE.Mesh(new THREE.SphereGeometry(50,28,16), new THREE.MeshBasicMaterial({map:photoEnvMap,side:THREE.BackSide,toneMapped:false,depthWrite:false,fog:false})); es.add(ball)}
- else {const s2=new Sky(); s2.scale.setScalar(1000); Object.assign(s2.material.uniforms.sunPosition.value,SUN); for(const k of['turbidity','rayleigh','mieCoefficient','mieDirectionalG'])s2.material.uniforms[k].value=su[k].value; es.add(s2)}
- if(!envPM)envPM=new THREE.PMREMGenerator(R); if(scene.environment)scene.environment.dispose?.(); scene.environment=envPM.fromScene(es).texture; scene.environmentIntensity=SCEN.env}
+const envBank=new Map();
+const SEA_ENV={turbidity:8,rayleigh:2.1,mie:.012,mieG:.86,sunEl:3.4,sunAz:1.35};
+function skyEnvKey(){const usePhoto=!!(photoEnvMap&&photoEnvMap.image&&wantPhotoEnv&&!NIGHT_ON); if(usePhoto)return 'photo'; return ['sky',SCEN.turbidity,SCEN.rayleigh,SCEN.mie,SCEN.mieG,SCEN.sunEl,SCEN.sunAz].join(':')}
+function seaEnvKey(){return ['sky',SEA_ENV.turbidity,SEA_ENV.rayleigh,SEA_ENV.mie,SEA_ENV.mieG,SEA_ENV.sunEl,SEA_ENV.sunAz].join(':')}
+function rebuildEnv(){const key=skyEnvKey(); let tex=envBank.get(key);
+ if(!tex){const es=new THREE.Scene(); const usePhoto=key==='photo';
+  if(usePhoto){const ball=new THREE.Mesh(new THREE.SphereGeometry(50,28,16), new THREE.MeshBasicMaterial({map:photoEnvMap,side:THREE.BackSide,toneMapped:false,depthWrite:false,fog:false})); es.add(ball)}
+  else {const s2=new Sky(); s2.scale.setScalar(1000); Object.assign(s2.material.uniforms.sunPosition.value,SUN); for(const k of['turbidity','rayleigh','mieCoefficient','mieDirectionalG'])s2.material.uniforms[k].value=su[k].value; es.add(s2)}
+  if(!envPM)envPM=new THREE.PMREMGenerator(R); tex=envPM.fromScene(es).texture; envBank.set(key,tex);
+  if(envBank.size>8){for(const k of envBank.keys()){if(k!==key&&k!==seaEnvKey()){const old=envBank.get(k); envBank.delete(k); try{old.dispose()}catch(e){} break}}}}
+ scene.environment=tex; scene.environmentIntensity=SCEN.env}
 rebuildEnv();
 const uSnowAlt0={value:SCEN.snowAlt0},uSnowAlt1={value:SCEN.snowAlt1},uSnowAmt={value:SCEN.snowAmt},uWarmth={value:SCEN.warmth};
 function applyScen(){
@@ -208,6 +215,10 @@ function applyScen(){
  if(window.__cloudGroup){window.__cloudGroup.visible=SCEN.clouds>0.05; window.__cloudGroup.children.forEach((c,i)=>c.material.opacity=Math.min(.7,SCEN.clouds*(.35+i*.04)))}
  rebuildEnv();
 }
+function warmSeaEnv(){if(envBank.has(seaEnvKey()))return; const snap={want:wantPhotoEnv, scen:{...SCEN}, sun:sun.color.getHex(), hemi:hemiL.color.getHex(), ground:hemiL.groundColor.getHex()};
+ wantPhotoEnv=false; Object.assign(SCEN,SEA_ENV,{sunInt:2.8,hemi:.72,exposure:1.08,env:.95,warmth:.85,fogDen:0,clouds:0}); applyScen();
+ wantPhotoEnv=snap.want; Object.assign(SCEN,snap.scen); sun.color.setHex(snap.sun); hemiL.color.setHex(snap.hemi); hemiL.groundColor.setHex(snap.ground); applyScen()}
+warmSeaEnv();
 sun.castShadow=!MOB&&!batteryOn(); sun.shadow.mapSize.set(512,512); sun.shadow.autoUpdate=false; sun.shadow.needsUpdate=true; {const c=sun.shadow.camera;c.left=c.bottom=-140;c.right=c.top=140;c.near=10;c.far=1600;} sun.shadow.bias=-.0004; sun.shadow.normalBias=.6;
 // ---------- textures ----------
 function tnoise(size,cells,oct,fn){const c=document.createElement('canvas');c.width=c.height=size;const x=c.getContext('2d'),im=x.createImageData(size,size);
@@ -461,7 +472,7 @@ bunker.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});sam.t
 // ---------- GLB jet (F-35 Lightning II by bohmerang, Sketchfab) ----------
 jet.traverse(o=>{if(o.isMesh&&o!==jet.userData.sh)o.castShadow=true});
 window.__glb='loading';
-import('./vendor/jsm/loaders/GLTFLoader.js?v=17x26').then(({GLTFLoader})=>new GLTFLoader().load('models/f35.glb',gl=>{
+import('./vendor/jsm/loaders/GLTFLoader.js?v=17x27').then(({GLTFLoader})=>new GLTFLoader().load('models/f35.glb',gl=>{
  const m=gl.scene;const bb=new THREE.Box3().setFromObject(m),sz=bb.getSize(new THREE.Vector3()),ct=bb.getCenter(new THREE.Vector3());
  const ax=sz.x>sz.z?'x':'z';const wrap=new THREE.Group();m.position.sub(ct);wrap.add(m);
  const L=Math.max(sz.x,sz.z);wrap.scale.setScalar(14.5/L);
@@ -533,7 +544,7 @@ function armBones(root){const names=['upper_armL','forearmL','handL','upper_armR
 function setBone(pack,n,dx,dy,dz){const b=pack.rig[n],r=pack.rest[n]; if(!b||!r)return; b.rotation.set(r.x+dx,r.y+dy,r.z+dz)}
 function armsDown(pack){setBone(pack,'upper_armL',0,0,1.35); setBone(pack,'upper_armR',0,0,-1.35); setBone(pack,'forearmL',0,0,.25); setBone(pack,'forearmR',0,0,-.25)}
 function loadDeck(){if(CVN._loading||CVN._ready)return; CVN._loading=1;
- import('./vendor/jsm/loaders/GLTFLoader.js?v=17x26').then(({GLTFLoader})=>{
+ import('./vendor/jsm/loaders/GLTFLoader.js?v=17x27').then(({GLTFLoader})=>{
   const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   const get=url=>new Promise((res,rej)=>loader.load(url,res,undefined,rej));
   Promise.all(['carrier','f15','crew','tractor','heli'].map(k=>get('models/deck/'+k+'.glb'))).then(([ship,jetM,crewM,tugM,heliM])=>{
@@ -573,12 +584,19 @@ function loadDeck(){if(CVN._loading||CVN._ready)return; CVN._loading=1;
   }).catch(e=>{console.warn('deck models',e); CVN._loading=0});
  }).catch(e=>{console.warn('deck loader',e); CVN._loading=0});
 }
-function prewarmView(){const bits=[carrier,CVN.sea,CVN.wakeMesh,CVN.lights].filter(Boolean); const prev=bits.map(o=>o.visible); bits.forEach(o=>o.visible=true);
- const p=cam.position.clone(), q=cam.quaternion.clone(); cam.position.set(WIRE_X, 180, AIM_Z-1600); cam.lookAt(WIRE_X, CVN.deckY, AIM_Z); cam.updateMatrixWorld(true);
- const t0=performance.now(); try{R.compile(scene,cam);
-  cam.position.set(WIRE_X, 220, AIM_Z-2800); cam.lookAt(WIRE_X, 190, AIM_Z-1400); cam.updateMatrixWorld(true); R.render(scene,cam);
-  cam.position.set(WIRE_X, 70, AIM_Z-500); cam.lookAt(WIRE_X, 36, AIM_Z); cam.updateMatrixWorld(true); R.render(scene,cam);
-  window.__warm=+(performance.now()-t0).toFixed(0)}catch(e){window.__warmErr=String(e)} cam.position.copy(p); cam.quaternion.copy(q); cam.updateMatrixWorld(true); bits.forEach((o,i)=>o.visible=prev[i])}
+function warmShot(eye,look){const p=cam.position.clone(), q=cam.quaternion.clone(), fov=cam.fov;
+ if(!window.__warmRT)window.__warmRT=new THREE.WebGLRenderTarget(32,32);
+ cam.position.copy(eye); cam.up.set(0,1,0); cam.lookAt(look); if(fov!==60){cam.fov=60; cam.updateProjectionMatrix()} cam.updateMatrixWorld(true);
+ const old=R.getRenderTarget();
+ try{R.compile(scene,cam); R.setRenderTarget(window.__warmRT); R.render(scene,cam)}catch(e){}
+ try{R.setRenderTarget(old)}catch(e){}
+ if(cam.fov!==fov){cam.fov=fov; cam.updateProjectionMatrix()} cam.position.copy(p); cam.quaternion.copy(q); cam.updateMatrixWorld(true)}
+function prewarmView(){const bits=[carrier,CVN.sea,CVN.wakeMesh,CVN.lights,CVN.gates].filter(Boolean); const prev=bits.map(o=>o.visible); bits.forEach(o=>o.visible=true);
+ const hide=[]; scene.children.forEach(o=>{if(bits.indexOf(o)<0&&o.visible){hide.push(o); o.visible=false}});
+ const t0=performance.now(); try{
+  warmShot(new THREE.Vector3(WIRE_X,180,AIM_Z-1600), new THREE.Vector3(WIRE_X,CVN.deckY,AIM_Z));
+  warmShot(new THREE.Vector3(WIRE_X,70,AIM_Z-500), new THREE.Vector3(WIRE_X,36,AIM_Z));
+  window.__warm=+(performance.now()-t0).toFixed(0)}catch(e){window.__warmErr=String(e)} hide.forEach(o=>{o.visible=true}); bits.forEach((o,i)=>o.visible=prev[i])}
 loadDeck();
 window.__CVN=CVN;
 let skipTakeoff=false, valleyRespawn=false;
@@ -910,9 +928,36 @@ async function prewarmAudio(){if(!AC||AC._pw)return;AC._pw=1;
  try{ if(SB.jet8) SB.jet8=mkSeamless(SB.jet8,.3); else if(SB.jet) SB.jet=mkSeamless(SB.jet,.3); if(SB.ambient) SB.ambient=mkSeamless(SB.ambient,.3); }catch(e){}
  AC._pwDone=1;
 }
+function warmMission(){if(window.__warmedM)return; window.__warmedM=1; const t0=performance.now(); const vis=[];
+ const touch=(o,v)=>{if(!o)return; vis.push([o,o.visible]); o.visible=v};
+ touch(bunker,true); touch(typeof tgtRadar!=='undefined'?tgtRadar:null,true); touch(typeof depotMouth!=='undefined'?depotMouth:null,true);
+ touch(typeof tgtGlow!=='undefined'?tgtGlow:null,true); touch(typeof tgtBeam!=='undefined'?tgtBeam:null,true);
+ touch(typeof sam!=='undefined'?sam:null,true); touch(window.__tmesh,true);
+ (typeof SITE_G!=='undefined'?SITE_G:[]).forEach(g=>touch(g,true)); (window.__farBits||[]).forEach(o=>touch(o,true));
+ const b=BUNK; const south=new THREE.Vector3(b.x, b.y+40, b.z);
+ try{
+  warmShot(new THREE.Vector3(b.x, b.y+240, b.z+1600), south);
+  warmShot(new THREE.Vector3(b.x, b.y+1400, b.z+2800), south);
+  warmShot(new THREE.Vector3(b.x, b.y+320, b.z+4200), new THREE.Vector3(b.x, b.y+20, b.z+2200));
+ }catch(e){}
+ try{
+  const g=ensureBanditMesh(); const was=g.visible; const gp=g.position.clone();
+  g.visible=true; g.position.set(b.x, b.y+180, b.z+700);
+  paintAce(false); warmShot(new THREE.Vector3(b.x, b.y+190, b.z+900), g.position);
+  paintAce(true); warmShot(new THREE.Vector3(b.x+30, b.y+200, b.z+880), g.position);
+  paintAce(false); g.visible=was; g.position.copy(gp); ensureWingMesh();
+ }catch(e){}
+ const ship=[carrier,CVN.sea,CVN.wakeMesh,CVN.lights,CVN.gates].filter(Boolean); const sp=ship.map(o=>o.visible); ship.forEach(o=>o.visible=true);
+ const prevEnv=scene.environment; const seaTex=envBank.get(seaEnvKey()); if(seaTex)scene.environment=seaTex;
+ try{
+  warmShot(new THREE.Vector3(WIRE_X, 90, CVN_Z-180), new THREE.Vector3(WIRE_X, CVN.deckY, CVN_Z));
+  warmShot(new THREE.Vector3(WIRE_X, 240, AIM_Z-2600), new THREE.Vector3(WIRE_X, 36, AIM_Z));
+ }catch(e){} scene.environment=prevEnv; ship.forEach((o,i)=>o.visible=sp[i]);
+ vis.forEach(([o,v])=>{o.visible=v});
+ try{const seen=new Set(); scene.traverse(o=>{const mats=[].concat(o.material||[]); mats.forEach(mt=>{if(!mt)return; for(const k in mt){const t=mt[k]; if(t&&t.isTexture&&!seen.has(t)){seen.add(t); try{if(R.initTexture)R.initTexture(t)}catch(e){}}}})})}catch(e){}
+ window.__warmM=+(performance.now()-t0).toFixed(0)}
 function prewarmGfx(){if(window.__pwG)return;window.__pwG=1;
- // ONE lightweight compile — repeated R.compile + nukeStart was causing multi-second iOS freezes
- try{ if(jet)jet.visible=true; R.compile(scene,cam); }catch(e){ try{R.render(scene,cam)}catch(e2){} }
+ try{ if(jet)jet.visible=true; warmMission(); }catch(e){ try{R.compile(scene,cam)}catch(e2){} }
 }
 const C=(id,name,key,desc)=>({id,name,key,desc});
 const SND=[
@@ -1476,7 +1521,7 @@ function ensureBanditMesh(){if(banditMesh)return banditMesh; const g=new THREE.G
  const fin=new THREE.Mesh(new THREE.BoxGeometry(.22,2.2,1.6),camo); fin.position.set(0,1.2,5.2);
  const stripe=new THREE.Mesh(new THREE.BoxGeometry(.3,1.7,.4), new THREE.MeshStandardMaterial({color:0xc42828,roughness:.4,emissive:0x5a1414,emissiveIntensity:.4})); stripe.position.set(0,1.35,5.55);
  ace.add(body,wing,fin,stripe); g.add(ace); scene.add(g); banditMesh=g;
- import('./vendor/jsm/loaders/GLTFLoader.js?v=17x26').then(({GLTFLoader})=>{ const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+ import('./vendor/jsm/loaders/GLTFLoader.js?v=17x27').then(({GLTFLoader})=>{ const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   loader.load('models/deck/f15.glb', gl=>{ const hold=g.getObjectByName('hold'); if(hold)hold.visible=false; const m=gl.scene; m.rotation.y=Math.PI; m.traverse(o=>{ if(!o.isMesh)return; const n=o.name||''; if(/Landing_Gear|Tires/i.test(n)){o.visible=false; return} o.castShadow=true; o.receiveShadow=true; const mats=[].concat(o.material||[]); mats.forEach(mt=>{ if(mt&&mt.isMeshStandardMaterial){mt.envMapIntensity=Math.max(mt.envMapIntensity||1,1.35); mt.roughness=Math.min(mt.roughness??.45,.48); mt.emissive=mt.emissive||new THREE.Color(); mt.emissive.setHex(0x2a3138); mt.emissiveIntensity=.45} }); }); g.add(m);
    const glowMat=c=>new THREE.SpriteMaterial({map:glowTex,color:c,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false});
    const abL=new THREE.Sprite(glowMat(0xff6a1a)); abL.position.set(1.15,1.95,-9.3); abL.scale.set(3.2,1.4,1); const abR=new THREE.Sprite(glowMat(0xff6a1a)); abR.position.set(-1.15,1.95,-9.3); abR.scale.set(3.2,1.4,1); m.add(abL,abR);
@@ -1490,6 +1535,7 @@ function ensureBanditMesh(){if(banditMesh)return banditMesh; const g=new THREE.G
    const band=new THREE.Mesh(new THREE.BoxGeometry(5.2,.55,1.2), stripeMat); band.position.set(0,2.2,-6.6);
    tail.add(finL,finR,band); m.add(tail); g.userData.stripe=tail;
    g.userData.model=m; g.userData.ab=[abL,abR]; g.userData.hot=hot; g.userData.shim=[s1,s2]; g.userData.real=1; if(g.userData.ace)paintAce(true);
+   try{const was=g.visible, gp=g.position.clone(); const prev=[]; scene.children.forEach(o=>{prev.push([o,o.visible]); if(o!==g)o.visible=false}); g.visible=true; g.position.set(0,80,0); const aceOn=!!g.userData.ace; paintAce(aceOn); warmShot(new THREE.Vector3(0,95,46), g.position); if(!aceOn){paintAce(true); warmShot(new THREE.Vector3(8,96,44), g.position); paintAce(false)} g.visible=was; g.position.copy(gp); prev.forEach(([o,v])=>o.visible=v)}catch(e){}
   }, undefined, e=>console.warn('bandit',e));
  }); return g}
 function ensureWingMesh(){if(wingMesh)return wingMesh; const g=new THREE.Group(); g.name='wing'; g.visible=false; g.scale.setScalar(2.15);
@@ -2267,7 +2313,7 @@ function render(){jet.position.copy(S.pos);sun.target.position.copy(S.pos);sun.p
  if(sun.castShadow){sun.shadow.needsUpdate=(shadowN++%4)===0}
  if(window.__probeCam){placeProbeCam(); try{hx.setTransform(1,0,0,1,0,0); hx.clearRect(0,0,hud.width,hud.height)}catch(e){}}
  else if(cam.fov!==60){cam.fov=60; cam.updateProjectionMatrix()}
- try{syncRtb();syncLand()}catch(e){} if(document.hidden)return; try{if(useBloom)composer.render(); else R.render(scene,cam)}catch(e){} try{if(!window.__probeCam){drawHUD(); drawStrikeCue()}}catch(e){}}
+ try{syncRtb();syncLand()}catch(e){} if(document.hidden)return; try{if(useBloom)composer.render(); else R.render(scene,cam)}catch(e){} try{if(!window.__probeCam)drawHUD()}catch(e){} try{if(!window.__probeCam)drawStrikeCue()}catch(e){}}
 const G='rgba(182,220,174,.9)',GF='600 11px ui-monospace,"SF Mono",Menlo,monospace';
 function txt(s,x,y,sz=11,al='center',c=G){hx.font=`600 ${sz}px ui-monospace,"SF Mono",Menlo,monospace`;hx.textAlign=al;hx.fillStyle=c;hx.fillText(s,x,y)}
 function drawTakeoffHUD(){const cx=W/2;hx.shadowColor='rgba(0,0,0,.85)';hx.shadowBlur=2;
