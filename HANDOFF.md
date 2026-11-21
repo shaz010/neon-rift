@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x26 — the lock and the target
+
+The target diamond and the distance stay up from launch, through the refuel, until the blast, for the bunker, the radar site, and the fuel depot. The old "fly to the target" line is back, with the target's name. Lock frames the structure, not the hidden bunker mesh, and a press on LOCK is remembered long enough to acquire. A hit on the radar dish counts. Raven calls SIX if he spawns behind you, and he does not shoot faster than the 17x22 bandit. Refuel, the landing, and practice are unchanged.
+
+Stamp `s17 · 17x26`.
+
 ## s17 · 17x25 — the re-attack distance is back
 
 17x23 hid the re-attack cue whenever the bunker mesh was hidden, which is every radar sortie, and the "you passed it" line still used the old bunker latitude. The same RE-ATTACK distance and arrow now point at the seeded target, bunker, radar site, or fuel depot, and they stay up until that target is destroyed. The way-home arrow takes over only after the blast. The target diamond, the target glow, and the guns at the target follow the same rule. Refuel, the landing, Raven, and practice are unchanged.
@@ -427,4 +433,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17x25. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Each full mission is a different seed. After the target, follow the arrow out of the valley, over the open sea, and trap on the carrier. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`.
+Current project checkpoint: DEEP STRIKE s17 · 17x26. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Each full mission is a different seed. After the target, follow the arrow out of the valley, over the open sea, and trap on the carrier. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`.
