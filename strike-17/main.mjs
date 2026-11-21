@@ -1,20 +1,20 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const BUILD_V='17x27';
+const BUILD_V='17x28';
 const PATCH_V=BUILD_V;
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
 
 import * as THREE from 'three';
-import {Sky} from './vendor/jsm/objects/Sky.js?v=17x27';
-import {EffectComposer} from './vendor/jsm/postprocessing/EffectComposer.js?v=17x27';
-import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js?v=17x27';
-import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js?v=17x27';
-import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js?v=17x27';
-import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js?v=17x27';
-import {MeshoptDecoder} from './vendor/jsm/libs/meshopt_decoder.module.js?v=17x27';
-import {clone as cloneSkin} from './vendor/jsm/utils/SkeletonUtils.js?v=17x27';
+import {Sky} from './vendor/jsm/objects/Sky.js?v=17x28';
+import {EffectComposer} from './vendor/jsm/postprocessing/EffectComposer.js?v=17x28';
+import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js?v=17x28';
+import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js?v=17x28';
+import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js?v=17x28';
+import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js?v=17x28';
+import {MeshoptDecoder} from './vendor/jsm/libs/meshopt_decoder.module.js?v=17x28';
+import {clone as cloneSkin} from './vendor/jsm/utils/SkeletonUtils.js?v=17x28';
 const $=id=>document.getElementById(id);
 // Orientation hint only. Rotation lock on iOS never fires orientationchange and
 // never updates the angle, so a full-screen gate stays up and swallows taps.
@@ -472,7 +472,7 @@ bunker.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});sam.t
 // ---------- GLB jet (F-35 Lightning II by bohmerang, Sketchfab) ----------
 jet.traverse(o=>{if(o.isMesh&&o!==jet.userData.sh)o.castShadow=true});
 window.__glb='loading';
-import('./vendor/jsm/loaders/GLTFLoader.js?v=17x27').then(({GLTFLoader})=>new GLTFLoader().load('models/f35.glb',gl=>{
+import('./vendor/jsm/loaders/GLTFLoader.js?v=17x28').then(({GLTFLoader})=>new GLTFLoader().load('models/f35.glb',gl=>{
  const m=gl.scene;const bb=new THREE.Box3().setFromObject(m),sz=bb.getSize(new THREE.Vector3()),ct=bb.getCenter(new THREE.Vector3());
  const ax=sz.x>sz.z?'x':'z';const wrap=new THREE.Group();m.position.sub(ct);wrap.add(m);
  const L=Math.max(sz.x,sz.z);wrap.scale.setScalar(14.5/L);
@@ -544,7 +544,7 @@ function armBones(root){const names=['upper_armL','forearmL','handL','upper_armR
 function setBone(pack,n,dx,dy,dz){const b=pack.rig[n],r=pack.rest[n]; if(!b||!r)return; b.rotation.set(r.x+dx,r.y+dy,r.z+dz)}
 function armsDown(pack){setBone(pack,'upper_armL',0,0,1.35); setBone(pack,'upper_armR',0,0,-1.35); setBone(pack,'forearmL',0,0,.25); setBone(pack,'forearmR',0,0,-.25)}
 function loadDeck(){if(CVN._loading||CVN._ready)return; CVN._loading=1;
- import('./vendor/jsm/loaders/GLTFLoader.js?v=17x27').then(({GLTFLoader})=>{
+ import('./vendor/jsm/loaders/GLTFLoader.js?v=17x28').then(({GLTFLoader})=>{
   const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   const get=url=>new Promise((res,rej)=>loader.load(url,res,undefined,rej));
   Promise.all(['carrier','f15','crew','tractor','heli'].map(k=>get('models/deck/'+k+'.glb'))).then(([ship,jetM,crewM,tugM,heliM])=>{
@@ -1521,7 +1521,7 @@ function ensureBanditMesh(){if(banditMesh)return banditMesh; const g=new THREE.G
  const fin=new THREE.Mesh(new THREE.BoxGeometry(.22,2.2,1.6),camo); fin.position.set(0,1.2,5.2);
  const stripe=new THREE.Mesh(new THREE.BoxGeometry(.3,1.7,.4), new THREE.MeshStandardMaterial({color:0xc42828,roughness:.4,emissive:0x5a1414,emissiveIntensity:.4})); stripe.position.set(0,1.35,5.55);
  ace.add(body,wing,fin,stripe); g.add(ace); scene.add(g); banditMesh=g;
- import('./vendor/jsm/loaders/GLTFLoader.js?v=17x27').then(({GLTFLoader})=>{ const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+ import('./vendor/jsm/loaders/GLTFLoader.js?v=17x28').then(({GLTFLoader})=>{ const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   loader.load('models/deck/f15.glb', gl=>{ const hold=g.getObjectByName('hold'); if(hold)hold.visible=false; const m=gl.scene; m.rotation.y=Math.PI; m.traverse(o=>{ if(!o.isMesh)return; const n=o.name||''; if(/Landing_Gear|Tires/i.test(n)){o.visible=false; return} o.castShadow=true; o.receiveShadow=true; const mats=[].concat(o.material||[]); mats.forEach(mt=>{ if(mt&&mt.isMeshStandardMaterial){mt.envMapIntensity=Math.max(mt.envMapIntensity||1,1.35); mt.roughness=Math.min(mt.roughness??.45,.48); mt.emissive=mt.emissive||new THREE.Color(); mt.emissive.setHex(0x2a3138); mt.emissiveIntensity=.45} }); }); g.add(m);
    const glowMat=c=>new THREE.SpriteMaterial({map:glowTex,color:c,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false});
    const abL=new THREE.Sprite(glowMat(0xff6a1a)); abL.position.set(1.15,1.95,-9.3); abL.scale.set(3.2,1.4,1); const abR=new THREE.Sprite(glowMat(0xff6a1a)); abR.position.set(-1.15,1.95,-9.3); abR.scale.set(3.2,1.4,1); m.add(abL,abR);
@@ -1551,6 +1551,15 @@ function paintAce(on){const g=banditMesh; if(!g)return; g.userData.ace=!!on; con
 const ACE_KEY='ds17x_ace';
 function aceRecord(){try{const o=JSON.parse(localStorage[ACE_KEY]||'{}'); return {kills:Math.min(4,o.kills|0), escapes:Math.min(4,o.escapes|0), rising:o.rising?1:0}}catch(e){return {kills:0,escapes:0,rising:0}}}
 function saveAce(r){try{localStorage[ACE_KEY]=JSON.stringify({kills:Math.min(4,r.kills|0), escapes:Math.min(4,r.escapes|0), rising:r.rising?1:0})}catch(e){}}
+const RANK_KEY='ds17x_rank';
+const RANKS=[{n:'NUGGET',at:0},{n:'LIEUTENANT',at:18000},{n:'LT COMMANDER',at:50000},{n:'COMMANDER',at:100000},{n:'CAPTAIN',at:170000},{n:'ACE',at:260000}];
+function rankRec(){try{const o=JSON.parse(localStorage[RANK_KEY]||'{}'); return {pts:Math.max(0,o.pts|0)}}catch(e){return {pts:0}}}
+function rankAt(pts){let i=0; for(let k=0;k<RANKS.length;k++) if(pts>=RANKS[k].at)i=k; return i}
+function rankLine(pts){const i=rankAt(pts), r=RANKS[i], next=RANKS[i+1]; if(!next)return r.n+'  ·  '+pts; return r.n+'  ·  '+(pts-r.at)+' / '+(next.at-r.at)}
+function paintRank(){const el=$('rankLine'); if(!el)return; el.textContent=rankLine(rankRec().pts)}
+function payClose(kind,bonus,label){if(!S||S.dead||practice)return; const bag=S._closeN||(S._closeN={}); const cap=kind==='first'||kind==='fuel'||kind==='wire'?1:kind==='low'||kind==='raven'?3:4; if((bag[kind]||0)>=cap)return; const now=S.t||0; if(S._closeAt!=null&&now-S._closeAt<0.7&&S._closeKind===kind)return; bag[kind]=(bag[kind]||0)+1; S._closeAt=now; S._closeKind=kind; const n=Math.round(bonus*Math.max(1,S.mult||1)); S.score=(S.score||0)+n; if(!S.calls)S.calls=[]; S.calls.push({t:label+'  +'+n, at:performance.now()}); if(S.calls.length>4)S.calls.shift(); try{blip(280,.09,.035)}catch(e){}}
+function bankSortie(win){if(!S||practice||S._banked)return; S._banked=1; const sc=Math.max(0,Math.round(S.score||0)); const part=win&&S.landed?1:(win?.4:.15); const add=Math.round(sc*part); const rec=rankRec(); const before=rankAt(rec.pts); rec.pts+=add; const after=rankAt(rec.pts); try{localStorage[RANK_KEY]=JSON.stringify({pts:rec.pts})}catch(e){} S._rankAdd=add; S._rankUp=after>before?RANKS[after].n:''; paintRank()}
+function drawClose(){if(!S||!S.calls||!S.calls.length||!hx)return; const now=performance.now(); S.calls=S.calls.filter(c=>now-c.at<3200); const lines=S.calls.slice(-2); if(!lines.length)return; const y0=Math.max(250, Math.min(Hh*0.5, Hh-240)); hx.save(); hx.globalAlpha=1; hx.shadowBlur=0; lines.forEach((c,i)=>txtFit(c.t, 18, y0+i*26, 14, 'left', '#e7f0df')); hx.restore()}
 function aceRadio(line){if(S){S.msg=line; S.msgT=3.4} if(AC){blip(180,.2,.05); const t=AC.currentTime,n=AC.createBufferSource(); n.buffer=noiseBuf(.14); const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=420; const g=AC.createGain(); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(.045,t+.016); g.gain.exponentialRampToValueAtTime(.0008,t+.12); n.connect(f).connect(g).connect(AC.tone||AC.out); try{n.start(t); n.stop(t+.14)}catch(e){}}}
 function aceSortie(){return !practice && SORTIE && SORTIE.ace}
 function spawnBandit(quiet){ensureBanditMesh(); nose();
@@ -1627,7 +1636,7 @@ function updBandit(rdt){if(!S||S.dead||takingOff()||S.calm||S.gridSafe)return; i
  if(dist<320&&!b._flew){b._flew=1; playBank('flyby',b.p)} else if(dist>700)b._flew=0;
  b.breakSide=(side.x*rel.x+side.z*rel.z)>0?'LEFT':'RIGHT';
  if(behind&&dist>1050){const ang=(S.yaw||0)+(Math.random()<.5?2.15:-2.15); b.p.set(S.pos.x+Math.sin(ang)*1450, Math.max(groundY(S.pos.x,S.pos.z)+140,S.pos.y+40), S.pos.z+Math.cos(ang)*1450); const rdx=S.pos.x-b.p.x, rdz=S.pos.z-b.p.z; b.yaw=Math.atan2(-rdx,-rdz); b.state='merge'; b.timer=7; b.gunned=0; if(!b._re){b._re=1; if(!(b.ace&&S.msg&&String(S.msg).indexOf('Viper')===0))msg(b.ace?'RAVEN — REJOIN':'BANDIT — REJOIN')}} else if(!behind)b._re=0;
- if(behind&&dist<620&&(b.state==='merge'||b.state==='slash')&&!(S.refuelSafe>0)&&!(b.ace&&b.state==='extend')){b.settle=(b.settle||0)+rdt; warnSix(b.ace?'RAVEN':'BANDIT'); const need=b.ace?Math.max(1.6,2.15-Math.min(4,b.sharp||0)*0.1):1.6; if(b.settle>need&&!b.gunned&&S.brk<=0&&!(S.flareT>0)&&!S.safe){b.gunned=1; b.settle=0; S.hp--; nightKick(.1); S.shake=Math.max(S.shake,.4); if(b.ace&&S.hp<=0)S.aceHitYou=1; if(S.hp>0){fire(S.pos,.28); msg(b.ace?'HIT — RAVEN':'HIT — BANDIT'); b.state='extend'; b.timer=2.6} else {fire(S.pos,.8); die(b.ace?'RAVEN':'BANDIT','SIX O\'CLOCK'); return}}} else b.settle=Math.max(0,(b.settle||0)-rdt);
+ if(behind&&dist<620&&(b.state==='merge'||b.state==='slash')&&!(S.refuelSafe>0)&&!(b.ace&&b.state==='extend')){b.settle=(b.settle||0)+rdt; warnSix(b.ace?'RAVEN':'BANDIT'); const need=b.ace?Math.max(1.6,2.15-Math.min(4,b.sharp||0)*0.1):1.6; if(b.ace&&(b.settle||0)>need*0.85&&(S.brk>0||(S.flareT||0)>0)&&!b._dodged){b._dodged=1; payClose('raven',650,'RAVEN — DODGED')} if(b.settle>need&&!b.gunned&&S.brk<=0&&!(S.flareT>0)&&!S.safe){b.gunned=1; b.settle=0; S.hp--; nightKick(.1); S.shake=Math.max(S.shake,.4); if(b.ace&&S.hp<=0)S.aceHitYou=1; if(S.hp>0){fire(S.pos,.28); msg(b.ace?'HIT — RAVEN':'HIT — BANDIT'); b.state='extend'; b.timer=2.6} else {fire(S.pos,.8); die(b.ace?'RAVEN':'BANDIT','SIX O\'CLOCK'); return}}} else {b.settle=Math.max(0,(b.settle||0)-rdt); if(!behind||dist>780)b._dodged=0}
  if(b.state==='merge'){ if(!behind&&dist<1600&&!(b.holdMsg>0))msg(b.ace?'RAVEN — NOSE':'BANDIT — NOSE'); if(!b.ace&&(b.passes||0)>=1&&behind&&dist<1050&&dist>280&&!(S.wing&&(S.wing.settle||0)>0.3)&&!b.gunned){b.state='lock'; b.timer=1.7; warnSix('BANDIT MISSILE')} else if(dist<240||b.timer<=0){b.state='extend'; b.timer=2.1; b.passes=(b.passes||0)+1} }
  else if(b.state==='extend'){ if(b.timer<=0){b.state='merge'; b.timer=7} }
  else if(b.state==='slash'){ if(b.timer<=0){b.state='merge'; b.timer=6} }
@@ -1830,6 +1839,7 @@ function updHug(dt,rdt){
  if(close&&!S.inBand){S.inBand=1; S.streak=(S.t-S.lastMiss<5)?(S.streak||0)+1:1; S.lastMiss=S.t; S.bestStreak=Math.max(S.bestStreak||0,S.streak); const bonus=Math.round(350*S.streak*S.mult); S.score+=bonus; S.missBonus=bonus; S.missFlash=1.5; S.shake=Math.max(S.shake||0,.16); nearWhoosh(); msg('NEAR MISS +'+bonus)}
  else if(!close)S.inBand=0;
  S.missFlash=Math.max(0,(S.missFlash||0)-rdt);
+ if(!practice&&!S.home&&!S.cine&&S.fuelDone&&!S.calm&&(S.phase==='ingress'||S.phase==='release')){const low=agl>36&&agl<80&&spd>140; if(low)S.lowT=(S.lowT||0)+rdt; else S.lowT=0; if((S.lowT||0)>=3.2){S.lowT=0; payClose('low',500,'LOW PASS')}}
  if(S.home&&boatDist()<8000){S.spike=0; S.spikeArm=0; S.det=0; if(S.missile){try{mslAudioStop(S.missile)}catch(e){} S.missile=null; msl.visible=false; mslG.visible=false} return}
  if(S.safe||S.calm||S.gridSafe){S.spike=Math.max(0,(S.spike||0)-40*dt)} else if(agl>145){S.spike=Math.min(100,(S.spike||0)+(26+(agl-145)*.07)*dt); S.detT=(S.detT||0)+dt} else S.spike=Math.max(0,(S.spike||0)-(agl<95?48:16)*dt);
  S.det=S.spike; if((S.spikeCD||0)>0)S.spikeCD-=rdt;
@@ -2164,7 +2174,7 @@ function updHome(rdt){if(!S||!S.home||S.dead||S.trapped)return;
  if(S.pos.z>CVN.bowZ+6&&S.pos.z<CVN.sternZ-6&&Math.abs(S.pos.x-CVN_X)<34&&S.pos.y<CVN.deckY-1&&S.pos.y>0){die('RAMP','HULL'); return}
  if(S.pos.y<2.2&&wet&&!inWaveZone()){die('DITCH','SEA'); return}
 }
-function trap(){if(S.trapped)return; S.trapped=1; S.spd=0; S.thr=0; S.pitch=0; S.roll=0; S.pos.y=CVN.deckY+1.7; S._trapPos=S.pos.clone(); S._trapAt=S.t; S.shake=Math.max(S.shake||0,.9); S.landed=1; S.score=(S.score||0)+6000; msg('TRAP  +6000'); S.msgT=2.2; if(AC){thud(AC.out,.72,46,18,.62); nburst(AC.out,.16,180,.45)}}
+function trap(){if(S.trapped)return; S.trapped=1; S.spd=0; S.thr=0; S.pitch=0; S.roll=0; S.pos.y=CVN.deckY+1.7; S._trapPos=S.pos.clone(); S._trapAt=S.t; S.shake=Math.max(S.shake||0,.9); S.landed=1; S.score=(S.score||0)+6000; msg('TRAP  +6000'); S.msgT=2.2; if((S.gas||1)<0.15)payClose('fuel',700,'LOW FUEL'); if(Math.abs(S.pos.z-WIRES[0])<42)payClose('wire',800,'ONE WIRE'); if(AC){thud(AC.out,.72,46,18,.62); nburst(AC.out,.16,180,.45)}}
 function update(rdt){
  if(S.to&&S.to.fade>0){S.to.fade-=rdt;if(S.to.fade<=0){S.to.fade=0;const f=$('tofade');if(f)f.classList.remove('on')}}
  if(takingOff()){updateTakeoff(rdt);mixFlightAudio(rdt);return}
@@ -2219,18 +2229,18 @@ function update(rdt){
  const m=S.missile;if(m&&(S.calm||S.gridSafe)){try{mslAudioStop(m)}catch(e){} S.missile=null; msl.visible=false; mslG.visible=false} else if(m){m.life-=dt;if(!m.decoy&&!m.lost){if(los(tmp.copy(SITES[m.site].p).setY(SITES[m.site].p.y+12),S.pos))m.blind=0;else{m.blind+=dt;if(m.blind>2.2){m.lost=true;msg('MISSILE TERRAIN-MASKED')}}}
   let tgt;if(m.lost){tgt=tmp.copy(m.p).addScaledVector(m.v,1).setY(m.p.y-20)}else if(m.decoy){m.decoy.addScaledVector(m.decoyV,dt);m.decoyV.y-=10*dt;tgt=m.decoy;m.dt-=dt}else{tgt=tmp.copy(S.pos).addScaledVector(fwd,spd*.6);const dd=m.p.distanceTo(S.pos);if(dd<1900){m.cs=(m.cs||0)+dt*5.5;const sd=new THREE.Vector3(-m.v.z,0,m.v.x).normalize();tgt.addScaledVector(sd,Math.sin(m.cs)*dd*.09);tgt.y+=Math.cos(m.cs)*dd*.07}}
   const gentle=S.samShots<=1,sp=Math.min(gentle?360:480,m.v.length()+180*dt),dir=m.v.clone().normalize(),want=tgt.clone().sub(m.p).normalize();dir.lerp(want,clamp(dt*(m.p.distanceTo(S.pos)<900?(gentle?2.8:3.8):(gentle?1.7:2.3)),0,1)).normalize();m.v.copy(dir).multiplyScalar(sp);const r0=m.p.clone().sub(S.pos);m.p.addScaledVector(m.v,dt);{const r1=m.p.clone().sub(S.pos),dd=r1.clone().sub(r0),L=dd.lengthSq();const t=L>0?clamp(-r0.dot(dd)/L,0,1):1;m.cpa=r0.addScaledVector(dd,t).length()}
-  msl.position.copy(m.p);msl.lookAt(tmp.copy(m.p).add(m.v));m.tr=(m.tr||0)+dt;const boost=m.life>17;{const dj=m.p.distanceTo(S.pos);mslG.visible=true;mslG.position.copy(m.p);mslG.scale.setScalar((boost?72:48)*(1+.12*Math.sin(S.t*40))*Math.max(1,dj/1800));}if(m.tr>(MOB?.05:.035)){m.tr=0;spr(m.p,boost?0xf2eee6:0xe0dbd2,boost?11:8,boost?11:8,new THREE.Vector3(rnd(2),rnd(2),rnd(2)),{grow:boost?8:6,o:.75,drag:.3,must:1})}spr(m.p,0xffd090,boost?7:3,.12,null,{add:true,tex:glowTex,fog:false});
+  msl.position.copy(m.p);msl.lookAt(tmp.copy(m.p).add(m.v)); if(!m._paid&&!m.decoy&&(m.cpa||1e9)<200&&(m.cpa||0)>75&&m.p.distanceTo(S.pos)>260){m._paid=1; payClose('sam',450,'SAM — CLOSE')} m.tr=(m.tr||0)+dt;const boost=m.life>17;{const dj=m.p.distanceTo(S.pos);mslG.visible=true;mslG.position.copy(m.p);mslG.scale.setScalar((boost?72:48)*(1+.12*Math.sin(S.t*40))*Math.max(1,dj/1800));}if(m.tr>(MOB?.05:.035)){m.tr=0;spr(m.p,boost?0xf2eee6:0xe0dbd2,boost?11:8,boost?11:8,new THREE.Vector3(rnd(2),rnd(2),rnd(2)),{grow:boost?8:6,o:.75,drag:.3,must:1})}spr(m.p,0xffd090,boost?7:3,.12,null,{add:true,tex:glowTex,fog:false});
   mslAudioUpd(m,dt);{const dj=m.p.distanceTo(S.pos);if(!m.ws&&dj<260&&(m.decoy||m.lost)){m.ws=1; if(!useSnd('pass',m.p)){whoosh();passBy(m.p)} S.shake=Math.max(S.shake,.25)}}
   if(!m.decoy&&!m.lost&&threatBehind(m.p)){m._sixT=(m._sixT||0)+dt; warnSix('SAM')}
   if(!m.decoy&&!m.lost&&Math.min(m.cpa??1e9,m.p.distanceTo(S.pos))<75){ if(S.safe){m.lost=true; msg('GRACE — SAM LOST')} else if(threatBehind(m.p)&&(m._sixT||0)<1.5){m.p.addScaledVector(fwd,-40)} else {mslAudioStop(m);S.missile=null;msl.visible=false;mslG.visible=false;S.sites[m.site].next=S.t+4;nightKick(.16);$('flash').style.transition='none';$('flash').style.background='#ffb070';$('flash').style.opacity=NIGHT_ON?.22:.85;setTimeout(()=>{$('flash').style.transition='opacity 1.4s';$('flash').style.opacity=0},NIGHT_ON?160:90);if(!useSnd('boom',S.pos)){src(SB.sub08,.8,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:sub08'});if(SB.hitsub)src(SB.hitsub,.85,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:hitsub'});if(AC){if(SB.impact)src(SB.impact,.9,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:impact'});else thud(AC.bigB,.9,55,22,1.6); }}S.shake=1;;S.hp--;if(S.hp>0){fire(tmp.copy(S.pos).addScaledVector(fwd,-30),.35);msg('HIT! AIRFRAME DAMAGED — ONE MORE HIT IS FATAL');S.dmgT=3;return}fire(S.pos,.9);return die('SAM', threatBehind(m.p)?'SIX O\'CLOCK':'')}}
-  if(m.p.y<H(m.p.x,m.p.z)||m.life<=0||(m.decoy&&m.dt<=0)){const pd=m.p.distanceTo(S.pos);fire(m.p,m.decoy?.45:.25);if(m.decoy){spr(m.p,0xfff0d0,90,.35,null,{add:true,tex:glowTex,fog:false,grow:120,must:1});for(let k=0;k<30;k++)spr(m.p,0xffc080,3,1.4,new THREE.Vector3(rnd(160),rnd(160),rnd(160)),{add:true,tex:glowTex,g:20,fog:false,must:1});if(pd<1200){S.shake=Math.max(S.shake,.2+.5*(1-pd/1200));heavy('sub08',.45*(1-pd/1500),1.35)}}boomSfx(false,m.p);if(AC&&pd<4000){psrc('hitsub',.4,m.p,true,{ref:280,rate:.95,pri:1,fadeIn:.008,tag:'psrc:hitsub'});if(!psrc('impact',.4,m.p,true,{ref:250,rate:.9,pri:1,fadeIn:.008,tag:'psrc:impact'})){const pn=mkPan(true,150);setP0(pn,m.p);pn.connect(AC.out);thud(pn,.85,55,24,1.3);setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}},1800)}}mslAudioStop(m);S.sites[m.site].next=S.t+2.5;S.missile=null;msl.visible=false;mslG.visible=false;if(!S.dead&&!m.def){S.defeated++;msg(m.lost?'MISSILE LOST — TERRAIN MASK':'MISSILE DEFEATED')}}}
+  if(m.p.y<H(m.p.x,m.p.z)||m.life<=0||(m.decoy&&m.dt<=0)){const pd=m.p.distanceTo(S.pos);fire(m.p,m.decoy?.45:.25);if(m.decoy){spr(m.p,0xfff0d0,90,.35,null,{add:true,tex:glowTex,fog:false,grow:120,must:1});for(let k=0;k<30;k++)spr(m.p,0xffc080,3,1.4,new THREE.Vector3(rnd(160),rnd(160),rnd(160)),{add:true,tex:glowTex,g:20,fog:false,must:1});if(pd<1200){S.shake=Math.max(S.shake,.2+.5*(1-pd/1200));heavy('sub08',.45*(1-pd/1500),1.35)}}boomSfx(false,m.p);if(AC&&pd<4000){psrc('hitsub',.4,m.p,true,{ref:280,rate:.95,pri:1,fadeIn:.008,tag:'psrc:hitsub'});if(!psrc('impact',.4,m.p,true,{ref:250,rate:.9,pri:1,fadeIn:.008,tag:'psrc:impact'})){const pn=mkPan(true,150);setP0(pn,m.p);pn.connect(AC.out);thud(pn,.85,55,24,1.3);setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}},1800)}}mslAudioStop(m);S.sites[m.site].next=S.t+2.5;S.missile=null;msl.visible=false;mslG.visible=false;if(!S.dead&&!m.def){if(!m._paid&&(m.cpa||1e9)<220&&(m.cpa||0)>70){m._paid=1; payClose('sam',450,'SAM — CLOSE')} S.defeated++;msg(m.lost?'MISSILE LOST — TERRAIN MASK':'MISSILE DEFEATED')}}}
  updRounds(rdt);
  S.brk=Math.max(0,S.brk-rdt);S.brkCD=Math.max(0,S.brkCD-rdt);S.ecm=Math.max(0,S.ecm-rdt);S.ecmCD=Math.max(0,S.ecmCD-rdt);S.teachT=Math.max(0,S.teachT-rdt);S.dmgT=Math.max(0,(S.dmgT||0)-rdt);
  S.exT=(S.exT||0)-rdt;if(!S.cine&&S.exT<=0){S.exT=MOB?.07:.045;const thr=S.thr,sz=1.5+thr*5,life=1.2+thr*2.2,op=.25+thr*.45;spr(tmp.copy(S.pos).addScaledVector(fwd,-8-thr*4),0x3a3732,sz,life,new THREE.Vector3(rnd(2+thr*3),1+thr*2,rnd(2+thr*3)),{grow:4+thr*10,o:op,drag:.4,must:thr>.55});if(thr>.75&&Math.random()<.4)spr(tmp.copy(S.pos).addScaledVector(fwd,-7),0xffa060,2+thr*2,.18,null,{add:true,tex:glowTex,fog:false})}
  if(S.hp<2){S.smT-=rdt;if(S.smT<=0){S.smT=MOB?.09:.05;spr(tmp.copy(S.pos).addScaledVector(fwd,-9),0x2a2724,4,3,new THREE.Vector3(rnd(4),2,rnd(4)),{grow:8,o:.75,must:1});if(Math.random()<.35)spr(tmp.copy(S.pos).addScaledVector(fwd,-8),0xff8a40,2.8,.28,null,{add:true,tex:glowTex,fog:false})}}
  if(!S.cine&&!S.calm&&!S.gridSafe&&!reattackTurn()&&targetMeshUp()&&bDist()<6500){const aaaClose=bDist()<2600; S.aaaS-=rdt;if(S.aaaS<=0){S.aaaS=(aaaClose?.32:.62)+Math.random()*(aaaClose?.28:.45); S.aaaN=(S.aaaN||0)+1; aaaBurst(tmp.copy(BUNK).add(new THREE.Vector3(Math.random()<.5?-60:55,4,0)).clone()); if(aaaClose)aaaBurst(tmp.copy(BUNK).add(new THREE.Vector3(40,6,-30)).clone())}
   if(bDist()<4500){S.flakT-=rdt;if(S.flakT<=0){S.flakT=(aaaClose?.42:.95)+Math.random()*.45;const P=S.pos.clone().addScaledVector(fwd,120+Math.random()*260).add(new THREE.Vector3(rnd(aaaClose?90:220),30+Math.random()*(aaaClose?70:160),rnd(aaaClose?90:220)));
-   spr(P,0xfff0c0,30,.2,null,{add:true,tex:glowTex,fog:false,grow:80,must:1});for(let k=0;k<(MOB?4:7);k++)spr(P,0x1c1a18,14,3+Math.random()*2,new THREE.Vector3(rnd(14),rnd(10),rnd(14)),{grow:12,o:.85,drag:.6,must:1});flakBoom(P);const fd=P.distanceTo(S.pos);if(fd<260)S.shake=Math.max(S.shake,.5*(1-fd/260))}}}
+   spr(P,0xfff0c0,30,.2,null,{add:true,tex:glowTex,fog:false,grow:80,must:1});for(let k=0;k<(MOB?4:7);k++)spr(P,0x1c1a18,14,3+Math.random()*2,new THREE.Vector3(rnd(14),rnd(10),rnd(14)),{grow:12,o:.85,drag:.6,must:1});flakBoom(P);const fd=P.distanceTo(S.pos);if(fd>70&&fd<200)payClose('aaa',350,'AAA — CLOSE'); if(fd<260)S.shake=Math.max(S.shake,.5*(1-fd/260))}}}
  updParts(dt);S.flareCD=Math.max(0,S.flareCD-rdt);S.flareT=Math.max(0,(S.flareT||0)-rdt);if(S.msgT>0)S.msgT-=rdt;S.shake=Math.max(0,S.shake-rdt);radDish.rotation.y+=dt*.8;
  updBandit(rdt);
  updGrid(dt,rdt);
@@ -2245,7 +2255,7 @@ function groundBurst(p){const q=p.clone(); q.y=Math.max(p.y, groundY(p.x,p.z)); 
  for(let i=0;i<(MOB?8:14);i++)spr(q.clone(),0x9a8a72,16+Math.random()*22,1.6+Math.random()*1.4,new THREE.Vector3(rnd(14),6+Math.random()*16,rnd(14)),{grow:14,o:.82,drag:.25,fadeIn:.15,must:1});
  for(let i=0;i<10;i++)spr(q.clone(),0x5c564c,8+Math.random()*6,2.2,new THREE.Vector3(rnd(8),1+Math.random()*3,rnd(8)),{grow:6,o:.7,drag:.4,must:1})}
 function bombCall(p){const dx=p.x-BUNK.x, dz=p.z-BUNK.z; if(Math.abs(dx)>80&&Math.abs(dx)>Math.abs(dz)*0.75)return 'MISS'; if(dz>40)return 'SHORT'; if(dz<-40)return 'LONG'; return 'MISS'}
-function bombStrike(p){S.err=Math.hypot(p.x-BUNK.x,p.z-BUNK.z); S.bomb=null; bomb.visible=false; S.phase='penetrate'; S.penT=0; riser(false);
+function bombStrike(p){S.err=Math.hypot(p.x-BUNK.x,p.z-BUNK.z); if(!S.reattack)payClose('first',1000,'FIRST PASS'); S.bomb=null; bomb.visible=false; S.phase='penetrate'; S.penT=0; riser(false);
  if(!S.quiet)blip(90,.4,.4,'sine'); if(!S.quiet){if(bunkerLayered()){if(AC)thud(AC.out,.22,42,24,.3)}else{boomSfx(false,BUNK);heavy('sub08',.35,.9)}}
  bulge.position.copy(BUNK); bulge.visible=true; bulge.scale.set(46,.1,40);
  for(let i=0;i<22;i++)spr(BUNK,0x8f8270,16,3,new THREE.Vector3(rnd(22),18+Math.random()*35,rnd(22)),{grow:20,o:.85,must:1})}
@@ -2262,15 +2272,15 @@ function release(){if(window.__ft)window.__ft.markRel();S.relHold=0;S._relT0=0; 
  S.quiet=1; S.graceHold=8; S.safe=1; stopMood(true); riser(false); S.msg=guided?'GUIDED':'BOMB AWAY'; S.msgT=guided?2.4:1.4; paintRelease()}
 function silenceScore(){stopMood(true); stopIntroMusic(); stopDeckAmbience(); try{stopBed()}catch(e){} stopWin(); riser(false); if(typeof endHandle!=='undefined'&&endHandle){try{endHandle.stop()}catch(e){} endHandle=null} try{if(JET){JET.stop(0.05); JET=null}}catch(e){} try{if(windBed){windBed.stop(); windBed=null}}catch(e){} try{if(AC&&AC.wind)stopLive(AC.wind.live)}catch(e){} try{if(AC&&AC.rumble)stopLive(AC.rumble.live)}catch(e){} try{gridHumSet(false)}catch(e){} if(!AC)return; const t=AC.currentTime; [AC.amb,AC.moodG,AC.mus,AC.introG,AC.wind&&AC.wind.g,AC.jet,AC.sub,AC.engB,AC.deckJetG,AC.deckRotorG,AC.rumble&&AC.rumble.g,eng&&eng.g,warnG,trkG,seekG].forEach(g=>{if(g&&g.gain){try{g.gain.cancelScheduledValues(t); g.gain.value=0}catch(e){}}})}
 function bookAce(){if(!S||S.aceBooked||practice)return; S.aceBooked=1; if(S.aceKilled)return; const rec=aceRecord(); if(S.aceHitYou)rec.kills=Math.min(4,(rec.kills|0)+1); else if(S.aceMet)rec.escapes=Math.min(4,(rec.escapes|0)+1); saveAce(rec)}
-function showEnd(win){running=false;releaseControls();clearTimeout(endTimer);silenceScore(); try{bookAce()}catch(e){} if(AC){const t=AC.currentTime;riser(false);AC.jet.gain.setTargetAtTime(0,t,.05);AC.amb.gain.setTargetAtTime(0,t,.05);try{stopBed()}catch(e){};eng.g.gain.setTargetAtTime(0,t,.05);warnG.gain.setTargetAtTime(0,t,.05);trkG.gain.setTargetAtTime(0,t,.05);AC.sub.gain.setTargetAtTime(0,t,.05);if(S.missile)mslAudioStop(S.missile);$('vig').style.opacity=0;$('teach').style.display='none';seekG.gain.setTargetAtTime(0,t,.05);
+function showEnd(win){running=false;releaseControls();clearTimeout(endTimer);silenceScore(); try{bookAce()}catch(e){} try{bankSortie(!!win)}catch(e){} if(AC){const t=AC.currentTime;riser(false);AC.jet.gain.setTargetAtTime(0,t,.05);AC.amb.gain.setTargetAtTime(0,t,.05);try{stopBed()}catch(e){};eng.g.gain.setTargetAtTime(0,t,.05);warnG.gain.setTargetAtTime(0,t,.05);trkG.gain.setTargetAtTime(0,t,.05);AC.sub.gain.setTargetAtTime(0,t,.05);if(S.missile)mslAudioStop(S.missile);$('vig').style.opacity=0;$('teach').style.display='none';seekG.gain.setTargetAtTime(0,t,.05);
  }const prec=win?Math.round(clamp(100-S.err*5,0,100)):0,st=Math.round(clamp(100-S.detT/Math.max(1,S.t)*100-S.samShots*10,0,100)),tm=S.t;
  const stars=win?1+(prec>=80)+(st>=75&&tm<170):0;$('et').textContent=win?(S.landed?'MISSION COMPLETE // TRAP':'MISSION COMPLETE // ESCAPED'):'MISSION FAILED // KILLED BY: '+killText();$('es').textContent='★'.repeat(stars)+'☆'.repeat(3-stars);
  let hi=0,hs=0; try{hi=+localStorage.ds17e_hi||0; hs=+localStorage.ds17e_streak||0}catch(e){}
  const sc=Math.round(S.score||0), run=S.bestStreak||0; let fresh=false;
  if(sc>hi){hi=sc; fresh=true; try{localStorage.ds17e_hi=String(hi)}catch(e){}}
  if(run>hs){hs=run; try{localStorage.ds17e_streak=String(hs)}catch(e){}}
- const ar=aceRecord(); const raven=S.aceKilled?'DESTROYED · NEW ACE RISING':('ACE • KILLS ON YOU: '+(ar.kills|0)+' • ESCAPES: '+(ar.escapes|0));
- $('etab').innerHTML=`<tr><td>PRECISION</td><td>${prec}%${win?` · CEP ${S.err.toFixed(1)} M`:''}</td></tr><tr><td>STEALTH</td><td>${st}%</td></tr><tr><td>TIME ON MISSION</td><td>${(tm/60|0)}:${String(tm%60|0).padStart(2,'0')}</td></tr><tr><td>SAMS DEFEATED</td><td>${S.defeated}</td></tr><tr><td>BANDIT</td><td>${S.aceKilled?'RAVEN DESTROYED':S.bandit&&S.bandit.dead?'DESTROYED':S.bandit?'STILL UP':'—'} </td></tr><tr><td>RAVEN</td><td>${raven}</td></tr><tr><td>SCORE</td><td>${sc}${fresh?' · HIGH':''}</td></tr><tr><td>BEST STREAK</td><td>${run} · RECORD ${hs}</td></tr><tr><td>HIGH SCORE</td><td>${hi}</td></tr><tr><td>FUEL</td><td>${S.home?Math.round((S.gas||0)*100)+'%':S.fuelDone?'COMPLETE':S.fuelFail?'LOW':'—'}</td></tr><tr><td>LANDING</td><td>${S.landed?'TRAP':S.home?(S.bolters||0)+' BOLTER':'—'}</td></tr><tr><td>GRID</td><td>${S.grids?S.grids.filter(g=>g.done).length+' / '+S.grids.length:'—'}</td></tr>${win?'':`<tr><td>KILLED BY</td><td>${killText()}</td></tr>`}`;
+ const ar=aceRecord(); const raven=S.aceKilled?'DESTROYED · NEW ACE RISING':('ACE • KILLS ON YOU: '+(ar.kills|0)+' • ESCAPES: '+(ar.escapes|0)); const rk=rankRec(); const promo=S._rankUp?`<tr><td>PROMOTED</td><td>${S._rankUp}</td></tr>`:'';
+ $('etab').innerHTML=`<tr><td>PRECISION</td><td>${prec}%${win?` · CEP ${S.err.toFixed(1)} M`:''}</td></tr><tr><td>STEALTH</td><td>${st}%</td></tr><tr><td>TIME ON MISSION</td><td>${(tm/60|0)}:${String(tm%60|0).padStart(2,'0')}</td></tr><tr><td>SAMS DEFEATED</td><td>${S.defeated}</td></tr><tr><td>BANDIT</td><td>${S.aceKilled?'RAVEN DESTROYED':S.bandit&&S.bandit.dead?'DESTROYED':S.bandit?'STILL UP':'—'} </td></tr><tr><td>RAVEN</td><td>${raven}</td></tr><tr><td>SCORE</td><td>${sc}${fresh?' · HIGH':''}</td></tr><tr><td>RANK</td><td>${rankLine(rk.pts)}</td></tr>${promo}<tr><td>BEST STREAK</td><td>${run} · RECORD ${hs}</td></tr><tr><td>HIGH SCORE</td><td>${hi}</td></tr><tr><td>FUEL</td><td>${S.home?Math.round((S.gas||0)*100)+'%':S.fuelDone?'COMPLETE':S.fuelFail?'LOW':'—'}</td></tr><tr><td>LANDING</td><td>${S.landed?'TRAP':S.home?(S.bolters||0)+' BOLTER':'—'}</td></tr><tr><td>GRID</td><td>${S.grids?S.grids.filter(g=>g.done).length+' / '+S.grids.length:'—'}</td></tr>${win?'':`<tr><td>KILLED BY</td><td>${killText()}</td></tr>`}`;
  $('end').classList.remove('hide')}
 // ---------- render + HUD ----------
 const hud=$('hud'),hx=hud.getContext('2d');let W=0,Hh=0,dpr=1;
@@ -2455,6 +2465,7 @@ function drawHUD(){hx.setTransform(dpr,0,0,dpr,0,0);hx.clearRect(0,0,W,Hh);if(!r
  else if((S.spike||0)>40||(S.spikeArm||0)>0)txt((S.spikeArm||0)>0?'SAM LOCK — DIVE':'SPIKED',cx,bot,15,'center',(S.t*5|0)%2?'rgba(255,90,70,1)':'rgba(255,190,140,.95)');
  else if(S.agl>400&&(S.det||0)>35&&S.phase!=='done'&&!S.fuelDone)txtFitFree('RADAR',bot,Math.max(16,Math.round(Math.min(W,Hh)*.036)),'#ffd0c2');
  paintRelease();
+ try{drawClose()}catch(e){}
  let hudKey=(canLock()?1:0)+':'+(S.locked?1:0)+':'+cue+':'+(missileUp()?1:0)+':'+(S.ecmN|0)+':'+(S.ecm|0)+':'+(S.flares|0)+':'+(S.brkCD>0?1:0);
  if(hudKey!==window.__hudKey){window.__hudKey=hudKey;
  $('lock').classList.toggle('off',!canLock()&&!S.locked);$('lock').classList.toggle('hot',canLock()||!!S.locked);
@@ -2546,7 +2557,7 @@ function applyPracticeLayout(){BUNK.copy(LAY.bunk); SITES.forEach((s,i)=>s.p.cop
 function applySortie(seed){const s=sortieFrom(seed==null?SORTIE.seed:seed); Object.assign(SORTIE,s);
  const spot=pickSpot(s.rng,s.kind); BUNK.set(spot.x,spot.y,spot.z); bunker.rotation.y=spot.side>0?Math.PI/2:-Math.PI/2;
  layoutSites(s.rng,spot.z); syncTargetVisual(); applyLook(s);
- const line=$('sortieLine'); if(line)line.textContent='SORTIE '+s.seed+' · '+s.timeName+' · '+s.skyName+' · TARGET: '+s.targetName;
+ const line=$('sortieLine'); if(line)line.textContent='SORTIE '+s.seed+' · '+s.timeName+' · '+s.skyName+' · TARGET: '+s.targetName; paintRank();
  const tgt=$('tgtLine'); if(tgt)tgt.textContent=s.targetLong;
  return SORTIE}
 function rollSortie(){let seed=null; try{const q=new URLSearchParams(location.search).get('seed'); if(q)seed=(+q)>>>0}catch(e){} if(window.__seed!=null)seed=window.__seed>>>0; if(seed==null)seed=1000+((Math.random()*9000)|0); return applySortie(seed)}

@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x28 — close calls and the rank
+
+A close call pays a score bonus and a small glass line on the left. A sustained low pass in the valley, a SAM or a burst of AAA that passes close, dodging Raven while he has the guns on you, a hit on the first pass, a trap under 15 percent fuel, and a trap on the first wire. The line stays off the target cue, the SIX warning, the way-home arrow, and the landing guide. A trap banks that sortie's score. A crash or an ejection banks a small part. The points add up to a rank kept on this phone: nugget, lieutenant, lieutenant commander, commander, captain, ace. The rank is on the start card and the debrief, and a promotion is one line there. It does not change the fight. No new sounds. The phone caps and the warm-up are the 17x27 ones.
+
+Stamp `s17 · 17x28`.
+
 ## s17 · 17x27 — the hitches are warmed
 
 The two freezes are warmed before they can land in the flight. The sea environment map is built while the brief is up and reused when the carrier lights, instead of being generated on the first takeoff frame. The deck model compiles only itself. At the moment you press fly, before the brief comes down, the target, the defences, Raven, and the carrier are drawn once into a hidden target so the dive after the refuel and the first look at the ship are not the first time those shaders run. Phone settings stay 0.8× and 32 fps. Nothing about the flying, the HUD, the refuel, the landing, the sounds, the ace, the seeds, or practice changed.
@@ -439,4 +445,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17x27. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Each full mission is a different seed. After the target, follow the arrow out of the valley, over the open sea, and trap on the carrier. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`.
+Current project checkpoint: DEEP STRIKE s17 · 17x28. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Each full mission is a different seed. After the target, follow the arrow out of the valley, over the open sea, and trap on the carrier. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`.

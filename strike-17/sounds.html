@@ -4,13 +4,13 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-title" content="SND 17x27"/>
+<meta name="apple-mobile-web-app-title" content="SND 17x28"/>
 <meta name="theme-color" content="#14305c"/>
-<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-snd-17x27-180.png?v=17x27"/>
-<link rel="icon" href="icons/icon-snd-17x27-180.png?v=17x27"/>
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-snd-17x28-180.png?v=17x28"/>
+<link rel="icon" href="icons/icon-snd-17x28-180.png?v=17x28"/>
 <link rel="manifest" href="manifest-snd.webmanifest"/>
-<title>SND 17x27</title>
-<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js?v=17x27"}}</script>
+<title>SND 17x28</title>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js?v=17x28"}}</script>
 <style>
 :root{--g:#b6dcae;--bg:#070908;--m:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
 html,body{margin:0;background:var(--bg);color:var(--g);font:13px var(--m);touch-action:pan-y;-webkit-overflow-scrolling:touch;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:auto;-webkit-user-select:none;user-select:none}
@@ -52,8 +52,8 @@ canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:
 </style>
 </head>
 <body>
-<div id="unlock"><div style="letter-spacing:3px;font-weight:700">DEEP STRIKE · s17</div><div class="patch" data-patch>s17 · 17x27</div><div style="opacity:.75">SOUND TESTER</div><button type="button" id="unlockBtn">TAP TO UNLOCK AUDIO</button></div>
-<div id="bar"><div class="patch" data-patch>s17 · 17x27</div><h1>DEEP STRIKE · s17</h1><a class="back" href="./sound-bank.html">Bank</a><button type="button" class="back" data-togame>← Game</button></div>
+<div id="unlock"><div style="letter-spacing:3px;font-weight:700">DEEP STRIKE · s17</div><div class="patch" data-patch>s17 · 17x28</div><div style="opacity:.75">SOUND TESTER</div><button type="button" id="unlockBtn">TAP TO UNLOCK AUDIO</button></div>
+<div id="bar"><div class="patch" data-patch>s17 · 17x28</div><h1>DEEP STRIKE · s17</h1><a class="back" href="./sound-bank.html">Bank</a><button type="button" class="back" data-togame>← Game</button></div>
 <div id="vols">
 <label>MASTER <input type="range" id="t_master" min="0" max="100" value="80"/></label>
 <label>MUSIC <input type="range" id="t_mus" min="0" max="100" value="85"/></label>
@@ -93,6 +93,6 @@ canvas#gl{position:fixed;inset:0;opacity:0;pointer-events:none;width:1px;height:
 <div id="tt"></div><div id="tp"></div><div id="tn"></div><div id="mapc"></div>
 <script>window.__DS_MODE='sounds';</script>
 <script>(function(){if(!('serviceWorker' in navigator))return;function reloadOnce(){var t=Date.now(),prev=+sessionStorage.getItem('dsSWt')||0;if(t-prev<8000)return;sessionStorage.setItem('dsSWt',String(t));location.reload()}navigator.serviceWorker.register('sw.js',{scope:'./'}).then(function(reg){var sw=reg.installing||reg.waiting;if(sw&&!navigator.serviceWorker.controller)sw.addEventListener('statechange',function(){if(sw.state==='activated')reloadOnce()});reg.addEventListener('updatefound',function(){var nw=reg.installing;if(!nw)return;nw.addEventListener('statechange',function(){if(nw.state==='activated'&&navigator.serviceWorker.controller)reloadOnce()})})}).catch(function(e){console.warn(e)})})();</script>
-<script type="module" src="./main.mjs?v=17x27"></script>
+<script type="module" src="./main.mjs?v=17x28"></script>
 </body>
 </html>
