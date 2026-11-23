@@ -1,20 +1,20 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const BUILD_V='17x28';
+const BUILD_V='17x29';
 const PATCH_V=BUILD_V;
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
 
 import * as THREE from 'three';
-import {Sky} from './vendor/jsm/objects/Sky.js?v=17x28';
-import {EffectComposer} from './vendor/jsm/postprocessing/EffectComposer.js?v=17x28';
-import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js?v=17x28';
-import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js?v=17x28';
-import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js?v=17x28';
-import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js?v=17x28';
-import {MeshoptDecoder} from './vendor/jsm/libs/meshopt_decoder.module.js?v=17x28';
-import {clone as cloneSkin} from './vendor/jsm/utils/SkeletonUtils.js?v=17x28';
+import {Sky} from './vendor/jsm/objects/Sky.js?v=17x29';
+import {EffectComposer} from './vendor/jsm/postprocessing/EffectComposer.js?v=17x29';
+import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js?v=17x29';
+import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js?v=17x29';
+import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js?v=17x29';
+import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js?v=17x29';
+import {MeshoptDecoder} from './vendor/jsm/libs/meshopt_decoder.module.js?v=17x29';
+import {clone as cloneSkin} from './vendor/jsm/utils/SkeletonUtils.js?v=17x29';
 const $=id=>document.getElementById(id);
 // Orientation hint only. Rotation lock on iOS never fires orientationchange and
 // never updates the angle, so a full-screen gate stays up and swallows taps.
@@ -472,7 +472,7 @@ bunker.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});sam.t
 // ---------- GLB jet (F-35 Lightning II by bohmerang, Sketchfab) ----------
 jet.traverse(o=>{if(o.isMesh&&o!==jet.userData.sh)o.castShadow=true});
 window.__glb='loading';
-import('./vendor/jsm/loaders/GLTFLoader.js?v=17x28').then(({GLTFLoader})=>new GLTFLoader().load('models/f35.glb',gl=>{
+import('./vendor/jsm/loaders/GLTFLoader.js?v=17x29').then(({GLTFLoader})=>new GLTFLoader().load('models/f35.glb',gl=>{
  const m=gl.scene;const bb=new THREE.Box3().setFromObject(m),sz=bb.getSize(new THREE.Vector3()),ct=bb.getCenter(new THREE.Vector3());
  const ax=sz.x>sz.z?'x':'z';const wrap=new THREE.Group();m.position.sub(ct);wrap.add(m);
  const L=Math.max(sz.x,sz.z);wrap.scale.setScalar(14.5/L);
@@ -544,7 +544,7 @@ function armBones(root){const names=['upper_armL','forearmL','handL','upper_armR
 function setBone(pack,n,dx,dy,dz){const b=pack.rig[n],r=pack.rest[n]; if(!b||!r)return; b.rotation.set(r.x+dx,r.y+dy,r.z+dz)}
 function armsDown(pack){setBone(pack,'upper_armL',0,0,1.35); setBone(pack,'upper_armR',0,0,-1.35); setBone(pack,'forearmL',0,0,.25); setBone(pack,'forearmR',0,0,-.25)}
 function loadDeck(){if(CVN._loading||CVN._ready)return; CVN._loading=1;
- import('./vendor/jsm/loaders/GLTFLoader.js?v=17x28').then(({GLTFLoader})=>{
+ import('./vendor/jsm/loaders/GLTFLoader.js?v=17x29').then(({GLTFLoader})=>{
   const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   const get=url=>new Promise((res,rej)=>loader.load(url,res,undefined,rej));
   Promise.all(['carrier','f15','crew','tractor','heli'].map(k=>get('models/deck/'+k+'.glb'))).then(([ship,jetM,crewM,tugM,heliM])=>{
@@ -1495,7 +1495,7 @@ function fireCannon(){if(!S||S.dead||S.cine||takingOff()||S.phase==='done'||S.ph
  rounds.push({p,v,life:GUN_RANGE/1800,m,px:p.x,py:p.y,pz:p.z});if(rounds.length>14){const old=rounds.shift();if(old.m&&old.m!==m)old.m.visible=false}gunSnd()}
 function splashMissile(m){if(!m||S.missile!==m)return;const P=m.p.clone();fire(P,.55);spr(P,0xfff0d0,86,.4,null,{add:true,tex:glowTex,fog:false,grow:100,must:1});
  for(let k=0;k<12;k++)spr(P,0xffc080,4,1.1,new THREE.Vector3(rnd(90),rnd(90),rnd(90)),{add:true,tex:glowTex,g:12,fog:false,must:1});
- boomSfx(false);mslAudioStop(m);if(m.site!=null&&S.sites[m.site])S.sites[m.site].next=S.t+3.5;S.missile=null;msl.visible=false;mslG.visible=false;
+ boomSfx(false);mslAudioStop(m);if(m.site!=null&&S.sites[m.site])S.sites[m.site].next=samNext(3.5);S.missile=null;msl.visible=false;mslG.visible=false;
  if(AC&&warnG)warnG.gain.setTargetAtTime(0,AC.currentTime,.02);S.defeated++;msg('MISSILE DESTROYED')}
 function killSite(i){const s=S.sites[i];if(!s||s.dead)return;s.dead=1;s.st='off';s.trk=0;s.warned=0;s.warnT=0;if(SITE_G[i])SITE_G[i].visible=false;
  const P=SITES[i].p;fire(P,.65);spr(new THREE.Vector3(P.x,P.y+8,P.z),0xffe0b0,76,.45,null,{add:true,tex:glowTex,fog:false,grow:90,must:1});boomSfx(false,P);S.defeated++;msg(SITES[i].n+' DESTROYED')}
@@ -1521,7 +1521,7 @@ function ensureBanditMesh(){if(banditMesh)return banditMesh; const g=new THREE.G
  const fin=new THREE.Mesh(new THREE.BoxGeometry(.22,2.2,1.6),camo); fin.position.set(0,1.2,5.2);
  const stripe=new THREE.Mesh(new THREE.BoxGeometry(.3,1.7,.4), new THREE.MeshStandardMaterial({color:0xc42828,roughness:.4,emissive:0x5a1414,emissiveIntensity:.4})); stripe.position.set(0,1.35,5.55);
  ace.add(body,wing,fin,stripe); g.add(ace); scene.add(g); banditMesh=g;
- import('./vendor/jsm/loaders/GLTFLoader.js?v=17x28').then(({GLTFLoader})=>{ const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+ import('./vendor/jsm/loaders/GLTFLoader.js?v=17x29').then(({GLTFLoader})=>{ const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   loader.load('models/deck/f15.glb', gl=>{ const hold=g.getObjectByName('hold'); if(hold)hold.visible=false; const m=gl.scene; m.rotation.y=Math.PI; m.traverse(o=>{ if(!o.isMesh)return; const n=o.name||''; if(/Landing_Gear|Tires/i.test(n)){o.visible=false; return} o.castShadow=true; o.receiveShadow=true; const mats=[].concat(o.material||[]); mats.forEach(mt=>{ if(mt&&mt.isMeshStandardMaterial){mt.envMapIntensity=Math.max(mt.envMapIntensity||1,1.35); mt.roughness=Math.min(mt.roughness??.45,.48); mt.emissive=mt.emissive||new THREE.Color(); mt.emissive.setHex(0x2a3138); mt.emissiveIntensity=.45} }); }); g.add(m);
    const glowMat=c=>new THREE.SpriteMaterial({map:glowTex,color:c,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false});
    const abL=new THREE.Sprite(glowMat(0xff6a1a)); abL.position.set(1.15,1.95,-9.3); abL.scale.set(3.2,1.4,1); const abR=new THREE.Sprite(glowMat(0xff6a1a)); abR.position.set(-1.15,1.95,-9.3); abR.scale.set(3.2,1.4,1); m.add(abL,abR);
@@ -1559,6 +1559,36 @@ function rankLine(pts){const i=rankAt(pts), r=RANKS[i], next=RANKS[i+1]; if(!nex
 function paintRank(){const el=$('rankLine'); if(!el)return; el.textContent=rankLine(rankRec().pts)}
 function payClose(kind,bonus,label){if(!S||S.dead||practice)return; const bag=S._closeN||(S._closeN={}); const cap=kind==='first'||kind==='fuel'||kind==='wire'?1:kind==='low'||kind==='raven'?3:4; if((bag[kind]||0)>=cap)return; const now=S.t||0; if(S._closeAt!=null&&now-S._closeAt<0.7&&S._closeKind===kind)return; bag[kind]=(bag[kind]||0)+1; S._closeAt=now; S._closeKind=kind; const n=Math.round(bonus*Math.max(1,S.mult||1)); S.score=(S.score||0)+n; if(!S.calls)S.calls=[]; S.calls.push({t:label+'  +'+n, at:performance.now()}); if(S.calls.length>4)S.calls.shift(); try{blip(280,.09,.035)}catch(e){}}
 function bankSortie(win){if(!S||practice||S._banked)return; S._banked=1; const sc=Math.max(0,Math.round(S.score||0)); const part=win&&S.landed?1:(win?.4:.15); const add=Math.round(sc*part); const rec=rankRec(); const before=rankAt(rec.pts); rec.pts+=add; const after=rankAt(rec.pts); try{localStorage[RANK_KEY]=JSON.stringify({pts:rec.pts})}catch(e){} S._rankAdd=add; S._rankUp=after>before?RANKS[after].n:''; paintRank()}
+const CAMP_KEY='ds17x_op';
+function campRec(){try{const o=JSON.parse(localStorage[CAMP_KEY]||'{}'); const n=Math.max(1,Math.min(12,o.n|0)||1); return {n, seed:(o.seed|0)>>>0}}catch(e){return {n:1,seed:0}}}
+function saveCamp(r){try{localStorage[CAMP_KEY]=JSON.stringify({n:Math.max(1,Math.min(12,r.n|0)||1), seed:(r.seed|0)>>>0})}catch(e){}}
+function campStory(n){const m=Math.max(1,Math.min(8,n|0));
+ const lines=[
+  'IRON VEIL is open. Viper One, you are cleared into the valley. One target. Three SAM batteries. AAA on the objective. Strike, then trap.',
+  'The valley held. Overlord reports a lone fighter working the ridges. He has not come down. Fly the same profile. Stay low.',
+  'Guns have moved onto the valley floor. AAA is thicker near the target. The SAM warning is the same. Do not climb into the radar.',
+  'The fighter has a name. Raven. If he is in the valley he calls before he shoots. Break or flare when he is on your six.',
+  'Fuel is tighter after the strike. The tanker is unchanged. Plan the trap. A bolter still means go around.',
+  'Weather is closing on the valley. Dusk and haze where the morning was clear. The target still glows. Fly the cue.',
+  'Raven is hunting the road home. He breaks off inside eight kilometres of the boat. The landing is the same.',
+  'This is the push. Night, low cloud, heavier flak, less fuel. The brief, the lock, and the way home are the same tools.'
+ ];
+ return lines[m-1]}
+function dressCampaign(s){s.fuelK=1; s.aaaK=1; s.samK=1; const m=s.campN|0; if(s.fromUrl||m<3)return;
+ if(m>=4)s.aaaK=0.82; if(m>=7)s.aaaK=0.7; if(m>=6)s.samK=0.85;
+ if(m>=4&&!s.ace){s.ace=true; s.aceHome=m>=7} else if(m>=7&&s.ace)s.aceHome=true;
+ if(m>=5)s.fuelK=1.08; if(m>=8)s.fuelK=1.14;
+ if(m>=8&&s.time==='day')s.time='night'; else if(m>=6&&s.time==='day'&&s.sky==='clear')s.time='dusk';
+ if(m>=8&&(s.sky==='clear'||s.sky==='haze'))s.sky='cloud'; else if(m>=6&&s.sky==='clear')s.sky='haze';
+ const times={day:'DAY',dusk:'DUSK',night:'NIGHT'}, skies={clear:'CLEAR',haze:'HAZE',cloud:'LOW CLOUD'};
+ s.timeName=times[s.time]||s.timeName; s.skyName=skies[s.sky]||s.skyName}
+function paintStory(s){const n=s&&s.campN||1; const nn=String(n).padStart(2,'0'); const el=$('story'); if(el)el.textContent=campStory(n);
+ const op=$('opLine'); if(op)op.textContent='IRON VEIL // MISSION '+nn;
+ const th=$('threatLine'); if(th)th.textContent=n>=7?'3x SA-CLASS SAM, HEAVY AAA, RAVEN ON THE ROAD HOME':n>=4?'3x SA-CLASS SAM, HEAVIER AAA, RAVEN IN THE AREA':'3x SA-CLASS SAM TEL (VALLEY), AAA AT TARGET, EW RADAR RIDGE 2140';
+ const chatLines=n<=2?CHAT0:['OVERLORD: VIPER ONE, MISSION '+nn+'.','VIPER 1: COPIES. THE CUE AND THE LOCK ARE UP.','OVERLORD: '+campStory(n)];
+ try{CHAT.length=0; chatLines.forEach(t=>CHAT.push(t)); if(typeof chat==='function' && $('brief') && !$('brief').classList.contains('hide'))chat()}catch(e){}}
+function advanceCamp(){if(practice||(SORTIE&&SORTIE.fromUrl))return; const c=campRec(); const n=Math.min(12,(c.n||1)+1); const seed=1000+((Math.random()*9000)|0); saveCamp({n, seed}); SORTIE._next=1}
+function samNext(base){const k=(!practice&&SORTIE&&SORTIE.samK)||1; return S.t+base*k}
 function drawClose(){if(!S||!S.calls||!S.calls.length||!hx)return; const now=performance.now(); S.calls=S.calls.filter(c=>now-c.at<3200); const lines=S.calls.slice(-2); if(!lines.length)return; const y0=Math.max(250, Math.min(Hh*0.5, Hh-240)); hx.save(); hx.globalAlpha=1; hx.shadowBlur=0; lines.forEach((c,i)=>txtFit(c.t, 18, y0+i*26, 14, 'left', '#e7f0df')); hx.restore()}
 function aceRadio(line){if(S){S.msg=line; S.msgT=3.4} if(AC){blip(180,.2,.05); const t=AC.currentTime,n=AC.createBufferSource(); n.buffer=noiseBuf(.14); const f=AC.createBiquadFilter(); f.type='lowpass'; f.frequency.value=420; const g=AC.createGain(); g.gain.setValueAtTime(.0008,t); g.gain.exponentialRampToValueAtTime(.045,t+.016); g.gain.exponentialRampToValueAtTime(.0008,t+.12); n.connect(f).connect(g).connect(AC.tone||AC.out); try{n.start(t); n.stop(t+.14)}catch(e){}}}
 function aceSortie(){return !practice && SORTIE && SORTIE.ace}
@@ -2151,7 +2181,7 @@ function updHome(rdt){if(!S||!S.home||S.dead||S.trapped)return;
  const gsY=CVN.deckY+1.2+Math.max(0,AIM_Z-S.pos.z)*GS;
  S.gsErr=onFinal?S.pos.y-gsY:0; S.lineErr=S.pos.x-WIRE_X; S.astern=onFinal?1:0;
  if(CVN.ball){const k=clamp((S.gsErr||0)/40,-1,1); CVN.ball.position.set(WIRE_X-18, CVN.deckY+8+k*6, AIM_Z-24)}
- if(S.boomT>8&&!S.cine){S.gas=Math.max(0,(S.gas==null?1:S.gas)-(0.0042+(S.thr||0)*0.0028)*rdt); if(S.gas<=0){die('FUEL','EJECTED'); return}}
+ if(S.boomT>8&&!S.cine){let burn=(0.0042+(S.thr||0)*0.0028)*rdt; if(!practice&&SORTIE&&SORTIE.fuelK>1)burn*=SORTIE.fuelK; S.gas=Math.max(0,(S.gas==null?1:S.gas)-burn); if(S.gas<=0){die('FUEL','EJECTED'); return}}
  if(S.cine||S.boomT<=8)return;
  const onDeck=S.pos.z>CVN.bowZ-16&&S.pos.z<CVN.sternZ+30&&Math.abs(S.pos.x-WIRE_X)<48&&S.pos.y<CVN.deckY+16&&S.pos.y>CVN.deckY-3;
  const sink=Math.sin(S.pitch||0)*(S.spd||0);
@@ -2232,14 +2262,14 @@ function update(rdt){
   msl.position.copy(m.p);msl.lookAt(tmp.copy(m.p).add(m.v)); if(!m._paid&&!m.decoy&&(m.cpa||1e9)<200&&(m.cpa||0)>75&&m.p.distanceTo(S.pos)>260){m._paid=1; payClose('sam',450,'SAM — CLOSE')} m.tr=(m.tr||0)+dt;const boost=m.life>17;{const dj=m.p.distanceTo(S.pos);mslG.visible=true;mslG.position.copy(m.p);mslG.scale.setScalar((boost?72:48)*(1+.12*Math.sin(S.t*40))*Math.max(1,dj/1800));}if(m.tr>(MOB?.05:.035)){m.tr=0;spr(m.p,boost?0xf2eee6:0xe0dbd2,boost?11:8,boost?11:8,new THREE.Vector3(rnd(2),rnd(2),rnd(2)),{grow:boost?8:6,o:.75,drag:.3,must:1})}spr(m.p,0xffd090,boost?7:3,.12,null,{add:true,tex:glowTex,fog:false});
   mslAudioUpd(m,dt);{const dj=m.p.distanceTo(S.pos);if(!m.ws&&dj<260&&(m.decoy||m.lost)){m.ws=1; if(!useSnd('pass',m.p)){whoosh();passBy(m.p)} S.shake=Math.max(S.shake,.25)}}
   if(!m.decoy&&!m.lost&&threatBehind(m.p)){m._sixT=(m._sixT||0)+dt; warnSix('SAM')}
-  if(!m.decoy&&!m.lost&&Math.min(m.cpa??1e9,m.p.distanceTo(S.pos))<75){ if(S.safe){m.lost=true; msg('GRACE — SAM LOST')} else if(threatBehind(m.p)&&(m._sixT||0)<1.5){m.p.addScaledVector(fwd,-40)} else {mslAudioStop(m);S.missile=null;msl.visible=false;mslG.visible=false;S.sites[m.site].next=S.t+4;nightKick(.16);$('flash').style.transition='none';$('flash').style.background='#ffb070';$('flash').style.opacity=NIGHT_ON?.22:.85;setTimeout(()=>{$('flash').style.transition='opacity 1.4s';$('flash').style.opacity=0},NIGHT_ON?160:90);if(!useSnd('boom',S.pos)){src(SB.sub08,.8,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:sub08'});if(SB.hitsub)src(SB.hitsub,.85,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:hitsub'});if(AC){if(SB.impact)src(SB.impact,.9,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:impact'});else thud(AC.bigB,.9,55,22,1.6); }}S.shake=1;;S.hp--;if(S.hp>0){fire(tmp.copy(S.pos).addScaledVector(fwd,-30),.35);msg('HIT! AIRFRAME DAMAGED — ONE MORE HIT IS FATAL');S.dmgT=3;return}fire(S.pos,.9);return die('SAM', threatBehind(m.p)?'SIX O\'CLOCK':'')}}
-  if(m.p.y<H(m.p.x,m.p.z)||m.life<=0||(m.decoy&&m.dt<=0)){const pd=m.p.distanceTo(S.pos);fire(m.p,m.decoy?.45:.25);if(m.decoy){spr(m.p,0xfff0d0,90,.35,null,{add:true,tex:glowTex,fog:false,grow:120,must:1});for(let k=0;k<30;k++)spr(m.p,0xffc080,3,1.4,new THREE.Vector3(rnd(160),rnd(160),rnd(160)),{add:true,tex:glowTex,g:20,fog:false,must:1});if(pd<1200){S.shake=Math.max(S.shake,.2+.5*(1-pd/1200));heavy('sub08',.45*(1-pd/1500),1.35)}}boomSfx(false,m.p);if(AC&&pd<4000){psrc('hitsub',.4,m.p,true,{ref:280,rate:.95,pri:1,fadeIn:.008,tag:'psrc:hitsub'});if(!psrc('impact',.4,m.p,true,{ref:250,rate:.9,pri:1,fadeIn:.008,tag:'psrc:impact'})){const pn=mkPan(true,150);setP0(pn,m.p);pn.connect(AC.out);thud(pn,.85,55,24,1.3);setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}},1800)}}mslAudioStop(m);S.sites[m.site].next=S.t+2.5;S.missile=null;msl.visible=false;mslG.visible=false;if(!S.dead&&!m.def){if(!m._paid&&(m.cpa||1e9)<220&&(m.cpa||0)>70){m._paid=1; payClose('sam',450,'SAM — CLOSE')} S.defeated++;msg(m.lost?'MISSILE LOST — TERRAIN MASK':'MISSILE DEFEATED')}}}
+  if(!m.decoy&&!m.lost&&Math.min(m.cpa??1e9,m.p.distanceTo(S.pos))<75){ if(S.safe){m.lost=true; msg('GRACE — SAM LOST')} else if(threatBehind(m.p)&&(m._sixT||0)<1.5){m.p.addScaledVector(fwd,-40)} else {mslAudioStop(m);S.missile=null;msl.visible=false;mslG.visible=false;S.sites[m.site].next=samNext(4);nightKick(.16);$('flash').style.transition='none';$('flash').style.background='#ffb070';$('flash').style.opacity=NIGHT_ON?.22:.85;setTimeout(()=>{$('flash').style.transition='opacity 1.4s';$('flash').style.opacity=0},NIGHT_ON?160:90);if(!useSnd('boom',S.pos)){src(SB.sub08,.8,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:sub08'});if(SB.hitsub)src(SB.hitsub,.85,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:hitsub'});if(AC){if(SB.impact)src(SB.impact,.9,AC.bigB,{pri:1,fadeIn:.008,tag:'heavy:impact'});else thud(AC.bigB,.9,55,22,1.6); }}S.shake=1;;S.hp--;if(S.hp>0){fire(tmp.copy(S.pos).addScaledVector(fwd,-30),.35);msg('HIT! AIRFRAME DAMAGED — ONE MORE HIT IS FATAL');S.dmgT=3;return}fire(S.pos,.9);return die('SAM', threatBehind(m.p)?'SIX O\'CLOCK':'')}}
+  if(m.p.y<H(m.p.x,m.p.z)||m.life<=0||(m.decoy&&m.dt<=0)){const pd=m.p.distanceTo(S.pos);fire(m.p,m.decoy?.45:.25);if(m.decoy){spr(m.p,0xfff0d0,90,.35,null,{add:true,tex:glowTex,fog:false,grow:120,must:1});for(let k=0;k<30;k++)spr(m.p,0xffc080,3,1.4,new THREE.Vector3(rnd(160),rnd(160),rnd(160)),{add:true,tex:glowTex,g:20,fog:false,must:1});if(pd<1200){S.shake=Math.max(S.shake,.2+.5*(1-pd/1200));heavy('sub08',.45*(1-pd/1500),1.35)}}boomSfx(false,m.p);if(AC&&pd<4000){psrc('hitsub',.4,m.p,true,{ref:280,rate:.95,pri:1,fadeIn:.008,tag:'psrc:hitsub'});if(!psrc('impact',.4,m.p,true,{ref:250,rate:.9,pri:1,fadeIn:.008,tag:'psrc:impact'})){const pn=mkPan(true,150);setP0(pn,m.p);pn.connect(AC.out);thud(pn,.85,55,24,1.3);setTimeout(()=>{if(pn._hrtf){hrtfN=Math.max(0,hrtfN-1);pn._hrtf=0} try{pn.disconnect()}catch(e){}},1800)}}mslAudioStop(m);S.sites[m.site].next=samNext(2.5);S.missile=null;msl.visible=false;mslG.visible=false;if(!S.dead&&!m.def){if(!m._paid&&(m.cpa||1e9)<220&&(m.cpa||0)>70){m._paid=1; payClose('sam',450,'SAM — CLOSE')} S.defeated++;msg(m.lost?'MISSILE LOST — TERRAIN MASK':'MISSILE DEFEATED')}}}
  updRounds(rdt);
  S.brk=Math.max(0,S.brk-rdt);S.brkCD=Math.max(0,S.brkCD-rdt);S.ecm=Math.max(0,S.ecm-rdt);S.ecmCD=Math.max(0,S.ecmCD-rdt);S.teachT=Math.max(0,S.teachT-rdt);S.dmgT=Math.max(0,(S.dmgT||0)-rdt);
  S.exT=(S.exT||0)-rdt;if(!S.cine&&S.exT<=0){S.exT=MOB?.07:.045;const thr=S.thr,sz=1.5+thr*5,life=1.2+thr*2.2,op=.25+thr*.45;spr(tmp.copy(S.pos).addScaledVector(fwd,-8-thr*4),0x3a3732,sz,life,new THREE.Vector3(rnd(2+thr*3),1+thr*2,rnd(2+thr*3)),{grow:4+thr*10,o:op,drag:.4,must:thr>.55});if(thr>.75&&Math.random()<.4)spr(tmp.copy(S.pos).addScaledVector(fwd,-7),0xffa060,2+thr*2,.18,null,{add:true,tex:glowTex,fog:false})}
  if(S.hp<2){S.smT-=rdt;if(S.smT<=0){S.smT=MOB?.09:.05;spr(tmp.copy(S.pos).addScaledVector(fwd,-9),0x2a2724,4,3,new THREE.Vector3(rnd(4),2,rnd(4)),{grow:8,o:.75,must:1});if(Math.random()<.35)spr(tmp.copy(S.pos).addScaledVector(fwd,-8),0xff8a40,2.8,.28,null,{add:true,tex:glowTex,fog:false})}}
  if(!S.cine&&!S.calm&&!S.gridSafe&&!reattackTurn()&&targetMeshUp()&&bDist()<6500){const aaaClose=bDist()<2600; S.aaaS-=rdt;if(S.aaaS<=0){S.aaaS=(aaaClose?.32:.62)+Math.random()*(aaaClose?.28:.45); S.aaaN=(S.aaaN||0)+1; aaaBurst(tmp.copy(BUNK).add(new THREE.Vector3(Math.random()<.5?-60:55,4,0)).clone()); if(aaaClose)aaaBurst(tmp.copy(BUNK).add(new THREE.Vector3(40,6,-30)).clone())}
-  if(bDist()<4500){S.flakT-=rdt;if(S.flakT<=0){S.flakT=(aaaClose?.42:.95)+Math.random()*.45;const P=S.pos.clone().addScaledVector(fwd,120+Math.random()*260).add(new THREE.Vector3(rnd(aaaClose?90:220),30+Math.random()*(aaaClose?70:160),rnd(aaaClose?90:220)));
+  if(bDist()<4500){S.flakT-=rdt;if(S.flakT<=0){const ak=(!practice&&SORTIE&&SORTIE.aaaK<1)?SORTIE.aaaK:1; S.flakT=((aaaClose?.42:.95)+Math.random()*.45)*ak;const P=S.pos.clone().addScaledVector(fwd,120+Math.random()*260).add(new THREE.Vector3(rnd(aaaClose?90:220),30+Math.random()*(aaaClose?70:160),rnd(aaaClose?90:220)));
    spr(P,0xfff0c0,30,.2,null,{add:true,tex:glowTex,fog:false,grow:80,must:1});for(let k=0;k<(MOB?4:7);k++)spr(P,0x1c1a18,14,3+Math.random()*2,new THREE.Vector3(rnd(14),rnd(10),rnd(14)),{grow:12,o:.85,drag:.6,must:1});flakBoom(P);const fd=P.distanceTo(S.pos);if(fd>70&&fd<200)payClose('aaa',350,'AAA — CLOSE'); if(fd<260)S.shake=Math.max(S.shake,.5*(1-fd/260))}}}
  updParts(dt);S.flareCD=Math.max(0,S.flareCD-rdt);S.flareT=Math.max(0,(S.flareT||0)-rdt);if(S.msgT>0)S.msgT-=rdt;S.shake=Math.max(0,S.shake-rdt);radDish.rotation.y+=dt*.8;
  updBandit(rdt);
@@ -2279,8 +2309,8 @@ function showEnd(win){running=false;releaseControls();clearTimeout(endTimer);sil
  const sc=Math.round(S.score||0), run=S.bestStreak||0; let fresh=false;
  if(sc>hi){hi=sc; fresh=true; try{localStorage.ds17e_hi=String(hi)}catch(e){}}
  if(run>hs){hs=run; try{localStorage.ds17e_streak=String(hs)}catch(e){}}
- const ar=aceRecord(); const raven=S.aceKilled?'DESTROYED · NEW ACE RISING':('ACE • KILLS ON YOU: '+(ar.kills|0)+' • ESCAPES: '+(ar.escapes|0)); const rk=rankRec(); const promo=S._rankUp?`<tr><td>PROMOTED</td><td>${S._rankUp}</td></tr>`:'';
- $('etab').innerHTML=`<tr><td>PRECISION</td><td>${prec}%${win?` · CEP ${S.err.toFixed(1)} M`:''}</td></tr><tr><td>STEALTH</td><td>${st}%</td></tr><tr><td>TIME ON MISSION</td><td>${(tm/60|0)}:${String(tm%60|0).padStart(2,'0')}</td></tr><tr><td>SAMS DEFEATED</td><td>${S.defeated}</td></tr><tr><td>BANDIT</td><td>${S.aceKilled?'RAVEN DESTROYED':S.bandit&&S.bandit.dead?'DESTROYED':S.bandit?'STILL UP':'—'} </td></tr><tr><td>RAVEN</td><td>${raven}</td></tr><tr><td>SCORE</td><td>${sc}${fresh?' · HIGH':''}</td></tr><tr><td>RANK</td><td>${rankLine(rk.pts)}</td></tr>${promo}<tr><td>BEST STREAK</td><td>${run} · RECORD ${hs}</td></tr><tr><td>HIGH SCORE</td><td>${hi}</td></tr><tr><td>FUEL</td><td>${S.home?Math.round((S.gas||0)*100)+'%':S.fuelDone?'COMPLETE':S.fuelFail?'LOW':'—'}</td></tr><tr><td>LANDING</td><td>${S.landed?'TRAP':S.home?(S.bolters||0)+' BOLTER':'—'}</td></tr><tr><td>GRID</td><td>${S.grids?S.grids.filter(g=>g.done).length+' / '+S.grids.length:'—'}</td></tr>${win?'':`<tr><td>KILLED BY</td><td>${killText()}</td></tr>`}`;
+ const ar=aceRecord(); const raven=S.aceKilled?'DESTROYED · NEW ACE RISING':('ACE • KILLS ON YOU: '+(ar.kills|0)+' • ESCAPES: '+(ar.escapes|0)); const rk=rankRec(); const promo=S._rankUp?`<tr><td>PROMOTED</td><td>${S._rankUp}</td></tr>`:''; if(win&&S.landed)try{advanceCamp()}catch(e){} const rb=$('retry'); if(rb)rb.textContent=(win&&S.landed&&!practice)?'NEXT MISSION':'RETRY SORTIE';
+ $('etab').innerHTML=`<tr><td>PRECISION</td><td>${prec}%${win?` · CEP ${S.err.toFixed(1)} M`:''}</td></tr><tr><td>STEALTH</td><td>${st}%</td></tr><tr><td>TIME ON MISSION</td><td>${(tm/60|0)}:${String(tm%60|0).padStart(2,'0')}</td></tr><tr><td>SAMS DEFEATED</td><td>${S.defeated}</td></tr><tr><td>BANDIT</td><td>${S.aceKilled?'RAVEN DESTROYED':S.bandit&&S.bandit.dead?'DESTROYED':S.bandit?'STILL UP':'—'} </td></tr><tr><td>RAVEN</td><td>${raven}</td></tr><tr><td>SCORE</td><td>${sc}${fresh?' · HIGH':''}</td></tr><tr><td>RANK</td><td>${rankLine(rk.pts)}</td></tr>${promo}<tr><td>BEST STREAK</td><td>${run} · RECORD ${hs}</td></tr><tr><td>HIGH SCORE</td><td>${hi}</td></tr><tr><td>FUEL</td><td>${S.home?Math.round((S.gas||0)*100)+'%':S.fuelDone?'COMPLETE':S.fuelFail?'LOW':'—'}</td></tr><tr><td>MISSION</td><td>${String((SORTIE&&SORTIE.campN)||1).padStart(2,'0')}</td></tr><tr><td>LANDING</td><td>${S.landed?'TRAP':S.home?(S.bolters||0)+' BOLTER':'—'}</td></tr><tr><td>GRID</td><td>${S.grids?S.grids.filter(g=>g.done).length+' / '+S.grids.length:'—'}</td></tr>${win?'':`<tr><td>KILLED BY</td><td>${killText()}</td></tr>`}`;
  $('end').classList.remove('hide')}
 // ---------- render + HUD ----------
 const hud=$('hud'),hx=hud.getContext('2d');let W=0,Hh=0,dpr=1;
@@ -2505,6 +2535,7 @@ function drawMap(){const c=$('map'),r=c.getBoundingClientRect(),w=Math.max(200,r
  x.fillStyle='rgba(160,200,220,.85)';x.fillText('IP',px(300)+3,py(vx(300))-4);x.fillText('EXFIL',px(EXZ)-26,py(vx(EXZ))-6);
  x.strokeStyle='rgba(200,220,200,.4)';x.strokeRect(.5,.5,w-1,h-1)}
 const CHAT=['OVERLORD: VIPER ONE, OVERLORD. PACKAGE IS GO. PUSH WHEN READY.','VIPER 1: VIPER ONE COPIES. FENCE IN, MASTER ARM HOT.','OVERLORD: EW RADAR ACTIVE ON RIDGE 2140. STAY IN THE WEEDS.','OVERLORD: KESTREL CONFIRMED HOT. ONE SA-CLASS TEL NORTH OF TARGET.','VIPER 1: CONTACT THE BRIEF. PUSHING.'];
+const CHAT0=CHAT.slice();
 let chatT=null;function chat(){const el=$('chat');el.innerHTML='';let li=0,ci=0,cur=null;clearInterval(chatT);chatT=setInterval(()=>{if(li>=CHAT.length){clearInterval(chatT);return}if(!cur){cur=document.createElement('div');el.appendChild(cur)}cur.textContent=CHAT[li].slice(0,++ci)+'▍';if(ci>=CHAT[li].length){cur.textContent=CHAT[li];cur=null;ci=0;li++}if(el.children.length>4)el.removeChild(el.firstChild)},28)}
 function clock(){const d=new Date();$('clk').textContent=String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+'Z'}
 function sortieRng(seed){let a=seed>>>0; return function(){a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296}}
@@ -2553,14 +2584,15 @@ function applyLook(s){const rain=$('rain'); if(rain)rain.classList.toggle('on',s
   Object.assign(SCEN,SCEN_DEFAULT,{turbidity:dusk?4.2:2.6,rayleigh:dusk?1.15:.95,mie:dusk?.004:.0025,sunEl:dusk?7:42,sunAz:dusk?1.1:2.2,sunInt:dusk?2.8:4.5,hemi:dusk?1.05:1.15,exposure:dusk?1.0:.9,env:.85,warmth:dusk?.42:0,fogDen:s.sky==='haze'?.0001:s.sky==='cloud'?.0002:0,clouds:s.sky==='cloud'?.45:0});
   applyScen(); if(scene.fog&&s.sky==='cloud')scene.fog.color.set(0x8e98a2); if(scene.fog&&s.sky==='haze')scene.fog.color.set(0xb7c0c6)}
 }
-function applyPracticeLayout(){BUNK.copy(LAY.bunk); SITES.forEach((s,i)=>s.p.copy(LAY.sites[i])); SAMP.copy(LAY.samp); SORTIE.kind='bunker'; syncTargetVisual(); applyLook({time:'day',sky:'clear'})}
-function applySortie(seed){const s=sortieFrom(seed==null?SORTIE.seed:seed); Object.assign(SORTIE,s);
+function applyPracticeLayout(){BUNK.copy(LAY.bunk); SITES.forEach((s,i)=>s.p.copy(LAY.sites[i])); SAMP.copy(LAY.samp); SORTIE.kind='bunker'; SORTIE.fuelK=1; SORTIE.aaaK=1; SORTIE.samK=1; SORTIE.campN=0; syncTargetVisual(); applyLook({time:'day',sky:'clear'})}
+function pageSeed(){try{const q=new URLSearchParams(location.search).get('seed'); if(q)return (+q)>>>0}catch(e){} if(window.__seed!=null)return window.__seed>>>0; return null}
+function applySortie(seed){const s=sortieFrom(seed==null?SORTIE.seed:seed); const url=pageSeed(); s.fromUrl=url!=null&&!window.__forceCamp; s.campN=s.fromUrl?1:(campRec().n||1); dressCampaign(s); Object.assign(SORTIE,s);
  const spot=pickSpot(s.rng,s.kind); BUNK.set(spot.x,spot.y,spot.z); bunker.rotation.y=spot.side>0?Math.PI/2:-Math.PI/2;
  layoutSites(s.rng,spot.z); syncTargetVisual(); applyLook(s);
- const line=$('sortieLine'); if(line)line.textContent='SORTIE '+s.seed+' · '+s.timeName+' · '+s.skyName+' · TARGET: '+s.targetName; paintRank();
+ const line=$('sortieLine'); if(line)line.textContent='SORTIE '+s.seed+' · '+s.timeName+' · '+s.skyName+' · TARGET: '+s.targetName; paintRank(); paintStory(s);
  const tgt=$('tgtLine'); if(tgt)tgt.textContent=s.targetLong;
  return SORTIE}
-function rollSortie(){let seed=null; try{const q=new URLSearchParams(location.search).get('seed'); if(q)seed=(+q)>>>0}catch(e){} if(window.__seed!=null)seed=window.__seed>>>0; if(seed==null)seed=1000+((Math.random()*9000)|0); return applySortie(seed)}
+function rollSortie(){const url=pageSeed(); if(url!=null)return applySortie(url); let c=campRec(); if(!c.seed){c.seed=1000+((Math.random()*9000)|0); c.n=c.n||1; saveCamp(c)} return applySortie(c.seed)}
 window.__sortie=seed=>applySortie(seed); window.__SORTIE=()=>({...SORTIE,x:+BUNK.x.toFixed(0),y:+BUNK.y.toFixed(0),z:+BUNK.z.toFixed(0)});
 // ---------- start / tutorial ----------
 const TUT=[['1/3  FLIGHT CONTROL','Drag anywhere with one finger. Left/right banks and turns; up/down climbs or dives (30° limit). Release and the aircraft returns to level flight.'],
@@ -2574,6 +2606,7 @@ $('go').addEventListener('pointerdown',e=>{e.stopPropagation();startSortie(false
 if($('skipTO'))$('skipTO').addEventListener('pointerdown',e=>{e.stopPropagation();startSortie(true)});
 if($('pracTank'))$('pracTank').addEventListener('pointerdown',e=>{e.stopPropagation();startSortie(true,'tanker')});
 if($('resetTank'))$('resetTank').addEventListener('pointerdown',e=>{e.stopPropagation(); forgetTanker(); e.currentTarget.textContent='TANKER LESSON CLEARED'});
+if($('campReset'))$('campReset').addEventListener('pointerdown',e=>{e.stopPropagation(); const seed=1000+((Math.random()*9000)|0); saveCamp({n:1, seed}); window.__forceCamp=1; try{applySortie(seed)}catch(err){} window.__forceCamp=0; e.currentTarget.textContent='CAMPAIGN RESET'});
 if($('pracFight'))$('pracFight').addEventListener('pointerdown',e=>{e.stopPropagation();startSortie(true,'fight')});
 if($('pracDeck'))$('pracDeck').addEventListener('pointerdown',e=>{e.stopPropagation();startSortie(true,'deck')});
 if($('pracGrid'))$('pracGrid').addEventListener('pointerdown',e=>{e.stopPropagation();startSortie(true,'grid')});
@@ -2584,7 +2617,8 @@ if(DS_MODE==='game'){let tap=null;
 $('tut').addEventListener('pointerdown',e=>{e.stopPropagation();tutI++;if(tutI>=3){localStorage.ds15_tut=1;$('tut').classList.add('hide');begin()}else showTut()});
 let beginAt=0, beginBusy=null;
 function requestBegin(){const now=performance.now(); if(beginBusy||now-beginAt<900)return beginBusy; beginAt=now; clearTimeout(endTimer); endTimer=0; initAudio(); stopWin(); if(practice)applyPracticeLayout(); else if(SORTIE&&SORTIE.seed)applySortie(SORTIE.seed); beginBusy=begin().finally(()=>{beginBusy=null}); return beginBusy}
-$('retry').addEventListener('pointerdown',e=>{e.stopPropagation();requestBegin()});if($('retry'))$('retry').addEventListener('click',e=>{e.stopPropagation();requestBegin()});
+function nextOrRetry(){if(!practice&&S&&S.landed&&SORTIE&&SORTIE._next){const c=campRec(); window.__forceCamp=1; try{applySortie(c.seed)}catch(e){} window.__forceCamp=0; $('end').classList.add('hide'); $('brief').classList.remove('hide'); try{chat()}catch(err){} const rb=$('retry'); if(rb)rb.textContent='RETRY SORTIE'; return} requestBegin()}
+$('retry').addEventListener('pointerdown',e=>{e.stopPropagation();nextOrRetry()});if($('retry'))$('retry').addEventListener('click',e=>{e.stopPropagation();nextOrRetry()});
 function goFS(){const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(f&&!document.fullscreenElement&&!document.webkitFullscreenElement){try{const p=f.call(d,{navigationUI:'hide'});p&&p.catch&&p.catch(()=>{})}catch(e){}}try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{})}catch(e){}}
 if(DS_MODE==='game')addEventListener('pointerdown',goFS,{once:true});
 function resetTouch(){try{releaseSteer()}catch(e){} try{releaseControls()}catch(e){} try{if(window.__thrUp)window.__thrUp()}catch(e){}}
