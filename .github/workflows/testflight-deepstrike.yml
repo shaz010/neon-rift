@@ -1,0 +1,269 @@
+name: TestFlight deepstrike
+
+# Packages DEEP STRIKE 17x30 as its own iOS app. The web files are copied
+# unchanged. Upload does not run unless someone starts this workflow by hand
+# with upload set to true. A push only compiles, unsigned.
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: Upload to TestFlight. Leave this off until Shahbaz approves.
+        type: boolean
+        default: false
+  push:
+    branches:
+      - cursor/deepstrike-ios-06c8
+
+concurrency:
+  group: testflight-deepstrike
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    name: Compile unsigned
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - name: Check out the branch
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: |
+          set -euo pipefail
+          latest=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
+          if [ -z "${latest}" ]; then
+            latest=$(ls -d /Applications/Xcode_*.app /Applications/Xcode.app 2>/dev/null | sort -V | tail -1)
+          fi
+          echo "Selecting ${latest}"
+          sudo xcode-select -s "${latest}"
+          xcodebuild -version
+
+      - name: Confirm this is DEEP STRIKE 17x30
+        run: |
+          set -euo pipefail
+          grep -q "BUILD_V='17x30'" main.mjs
+          grep -q "strike-17-17x30" sw.js
+          grep -q 'main.mjs?v=17x30' index.html
+          grep -q 'com.shaz010.deepstrike' ios/deepstrike.xcodeproj/project.pbxproj
+          grep -q 'DEEP STRIKE' ios/deepstrike/Info.plist
+          shasum -a 256 -c ios/17x30.sha256
+          python3 tools/asc-deepstrike.py self-test
+
+      - name: Compile without signing
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ios/deepstrike.xcodeproj \
+            -scheme deepstrike \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -sdk iphoneos \
+            -derivedDataPath "${RUNNER_TEMP}/dd" \
+            build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            VALIDATE_PRODUCT=NO \
+            CURRENT_PROJECT_VERSION=1 \
+            MARKETING_VERSION=1.0 \
+            PRODUCT_BUNDLE_IDENTIFIER=com.shaz010.deepstrike
+
+      - name: Prove the bundled game matches 17x30
+        run: |
+          set -euo pipefail
+          app="${RUNNER_TEMP}/dd/Build/Products/Release-iphoneos/deepstrike.app"
+          test -d "${app}"
+          cmp main.mjs "${app}/web/main.mjs"
+          cmp index.html "${app}/web/index.html"
+          cmp sw.js "${app}/web/sw.js"
+          cmp precache-list.js "${app}/web/precache-list.js"
+          test -f "${app}/web/models/f35.glb"
+          test -f "${app}/web/sfx/jet.ogg"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "${app}/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${app}/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${app}/Info.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "${app}/Info.plist")" = "DEEP STRIKE"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${app}/Info.plist")" = "com.shaz010.deepstrike"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${app}/Info.plist")" = "1"
+          echo "Unsigned compile ok. Upload was not run."
+
+      - name: Write the build summary
+        if: success()
+        run: |
+          {
+            echo "## DEEP STRIKE unsigned compile"
+            echo "- Display name: DEEP STRIKE"
+            echo "- Bundle ID: \`com.shaz010.deepstrike\`"
+            echo "- Marketing version: 1.0"
+            echo "- Build number: 1"
+            echo "- Game: 17x30, copied byte for byte"
+            echo "- Upload: not run"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  upload:
+    name: Archive and upload
+    needs: compile
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.upload == 'true' }}
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - name: Refuse unless upload was requested
+        run: |
+          set -euo pipefail
+          test "${{ github.event.inputs.upload }}" = "true"
+
+      - name: Check out the branch
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: |
+          set -euo pipefail
+          latest=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
+          if [ -z "${latest}" ]; then
+            latest=$(ls -d /Applications/Xcode_*.app /Applications/Xcode.app 2>/dev/null | sort -V | tail -1)
+          fi
+          echo "Selecting ${latest}"
+          sudo xcode-select -s "${latest}"
+          xcodebuild -version
+
+      - name: Confirm this is DEEP STRIKE 17x30
+        run: |
+          set -euo pipefail
+          shasum -a 256 -c ios/17x30.sha256
+
+      - name: Install the App Store Connect client
+        run: |
+          set -euo pipefail
+          python3 -m venv "${RUNNER_TEMP}/asc-venv"
+          "${RUNNER_TEMP}/asc-venv/bin/pip" install --disable-pip-version-check PyJWT cryptography
+          "${RUNNER_TEMP}/asc-venv/bin/python" tools/asc-deepstrike.py self-test
+          echo "ASC_PYTHON=${RUNNER_TEMP}/asc-venv/bin/python" >> "${GITHUB_ENV}"
+
+      - name: Install the API key
+        run: |
+          "${ASC_PYTHON}" tools/asc-deepstrike.py install-key
+
+      - name: Look up the app record
+        run: |
+          "${ASC_PYTHON}" tools/asc-deepstrike.py lookup
+
+      - name: Use the existing distribution certificate TB4K2QATUT
+        env:
+          NRL_DIST_P12: ${{ secrets.NRL_DIST_P12 }}
+          NRL_DIST_P12_PASSWORD: ${{ secrets.NRL_DIST_P12_PASSWORD }}
+        run: |
+          set -euo pipefail
+          d="${RUNNER_TEMP}/signing"
+          mkdir -p "$d"
+          chmod 700 "$d"
+          printf '%s' "${NRL_DIST_P12}" | base64 -D > "$d/distribution.p12"
+          printf '%s' "${NRL_DIST_P12_PASSWORD}" > "$d/password.txt"
+          chmod 600 "$d"/*
+          echo "SIGNING_P12_PATH=$d/distribution.p12" >> "${GITHUB_ENV}"
+          echo "SIGNING_PASSWORD_PATH=$d/password.txt" >> "${GITHUB_ENV}"
+          "${ASC_PYTHON}" tools/asc-deepstrike.py fixed-profile
+
+      - name: Install the signing assets
+        run: |
+          set -euo pipefail
+          keychain="${RUNNER_TEMP}/signing.keychain-db"
+          password="$(cat "${SIGNING_PASSWORD_PATH}")"
+          security create-keychain -p "${password}" "${keychain}"
+          security set-keychain-settings -lut 21600 "${keychain}"
+          security unlock-keychain -p "${password}" "${keychain}"
+          security list-keychains -d user -s "${keychain}" login.keychain-db
+          security default-keychain -s "${keychain}"
+          security import "${SIGNING_P12_PATH}" -k "${keychain}" -P "${password}" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${password}" "${keychain}"
+          mkdir -p "${HOME}/Library/MobileDevice/Provisioning Profiles"
+          cp "${SIGNING_PROFILE_PATH}" "${HOME}/Library/MobileDevice/Provisioning Profiles/${SIGNING_PROFILE_UUID}.mobileprovision"
+          security find-identity -v -p codesigning "${keychain}" | tee "${RUNNER_TEMP}/identities.txt"
+          grep -E "Apple Distribution|iPhone Distribution" "${RUNNER_TEMP}/identities.txt"
+
+      - name: Archive
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ios/deepstrike.xcodeproj \
+            -scheme deepstrike \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "${RUNNER_TEMP}/deepstrike.xcarchive" \
+            archive \
+            DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="${SIGNING_IDENTITY}" \
+            PROVISIONING_PROFILE_SPECIFIER="${SIGNING_PROFILE_NAME}" \
+            PRODUCT_BUNDLE_IDENTIFIER=com.shaz010.deepstrike \
+            CURRENT_PROJECT_VERSION="${BUILD_NUMBER}" \
+            MARKETING_VERSION=1.0
+
+      - name: Export the IPA
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -exportArchive \
+            -archivePath "${RUNNER_TEMP}/deepstrike.xcarchive" \
+            -exportPath "${RUNNER_TEMP}/export" \
+            -exportOptionsPlist "${EXPORT_OPTIONS_PLIST}"
+          find "${RUNNER_TEMP}/export" -name '*.ipa' -print
+
+      - name: Verify the App Store signature
+        run: |
+          set -euo pipefail
+          ipa=$(find "${RUNNER_TEMP}/export" -name '*.ipa' -print | head -1)
+          v="${RUNNER_TEMP}/verify"
+          rm -rf "$v"
+          mkdir -p "$v"
+          unzip -q "${ipa}" -d "$v"
+          app="$v/Payload/deepstrike.app"
+          codesign -dv --verbose=4 "$app" 2>&1 | grep -vE '^(CDHash|Hash|CandidateCDHash)' | tee "$v/cs.txt"
+          grep -q '^Authority=Apple Distribution' "$v/cs.txt"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          cmp main.mjs "$app/web/main.mjs"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")" = "com.shaz010.deepstrike"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$app/Info.plist")" = "DEEP STRIKE"
+
+      - name: Upload to TestFlight
+        run: |
+          set -euo pipefail
+          ipa=$(find "${RUNNER_TEMP}/export" -name '*.ipa' -print | head -1)
+          test -n "${ipa}"
+          test -f "${ipa}"
+          echo "Uploading DEEP STRIKE build ${BUILD_NUMBER}"
+          set +e
+          xcrun iTMSTransporter -m upload -assetFile "${ipa}" -apiKey "${ASC_KEY_ID}" -apiIssuer "${ASC_ISSUER_ID}"
+          status=$?
+          if [ "${status}" -ne 0 ]; then
+            echo "iTMSTransporter exited ${status}. Trying altool."
+            xcrun altool --upload-app -f "${ipa}" -t ios --apiKey "${ASC_KEY_ID}" --apiIssuer "${ASC_ISSUER_ID}"
+            status=$?
+          fi
+          exit "${status}"
+
+      - name: Attach What to Test
+        if: success()
+        run: |
+          "${ASC_PYTHON}" tools/asc-deepstrike.py note
+
+      - name: Remove the API key
+        if: always()
+        run: |
+          rm -f "${ASC_KEY_PATH:-}" \
+            "${HOME}/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            "${HOME}/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            "${HOME}/.private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            "${RUNNER_TEMP}/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            "${SIGNING_P12_PATH:-}" \
+            "${SIGNING_PASSWORD_PATH:-}" \
+            "${SIGNING_PROFILE_PATH:-}" \
+            "${HOME}/Library/MobileDevice/Provisioning Profiles/${SIGNING_PROFILE_UUID:-missing}.mobileprovision"
+          security delete-keychain "${RUNNER_TEMP}/signing.keychain-db" || true
