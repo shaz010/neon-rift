@@ -1,20 +1,20 @@
 const DS_MODE=(window.__DS_MODE)||(/sound-bank\.html/.test(location.pathname)?'bank':/sounds\.html/.test(location.pathname)?'sounds':/scenery\.html/.test(location.pathname)?'scenery':'game');
 window.__DS_MODE=DS_MODE;
-const BUILD_V='17x29';
+const BUILD_V='17x30';
 const PATCH_V=BUILD_V;
 const PATCH_LABEL='s17 · '+PATCH_V;
 function showPatch(){document.querySelectorAll('[data-patch]').forEach(el=>{el.textContent=PATCH_LABEL}); const pill=document.getElementById('verpill'); if(pill)pill.textContent=PATCH_LABEL; const badge=document.getElementById('badge'); if(badge&&DS_MODE==='game')badge.textContent=PATCH_LABEL}
 showPatch();
 
 import * as THREE from 'three';
-import {Sky} from './vendor/jsm/objects/Sky.js?v=17x29';
-import {EffectComposer} from './vendor/jsm/postprocessing/EffectComposer.js?v=17x29';
-import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js?v=17x29';
-import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js?v=17x29';
-import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js?v=17x29';
-import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js?v=17x29';
-import {MeshoptDecoder} from './vendor/jsm/libs/meshopt_decoder.module.js?v=17x29';
-import {clone as cloneSkin} from './vendor/jsm/utils/SkeletonUtils.js?v=17x29';
+import {Sky} from './vendor/jsm/objects/Sky.js?v=17x30';
+import {EffectComposer} from './vendor/jsm/postprocessing/EffectComposer.js?v=17x30';
+import {Pass,FullScreenQuad} from './vendor/jsm/postprocessing/Pass.js?v=17x30';
+import {RenderPass} from './vendor/jsm/postprocessing/RenderPass.js?v=17x30';
+import {UnrealBloomPass} from './vendor/jsm/postprocessing/UnrealBloomPass.js?v=17x30';
+import {OutputPass} from './vendor/jsm/postprocessing/OutputPass.js?v=17x30';
+import {MeshoptDecoder} from './vendor/jsm/libs/meshopt_decoder.module.js?v=17x30';
+import {clone as cloneSkin} from './vendor/jsm/utils/SkeletonUtils.js?v=17x30';
 const $=id=>document.getElementById(id);
 // Orientation hint only. Rotation lock on iOS never fires orientationchange and
 // never updates the angle, so a full-screen gate stays up and swallows taps.
@@ -286,7 +286,8 @@ const glowTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64
    normal=normalize(normal+(viewMatrix*vec4(pert,0.)).xyz*mix(.85,.45,snN));}`)};
 const tmesh=new THREE.Mesh(g,tm);tmesh.receiveShadow=true;scene.add(tmesh);window.__tmesh=tmesh;}
 const _gyRay=new THREE.Raycaster(), _gyDir=new THREE.Vector3(0,-1,0), _gyO=new THREE.Vector3();
-function groundY(x,z){if(openSea(x,z))return 0; const mesh=window.__tmesh; if(!mesh)return H(x,z); _gyO.set(x,6000,z); _gyRay.set(_gyO,_gyDir); _gyRay.far=9000; const hit=_gyRay.intersectObject(mesh,false); return hit.length?hit[0].point.y:H(x,z)}
+function valleyHit(x,z){const mesh=window.__tmesh; if(!mesh||!mesh.visible)return null; _gyO.set(x,6000,z); _gyRay.set(_gyO,_gyDir); _gyRay.far=9000; const hit=_gyRay.intersectObject(mesh,false); return hit.length?hit[0].point.y:null}
+function groundY(x,z){if(typeof openSea==='function'&&openSea(x,z))return 0; const h=valleyHit(x,z); return h==null?0:h}
 const BOMB_G=9.81, BOMB_DRAG=0.045, BOMB_BLAST=72;
 const _bombRay=new THREE.Raycaster(), _bombDir=new THREE.Vector3(), _bombNext=new THREE.Vector3();
 function bombAccel(v,dt){v.y-=BOMB_G*dt; v.multiplyScalar(Math.exp(-BOMB_DRAG*dt))}
@@ -472,7 +473,7 @@ bunker.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});sam.t
 // ---------- GLB jet (F-35 Lightning II by bohmerang, Sketchfab) ----------
 jet.traverse(o=>{if(o.isMesh&&o!==jet.userData.sh)o.castShadow=true});
 window.__glb='loading';
-import('./vendor/jsm/loaders/GLTFLoader.js?v=17x29').then(({GLTFLoader})=>new GLTFLoader().load('models/f35.glb',gl=>{
+import('./vendor/jsm/loaders/GLTFLoader.js?v=17x30').then(({GLTFLoader})=>new GLTFLoader().load('models/f35.glb',gl=>{
  const m=gl.scene;const bb=new THREE.Box3().setFromObject(m),sz=bb.getSize(new THREE.Vector3()),ct=bb.getCenter(new THREE.Vector3());
  const ax=sz.x>sz.z?'x':'z';const wrap=new THREE.Group();m.position.sub(ct);wrap.add(m);
  const L=Math.max(sz.x,sz.z);wrap.scale.setScalar(14.5/L);
@@ -492,15 +493,15 @@ CVN._cam=new THREE.Vector3(); CVN._look=new THREE.Vector3(); CVN._cam2=new THREE
 CVN._hub=new THREE.Vector3(CVN_X+8,CVN.deckY,CVN_Z-180); CVN._shW=new THREE.Vector3();
 const deckFill=new THREE.PointLight(0xffe0b8,0,80,2); deckFill.position.set(CVN_X-40,52,CVN_Z-214); scene.add(deckFill); CVN.fill=deckFill;
 CVN.nJets=0; CVN.nCrew=0; CVN.nTugs=0; CVN.wake={children:[]};
-const seaGeo=new THREE.PlaneGeometry(12000,15000,24,32); seaGeo.rotateX(-Math.PI/2);
+const seaGeo=new THREE.PlaneGeometry(320000,320000,12,12); seaGeo.rotateX(-Math.PI/2);
 const seaMat=new THREE.ShaderMaterial({
   uniforms:{uTime:{value:0},uSun:{value:new THREE.Vector3(.45,.22,-.35)}},
   vertexShader:`uniform float uTime; varying vec3 vW; varying vec3 vN;
-    void main(){vec3 p=position;
-      float wx=p.x*0.018+uTime*0.65, wz=p.z*0.015-uTime*0.42;
-      p.y+=sin(wx)*0.42+sin(wz)*0.32;
+    void main(){vec4 w=modelMatrix*vec4(position,1.0);
+      float wx=w.x*0.018+uTime*0.65, wz=w.z*0.015-uTime*0.42;
+      w.y+=sin(wx)*0.42+sin(wz)*0.32;
       vN=normalize(vec3(-cos(wx)*0.018*0.42,1.0,-cos(wz)*0.015*0.32));
-      vec4 w=modelMatrix*vec4(p,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w;}`,
+      vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w;}`,
   fragmentShader:`uniform vec3 uSun; varying vec3 vW; varying vec3 vN;
     void main(){vec3 n=normalize(vN); vec3 v=normalize(cameraPosition-vW); vec3 s=normalize(uSun);
       float fres=pow(1.0-max(dot(n,v),0.0),3.2);
@@ -544,7 +545,7 @@ function armBones(root){const names=['upper_armL','forearmL','handL','upper_armR
 function setBone(pack,n,dx,dy,dz){const b=pack.rig[n],r=pack.rest[n]; if(!b||!r)return; b.rotation.set(r.x+dx,r.y+dy,r.z+dz)}
 function armsDown(pack){setBone(pack,'upper_armL',0,0,1.35); setBone(pack,'upper_armR',0,0,-1.35); setBone(pack,'forearmL',0,0,.25); setBone(pack,'forearmR',0,0,-.25)}
 function loadDeck(){if(CVN._loading||CVN._ready)return; CVN._loading=1;
- import('./vendor/jsm/loaders/GLTFLoader.js?v=17x29').then(({GLTFLoader})=>{
+ import('./vendor/jsm/loaders/GLTFLoader.js?v=17x30').then(({GLTFLoader})=>{
   const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   const get=url=>new Promise((res,rej)=>loader.load(url,res,undefined,rej));
   Promise.all(['carrier','f15','crew','tractor','heli'].map(k=>get('models/deck/'+k+'.glb'))).then(([ship,jetM,crewM,tugM,heliM])=>{
@@ -635,7 +636,7 @@ function flyClimb(rdt){
  // Soft settle: the first take-off cannot hit the water. If they never pull up,
  // the nose eases into a shallow climb and the warning stays until they do.
  if(S.pos.y<floor){S.pos.y=floor; S.pitch=Math.max(S.pitch,.08)}
- if(S.pos.z<3600){const g=H(S.pos.x,S.pos.z)+45; if(S.pos.y<g){S.pos.y=g; if(S.pitch<.08)S.pitch=.08}}
+ if(S.pos.z<3600){const g=groundY(S.pos.x,S.pos.z)+45; if(S.pos.y<g){S.pos.y=g; if(S.pitch<.08)S.pitch=.08}}
  if(inp.y<-0.22)S.to.pulled=1;
 }
 function enterMission(){
@@ -1521,7 +1522,7 @@ function ensureBanditMesh(){if(banditMesh)return banditMesh; const g=new THREE.G
  const fin=new THREE.Mesh(new THREE.BoxGeometry(.22,2.2,1.6),camo); fin.position.set(0,1.2,5.2);
  const stripe=new THREE.Mesh(new THREE.BoxGeometry(.3,1.7,.4), new THREE.MeshStandardMaterial({color:0xc42828,roughness:.4,emissive:0x5a1414,emissiveIntensity:.4})); stripe.position.set(0,1.35,5.55);
  ace.add(body,wing,fin,stripe); g.add(ace); scene.add(g); banditMesh=g;
- import('./vendor/jsm/loaders/GLTFLoader.js?v=17x29').then(({GLTFLoader})=>{ const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+ import('./vendor/jsm/loaders/GLTFLoader.js?v=17x30').then(({GLTFLoader})=>{ const loader=new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
   loader.load('models/deck/f15.glb', gl=>{ const hold=g.getObjectByName('hold'); if(hold)hold.visible=false; const m=gl.scene; m.rotation.y=Math.PI; m.traverse(o=>{ if(!o.isMesh)return; const n=o.name||''; if(/Landing_Gear|Tires/i.test(n)){o.visible=false; return} o.castShadow=true; o.receiveShadow=true; const mats=[].concat(o.material||[]); mats.forEach(mt=>{ if(mt&&mt.isMeshStandardMaterial){mt.envMapIntensity=Math.max(mt.envMapIntensity||1,1.35); mt.roughness=Math.min(mt.roughness??.45,.48); mt.emissive=mt.emissive||new THREE.Color(); mt.emissive.setHex(0x2a3138); mt.emissiveIntensity=.45} }); }); g.add(m);
    const glowMat=c=>new THREE.SpriteMaterial({map:glowTex,color:c,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,fog:false});
    const abL=new THREE.Sprite(glowMat(0xff6a1a)); abL.position.set(1.15,1.95,-9.3); abL.scale.set(3.2,1.4,1); const abR=new THREE.Sprite(glowMat(0xff6a1a)); abR.position.set(-1.15,1.95,-9.3); abR.scale.set(3.2,1.4,1); m.add(abL,abR);
@@ -1575,7 +1576,7 @@ function campStory(n){const m=Math.max(1,Math.min(8,n|0));
  ];
  return lines[m-1]}
 function dressCampaign(s){s.fuelK=1; s.aaaK=1; s.samK=1; const m=s.campN|0; if(s.fromUrl||m<3)return;
- if(m>=4)s.aaaK=0.82; if(m>=7)s.aaaK=0.7; if(m>=6)s.samK=0.85;
+ if(m>=3)s.aaaK=0.9; if(m>=4)s.aaaK=0.82; if(m>=7)s.aaaK=0.7; if(m>=6)s.samK=0.85;
  if(m>=4&&!s.ace){s.ace=true; s.aceHome=m>=7} else if(m>=7&&s.ace)s.aceHome=true;
  if(m>=5)s.fuelK=1.08; if(m>=8)s.fuelK=1.14;
  if(m>=8&&s.time==='day')s.time='night'; else if(m>=6&&s.time==='day'&&s.sky==='clear')s.time='dusk';
@@ -2171,7 +2172,7 @@ function nearBoat(){return !!(S&&S.home&&boatDist()<8000)}
 function updHome(rdt){if(!S||!S.home||S.dead||S.trapped)return;
  if(carrier)carrier.visible=true;
  const wet=openSea(S.pos.x,S.pos.z);
- const seaOn=wet||(boatDist()<7000&&S.pos.x>1200);
+ const seaOn=wet||(boatDist()<7000&&S.pos.x>1200)||valleyHit(S.pos.x,S.pos.z)==null;
  if(CVN.sea)CVN.sea.visible=seaOn; if(CVN.wakeMesh)CVN.wakeMesh.visible=seaOn; if(CVN.lights)CVN.lights.visible=seaOn; if(CVN.gates)CVN.gates.visible=seaOn;
  if(window.__tmesh)window.__tmesh.visible=!wet;
  if(window.__farBits)window.__farBits.forEach(o=>{o.visible=!wet});
@@ -2221,14 +2222,14 @@ function update(rdt){
  if(S.descendCue&&(S.pos.y<980||S.pos.z<180))S.descendCue=0;
  S.gunCD=Math.max(0,S.gunCD-rdt);S.gunSnd=Math.max(0,S.gunSnd-rdt);if(gunDown&&!S.cine)fireCannon();
  if(window.__holdAgl!=null&&!S.dead){S.thr=1; S.pitch=0; S.roll=0; S.pos.y=groundY(S.pos.x,S.pos.z)+window.__holdAgl}
- {const gy=groundY(S.pos.x,S.pos.z), ny=groundY(S.pos.x+fwd.x*14,S.pos.z+fwd.z*14); const floor=Math.max(gy,ny); S.ground=floor; S.hAnalytic=H(S.pos.x,S.pos.z);
+ {const ga=valleyHit(S.pos.x,S.pos.z), gb=valleyHit(S.pos.x+fwd.x*14,S.pos.z+fwd.z*14); const gy=ga==null?0:ga, ny=gb==null?0:gb; const floor=Math.max(gy,ny); S.ground=floor; S.hAnalytic=H(S.pos.x,S.pos.z); S._water=ga==null&&gb==null; if(S._water&&CVN.sea&&!S.home)CVN.sea.visible=true;
   if(S.cine)S.pos.y=Math.max(S.pos.y,floor+70);
   const agl=S.pos.y-floor; S.agl=agl; S.spd=spd;
   if((S.refuelSafe||0)>0)S.refuelSafe=Math.max(0,S.refuelSafe-rdt);
   if(agl<40&&(S.refuelSafe||0)>0)S.pos.y=Math.max(S.pos.y,floor+80);
   if(tankerMesh&&tankerMesh.visible&&!S.dead){const yawT=tankerMesh.rotation.y, dx=S.pos.x-tankerMesh.position.x, dz=S.pos.z-tankerMesh.position.z, along=dx*Math.sin(yawT)+dz*Math.cos(yawT), side=dx*Math.cos(yawT)-dz*Math.sin(yawT); const body=Math.abs(along)<62&&Math.abs(side)<14&&Math.abs(S.pos.y-tankerMesh.position.y)<10; if(body){ if((S.refuelSafe||0)>0||(S.tanker&&(S.tanker.lock==='hold'||S.tanker.lock==='done'||S.tanker.lock==='arm'))){S.pos.x+=Math.sin(yawT)*12; S.pos.z+=Math.cos(yawT)*12; S.pos.y-=3} else die('COLLIDED WITH TANKER','FUSELAGE') }}
   if(S.home&&!S.trapped&&!S.cine&&inWaveZone()&&S.pos.y<18){S.pos.y=Math.max(S.pos.y,16); if((S.pitch||0)<0.04)S.pitch=0.06; markGo()}
-  if(agl<1.6){ if(S.reattack&&S.pitch>-0.05){S.pos.y=Math.max(S.pos.y,floor+40); if(S.pitch<0.1)S.pitch=0.1; if(!S._climb||S.t-S._climb>2.4){S._climb=S.t; msg('CLIMB — TURN')}} else if(S.safe||(S.refuelSafe||0)>0){S.pos.y=floor+80; if(!S._pull||S.t-S._pull>2.5){S._pull=S.t; msg('PULL UP')}} else return die('TERRAIN','AGL '+Math.max(0,agl).toFixed(1)+' M · GROUND '+Math.round(floor)+' · HEIGHT FIELD '+Math.round(S.hAnalytic)) } }
+  if(agl<1.6){ if(S.reattack&&S.pitch>-0.05){S.pos.y=Math.max(S.pos.y,floor+40); if(S.pitch<0.1)S.pitch=0.1; if(!S._climb||S.t-S._climb>2.4){S._climb=S.t; msg('CLIMB — TURN')}} else if(S.safe||(S.refuelSafe||0)>0){S.pos.y=floor+80; if(!S._pull||S.t-S._pull>2.5){S._pull=S.t; msg('PULL UP')}} else if(S._water) return die('DITCH','SEA'); else return die('TERRAIN','AGL '+Math.max(0,agl).toFixed(1)+' M · GROUND '+Math.round(floor)+' · HEIGHT FIELD '+Math.round(S.hAnalytic)) } }
  if(!S.dead&&targetMeshUp()&&!S.bomb&&(S.phase==='ingress'||S.phase==='release')&&S.fuelDone&&S.pos.z<BUNK.z-700){if(!S.reattack){S.reattack=1; msg('RE-ATTACK'); S.msgT=2.6}}
  updHug(dt,rdt);
  if(S&&(S._lockArm||0)>0){S._lockArm-=rdt; if(S._lockArm>0)lockDown=true}
@@ -2317,7 +2318,7 @@ const hud=$('hud'),hx=hud.getContext('2d');let W=0,Hh=0,dpr=1;
 function resize(){const vv=window.visualViewport; const scale=vv&&vv.scale?vv.scale:1; const w=(scale>1.02?innerWidth:(vv&&vv.width))||hud.clientWidth||innerWidth; const h=(scale>1.02?innerHeight:(vv&&vv.height))||hud.clientHeight||innerHeight; W=Math.max(2,w); Hh=Math.max(2,h); dpr=Math.min(devicePixelRatio||1, PHONE?1:1.5); R.setSize(W,Hh,false); composer.setPixelRatio(PR*renderScale); composer.setSize(W,Hh); bloom.resolution.set(W/(MOB?4:2),Hh/(MOB?4:2)); hud.width=Math.round(W*dpr); hud.height=Math.round(Hh*dpr); cam.aspect=W/Hh; cam.updateProjectionMatrix()}
 addEventListener('resize',resize);resize();
 function render(){jet.position.copy(S.pos);sun.target.position.copy(S.pos);sun.position.copy(S.pos).addScaledVector(SUN,900);jet.rotation.set(S.pitch,S.yaw,S.roll);const tt=performance.now()/1000;jet.userData.core.material.color.setRGB(.12+S.thr*.25,.05+S.thr*.06,.02);jet.userData.sh.material.uniforms.t.value=tt;jet.userData.sh.material.uniforms.a.value=takingOff()?Math.min(1,.25+S.thr*1.1):.4+S.thr;
- if(CVN.sea&&CVN.sea.visible){CVN.sea.material.uniforms.uTime.value=tt; CVN.sea.material.uniforms.uSun.value.copy(SUN)}
+ if(CVN.sea&&CVN.sea.visible){CVN.sea.position.x=cam.position.x; CVN.sea.position.z=cam.position.z; CVN.sea.material.uniforms.uTime.value=tt; CVN.sea.material.uniforms.uSun.value.copy(SUN)}
  if(tgtGlow){const live=targetMeshUp()&&!takingOff(); tgtGlow.visible=tgtBeam.visible=live; if(live){const p=.6+.4*Math.sin(tt*2.4); tgtGlow.scale.setScalar((NIGHT_ON?40:28)+(NIGHT_ON?18:14)*p); tgtGlow.material.opacity=(NIGHT_ON?.45:.28)+(NIGHT_ON?.4:.35)*p; tgtBeam.material.opacity=.12+.2*p; tgtBeam.scale.y=.85+.15*p}}
  if(window.__stars&&window.__stars.visible) window.__stars.position.copy(cam.position); if(window.__starsBright&&window.__starsBright.visible) window.__starsBright.position.copy(cam.position);
  // Bomb-cam only after a short settle so first-frame compile can't hang on an empty view; jet stays visible in scene
