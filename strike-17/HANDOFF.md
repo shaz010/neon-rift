@@ -5,6 +5,12 @@ Branch: `strike-17`. Pages folder: `/strike-17/` only.
 
 `/strike-16/` stays frozen at `s16 · 16n`. Do not touch `main`, the `gh-pages` root, or any other folder, including `/strike-15/` and `/strike-16/`.
 
+## s17 · 17x30 — the ocean has no edge
+
+The sea was a fixed rectangle, so a turn showed its corner. Off that rectangle the height field was still a ridge, so a jet over the water could die as if it had hit land. The water now stays under the camera, past the far plane, and a miss on the valley mesh is the sea. A real impact on that water is a ditch. The valley floor is unchanged.
+
+Stamp `s17 · 17x30`.
+
 ## s17 · 17x29 — the campaign
 
 Iron Veil is told on the brief. Eight missions, then the push holds. The first two fly like 17x28. Later the flak comes a little sooner, the SAM batteries can shoot again a little sooner after the same warning, Raven is in the fight, the weather closes, and the fuel clock after the strike runs a little faster. The tanker, the lock, the cue, the SIX warning, the re-attack, the way home, and the landing are the same. A trap opens the next mission. Reset campaign on the start card puts it back to mission 1. Practice is not part of it.
@@ -451,4 +457,4 @@ Every bot working on this project, and any new bot Shahbaz creates, follows the 
 
 Save the assignment explicitly and never infer the job from the bot's name. Keep a dated checkpoint with the goal, the scope, where the work lives, the latest verified build, what is finished, what is running, what is untested, the next step, and protected items or blockers. Update that checkpoint after deliveries and direction changes, and mark older ones superseded. If unsure, recover from the checkpoint, the chat history, and the real project files before important actions, and ask if it is still unclear. Saved notes never authorize sending, publishing, spending, or resuming paused work.
 
-Current project checkpoint: DEEP STRIKE s17 · 17x29. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Each full mission is a different seed. After the target, follow the arrow out of the valley, over the open sea, and trap on the carrier. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`.
+Current project checkpoint: DEEP STRIKE s17 · 17x30. The sky is still the Poly Haven Alps Field photograph. After the tank is full and you leave the basket, the combat buttons come back, and the seconds right after CLEARED are safe. Each full mission is a different seed. After the target, follow the arrow out of the valley, over the open sea, and trap on the carrier. Pages folder `/strike-17/` only. `/strike-16/` stays `s16 · 16n`.
