@@ -1,0 +1,287 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D517E0010000000000000011 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D517E0010000000000000004 /* AppDelegate.swift */; };
+		D517E0010000000000000012 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D517E0010000000000000005 /* GameViewController.swift */; };
+		D517E0010000000000000013 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D517E0010000000000000007 /* Assets.xcassets */; };
+		D517E0010000000000000014 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D517E0010000000000000008 /* PrivacyInfo.xcprivacy */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		D517E0010000000000000003 /* deepstrike.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = deepstrike.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D517E0010000000000000004 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		D517E0010000000000000005 /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewController.swift; sourceTree = "<group>"; };
+		D517E0010000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D517E0010000000000000007 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D517E0010000000000000008 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D517E0010000000000000033 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D517E0010000000000000021 = {
+			isa = PBXGroup;
+			children = (
+				D517E0010000000000000023 /* deepstrike */,
+				D517E0010000000000000022 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D517E0010000000000000022 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D517E0010000000000000003 /* deepstrike.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D517E0010000000000000023 /* deepstrike */ = {
+			isa = PBXGroup;
+			children = (
+				D517E0010000000000000004 /* AppDelegate.swift */,
+				D517E0010000000000000005 /* GameViewController.swift */,
+				D517E0010000000000000006 /* Info.plist */,
+				D517E0010000000000000008 /* PrivacyInfo.xcprivacy */,
+				D517E0010000000000000007 /* Assets.xcassets */,
+			);
+			path = deepstrike;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D517E0010000000000000002 /* deepstrike */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D517E0010000000000000052 /* Build configuration list for PBXNativeTarget "deepstrike" */;
+			buildPhases = (
+				D517E0010000000000000031 /* Sources */,
+				D517E0010000000000000033 /* Frameworks */,
+				D517E0010000000000000032 /* Resources */,
+				D517E0010000000000000034 /* Copy web game */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = deepstrike;
+			productName = deepstrike;
+			productReference = D517E0010000000000000003 /* deepstrike.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D517E0010000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
+				ORGANIZATIONNAME = shaz010;
+				TargetAttributes = {
+					D517E0010000000000000002 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = D517E0010000000000000051 /* Build configuration list for PBXProject "deepstrike" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D517E0010000000000000021;
+			productRefGroup = D517E0010000000000000022 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D517E0010000000000000002 /* deepstrike */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D517E0010000000000000032 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D517E0010000000000000013 /* Assets.xcassets in Resources */,
+				D517E0010000000000000014 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		D517E0010000000000000034 /* Copy web game */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Copy web game";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "sh \"${SRCROOT}/copy-web.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D517E0010000000000000031 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D517E0010000000000000011 /* AppDelegate.swift in Sources */,
+				D517E0010000000000000012 /* GameViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		D517E0010000000000000041 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D517E0010000000000000042 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D517E0010000000000000043 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = deepstrike/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "DEEP STRIKE";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shaz010.deepstrike;
+				PRODUCT_NAME = deepstrike;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D517E0010000000000000044 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = deepstrike/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "DEEP STRIKE";
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shaz010.deepstrike;
+				PRODUCT_NAME = deepstrike;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D517E0010000000000000051 /* Build configuration list for PBXProject "deepstrike" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D517E0010000000000000041 /* Debug */,
+				D517E0010000000000000042 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D517E0010000000000000052 /* Build configuration list for PBXNativeTarget "deepstrike" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D517E0010000000000000043 /* Debug */,
+				D517E0010000000000000044 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D517E0010000000000000001 /* Project object */;
+}
